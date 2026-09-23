@@ -12,6 +12,7 @@ import { Warehouse, Plus, Thermometer, ArrowRightLeft } from "lucide-react";
 
 export default function Camaras() {
   const [chambers, setChambers] = useState([]);
+  const [locations, setLocations] = useState([]);
   const [pallets, setPallets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -23,12 +24,14 @@ export default function Camaras() {
   async function refresh() {
     setLoading(true);
     try {
-      const [c, p] = await Promise.all([
-        base44.entities.Location.filter({ type: "camara" }),
+      const [locs, p] = await Promise.all([
+        base44.entities.Location.list(),
         base44.entities.Pallet.list(),
       ]);
-      setChambers(c || []);
+      setLocations(locs || []);
+      setChambers((locs || []).filter(l => l.type === "camara"));
       setPallets(p || []);
+      setActiveChamber(prev => prev ? (locs || []).find(x => x.id === prev.id) || prev : prev);
     } catch (e) { console.error(e); } finally { setLoading(false); }
   }
 
@@ -47,8 +50,9 @@ export default function Camaras() {
     setError(`Código no reconocido: ${code}`);
   }
 
-  async function loadPalletIntoChamber(chamber, pallet) {
+  async function loadPalletIntoChamber(chamberRef, pallet) {
     setError("");
+    const chamber = chambers.find(x => x.id === chamberRef.id) || chamberRef;
     if (pallet.status === "en_camara") { setError(`El pallet ${pallet.romaneo_number} ya está en una cámara`); return; }
     if (pallet.status === "retenido" || pallet.status === "despachado") { setError(`El pallet ${pallet.romaneo_number} no se puede ingresar (${pallet.status})`); return; }
     if ((chamber.occupied || 0) >= (chamber.capacity || 0)) { setError(`La cámara ${chamber.name} está llena`); return; }
@@ -60,7 +64,7 @@ export default function Camaras() {
       });
       await base44.entities.Location.update(chamber.id, { occupied: (chamber.occupied || 0) + 1 });
       if (prevLoc) {
-        const prev = chambers.find(c => c.id === prevLoc);
+        const prev = locations.find(c => c.id === prevLoc);
         if (prev) await base44.entities.Location.update(prevLoc, { occupied: Math.max(0, (prev.occupied || 0) - 1) });
       }
       await base44.entities.MovementEvent.create({

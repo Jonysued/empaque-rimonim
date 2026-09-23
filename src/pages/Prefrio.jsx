@@ -32,6 +32,7 @@ export default function Prefrio() {
       setTunnels(t || []);
       setPallets(p || []);
       setCycles(c || []);
+      setActiveTunnel(prev => (prev ? (t || []).find(x => x.id === prev.id) || prev : prev));
     } catch (e) { console.error(e); } finally { setLoading(false); }
   }
 
@@ -60,8 +61,9 @@ export default function Prefrio() {
     setError(`Código no reconocido: ${code}`);
   }
 
-  async function loadPalletIntoTunnel(tunnel, pallet) {
+  async function loadPalletIntoTunnel(tunnelRef, pallet) {
     setError("");
+    const tunnel = tunnels.find(x => x.id === tunnelRef.id) || tunnelRef;
     if (pallet.status === "en_tunel") { setError(`El pallet ${pallet.romaneo_number} ya está en un túnel`); return; }
     if (pallet.held || pallet.status === "retenido") { setError(`El pallet ${pallet.romaneo_number} está retenido`); return; }
     if ((tunnel.occupied || 0) >= (tunnel.capacity || 0)) { setError(`El túnel ${tunnel.name} está lleno`); return; }
