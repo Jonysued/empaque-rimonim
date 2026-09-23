@@ -77,6 +77,10 @@
       ],
       "default": "armado"
     },
+    "previous_status": {
+      "type": "string",
+      "description": "Estado previo antes de entrar al t\u00fanel (para restaurar si se libera sin enfriar)"
+    },
     "location_id": {
       "type": "string"
     },

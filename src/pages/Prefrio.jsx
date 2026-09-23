@@ -71,6 +71,7 @@ export default function Prefrio() {
       // Actualizar pallet
       await base44.entities.Pallet.update(pallet.id, {
         status: "en_tunel",
+        previous_status: pallet.status,
         location_id: tunnel.id, location_name: tunnel.name,
       });
       // Agregar al ciclo solo si hay un enfriado en curso
@@ -102,7 +103,12 @@ export default function Prefrio() {
       return;
     }
     try {
-      await base44.entities.Pallet.update(pallet.id, { status: "liberado" });
+      const wasCooled = cycles.some(c =>
+        c.tunnel_id === tunnel.id && c.status === "cerrado" &&
+        (c.pallet_ids || []).includes(pallet.id)
+      );
+      const newStatus = wasCooled ? "liberado" : (pallet.previous_status || "cerrado");
+      await base44.entities.Pallet.update(pallet.id, { status: newStatus });
       await base44.entities.Location.update(tunnel.id, { occupied: Math.max(0, (tunnel.occupied || 0) - 1) });
       await base44.entities.MovementEvent.create({
         event_code: generateCode("MOV"),
