@@ -82,7 +82,6 @@ export default function Prefrio() {
       await base44.entities.Pallet.update(pallet.id, {
         status: "en_tunel",
         location_id: tunnel.id, location_name: tunnel.name,
-        tunnel_entry_time: now,
       });
       // Actualizar ciclo
       await base44.entities.CoolingCycle.update(cycle.id, {
@@ -106,7 +105,7 @@ export default function Prefrio() {
     const tunnel = tunnels.find(t => t.id === pallet.location_id);
     if (!tunnel) return;
     try {
-      await base44.entities.Pallet.update(pallet.id, { status: "liberado", tunnel_exit_time: new Date().toISOString() });
+      await base44.entities.Pallet.update(pallet.id, { status: "liberado" });
       await base44.entities.Location.update(tunnel.id, { occupied: Math.max(0, (tunnel.occupied || 0) - 1) });
       await base44.entities.MovementEvent.create({
         event_code: generateCode("MOV"),
@@ -163,11 +162,6 @@ export default function Prefrio() {
             const cap = t.capacity || 0;
             const pct = cap ? Math.round(occ / cap * 100) : 0;
             const tunnelPallets = pallets.filter(p => p.location_id === t.id && p.status === "en_tunel");
-            const releasedPallets = pallets
-              .filter(p => p.location_id === t.id && p.status === "liberado")
-              .sort((a, b) => (b.tunnel_exit_time || "").localeCompare(a.tunnel_exit_time || ""))
-              .slice(0, 3);
-            const fmtTime = d => d ? new Date(d).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—";
             return (
               <Card key={t.id} className={pct >= 100 ? "border-red-300" : ""}>
                 <CardHeader className="pb-2">
@@ -189,24 +183,10 @@ export default function Prefrio() {
                     <div className="space-y-1 pt-1 border-t">
                       {tunnelPallets.map(p => (
                         <div key={p.id} className="flex items-center justify-between text-xs">
-                          <div>
-                            <span className="font-mono">{p.romaneo_number}</span>
-                            <p className="text-[10px] text-muted-foreground">Ingresado {fmtTime(p.tunnel_entry_time)}</p>
-                          </div>
+                          <span className="font-mono">{p.romaneo_number}</span>
                           <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => releasePallet(p)}>
                             <CheckCircle2 className="w-3 h-3 mr-1" /> Liberar
                           </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {releasedPallets.length > 0 && (
-                    <div className="space-y-1 pt-1 border-t">
-                      <p className="text-[10px] text-muted-foreground">Liberados</p>
-                      {releasedPallets.map(p => (
-                        <div key={p.id} className="flex items-center justify-between text-xs text-muted-foreground">
-                          <span className="font-mono">{p.romaneo_number}</span>
-                          <span>{fmtTime(p.tunnel_entry_time)} → {fmtTime(p.tunnel_exit_time)}</span>
                         </div>
                       ))}
                     </div>
