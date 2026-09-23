@@ -34,7 +34,7 @@ const LABELS = {
   descartado: "Descartado",
   abierta: "Abierta",
   cerrada: "Cerrada",
-  armado: "En armado",
+  armado: "Terminado",
   parcial: "Parcial",
   en_tunel: "En túnel",
   en_camara: "En cámara",
