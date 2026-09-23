@@ -97,6 +97,10 @@ export default function Prefrio() {
   async function releasePallet(pallet) {
     const tunnel = tunnels.find(t => t.id === pallet.location_id);
     if (!tunnel) return;
+    if (cycles.some(c => c.tunnel_id === tunnel.id && c.status === "abierto")) {
+      setError(`El pallet ${pallet.romaneo_number} está retenido hasta finalizar el enfriado del túnel ${tunnel.name}`);
+      return;
+    }
     try {
       await base44.entities.Pallet.update(pallet.id, { status: "liberado" });
       await base44.entities.Location.update(tunnel.id, { occupied: Math.max(0, (tunnel.occupied || 0) - 1) });
@@ -221,9 +225,13 @@ export default function Prefrio() {
                       {tunnelPallets.map(p => (
                         <div key={p.id} className="flex items-center justify-between text-xs">
                           <span className="font-mono">{p.romaneo_number}</span>
-                          <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => releasePallet(p)}>
-                            <CheckCircle2 className="w-3 h-3 mr-1" /> Liberar
-                          </Button>
+                          {openCycle ? (
+                            <span className="text-[10px] text-cyan-700">Retenido</span>
+                          ) : (
+                            <Button size="sm" variant="ghost" className="h-6 px-2 text-xs" onClick={() => releasePallet(p)}>
+                              <CheckCircle2 className="w-3 h-3 mr-1" /> Liberar
+                            </Button>
+                          )}
                         </div>
                       ))}
                     </div>
