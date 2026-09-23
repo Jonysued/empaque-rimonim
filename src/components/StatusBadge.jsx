@@ -49,9 +49,9 @@ const LABELS = {
   libre: "Libre",
 };
 
-export default function StatusBadge({ status, className }) {
+export default function StatusBadge({ status, className, label: customLabel }) {
   const color = STATUS_COLORS[status] || "bg-gray-100 text-gray-700";
-  const label = LABELS[status] || status;
+  const label = customLabel || LABELS[status] || status;
   return (
     <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", color, className)}>
       {label}

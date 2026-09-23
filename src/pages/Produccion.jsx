@@ -25,6 +25,19 @@ const PALLET_STATUSES = [
   { value: "liberado", label: "Liberado" },
 ];
 
+// Abreviaturas de estación donde se encuentra el pallet
+const STATION_ABBREV = {
+  armado: "PROD",
+  parcial: "PROD",
+  cerrado: "PROD",
+  en_tunel: "TÚN",
+  en_camara: "CÁM",
+  reservado: "DESP",
+  despachado: "ENV",
+  retenido: "CAL",
+  liberado: "LIB",
+};
+
 export default function Produccion() {
   const [pallets, setPallets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -102,7 +115,7 @@ export default function Produccion() {
                           <TableCell>{p.producer || "—"}</TableCell>
                           <TableCell className="text-right">{fmtKg(p.net_weight)}</TableCell>
                           <TableCell className="text-right">{p.package_count || 0}</TableCell>
-                          <TableCell><StatusBadge status={p.status} /></TableCell>
+                          <TableCell><StatusBadge status={p.status} label={STATION_ABBREV[p.status] || p.status} /></TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
