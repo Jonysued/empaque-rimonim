@@ -104,5 +104,89 @@
     "romaneo_number",
     "product_type",
     "net_weight"
-  ]
+  ],
+  "rls": {
+    "create": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "produccion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "frio"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "despacho"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "calidad"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "supervisor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "produccion"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "frio"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "despacho"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "calidad"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "supervisor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "user_condition": {
+            "role": "supervisor"
+          }
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
 }

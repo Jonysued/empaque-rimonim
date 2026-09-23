@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
+import { canAccess, roleLabel } from "@/lib/permissions";
 import {
   LayoutDashboard, PackageOpen, Repeat, Factory, Snowflake,
-  Warehouse, Truck, Search, Settings, Menu, X, ScanLine
+  Warehouse, Truck, Search, Settings, Menu, X, ScanLine, Users
 } from "lucide-react";
 
 const NAV = [
@@ -17,6 +18,7 @@ const NAV = [
   { to: "/despachos", label: "Despachos", icon: Truck },
   { to: "/trazabilidad", label: "Trazabilidad", icon: Search },
   { to: "/catalogos", label: "Catálogos", icon: Settings },
+  { to: "/usuarios", label: "Usuarios", icon: Users },
 ];
 
 export default function Layout() {
@@ -46,7 +48,7 @@ export default function Layout() {
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {NAV.map(item => {
+          {NAV.filter(item => canAccess(user?.role || "user", item.to)).map(item => {
             const active = location.pathname === item.to;
             const Icon = item.icon;
             return (
@@ -68,7 +70,7 @@ export default function Layout() {
           <p className="text-xs text-muted-foreground truncate">
             {user?.email || "Sin sesión"}
           </p>
-          <p className="text-[11px] text-muted-foreground">Rol: {user?.role || "—"}</p>
+          <p className="text-[11px] text-muted-foreground">Rol: {roleLabel(user?.role)}</p>
         </div>
       </aside>
 
@@ -93,7 +95,7 @@ export default function Layout() {
               <button onClick={() => setSidebarOpen(false)} className="p-2 -mr-2"><X className="w-5 h-5" /></button>
             </div>
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-              {NAV.map(item => {
+              {NAV.filter(item => canAccess(user?.role || "user", item.to)).map(item => {
                 const active = location.pathname === item.to;
                 const Icon = item.icon;
                 return (

@@ -16,6 +16,8 @@ import Camaras from '@/pages/Camaras';
 import Despachos from '@/pages/Despachos';
 import Trazabilidad from '@/pages/Trazabilidad';
 import Catalogos from '@/pages/Catalogos';
+import Usuarios from '@/pages/Usuarios';
+import RouteGuard from '@/components/RouteGuard';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -46,14 +48,15 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />
-        <Route path="/recepcion" element={<Recepcion />} />
-        <Route path="/vuelco" element={<Vuelco />} />
-        <Route path="/produccion" element={<Produccion />} />
-        <Route path="/prefrio" element={<Prefrio />} />
-        <Route path="/camaras" element={<Camaras />} />
-        <Route path="/despachos" element={<Despachos />} />
+        <Route path="/recepcion" element={<RouteGuard><Recepcion /></RouteGuard>} />
+        <Route path="/vuelco" element={<RouteGuard><Vuelco /></RouteGuard>} />
+        <Route path="/produccion" element={<RouteGuard><Produccion /></RouteGuard>} />
+        <Route path="/prefrio" element={<RouteGuard><Prefrio /></RouteGuard>} />
+        <Route path="/camaras" element={<RouteGuard><Camaras /></RouteGuard>} />
+        <Route path="/despachos" element={<RouteGuard><Despachos /></RouteGuard>} />
         <Route path="/trazabilidad" element={<Trazabilidad />} />
-        <Route path="/catalogos" element={<Catalogos />} />
+        <Route path="/catalogos" element={<RouteGuard><Catalogos /></RouteGuard>} />
+        <Route path="/usuarios" element={<RouteGuard><Usuarios /></RouteGuard>} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
