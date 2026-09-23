@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { generateCode, fmtKg, fmtDate } from "@/lib/qr";
+import { syncOccupancy } from "@/lib/occupancy";
 import QRScanner from "@/components/QRScanner";
 import StatusBadge from "@/components/StatusBadge";
 import LocationQR from "@/components/LocationQR";
@@ -81,8 +82,8 @@ export default function Prefrio() {
           pallet_ids: [...(cycle.pallet_ids || []), pallet.id],
         });
       }
-      // Actualizar ocupación del túnel
-      await base44.entities.Location.update(tunnel.id, { occupied: (tunnel.occupied || 0) + 1 });
+      // Actualizar ocupación del túnel (recalculada desde la base)
+      await syncOccupancy(tunnel.id);
       // Movimiento
       await base44.entities.MovementEvent.create({
         event_code: generateCode("MOV"),
@@ -108,7 +109,7 @@ export default function Prefrio() {
         { id: pallet.id },
         { $set: { status: newStatus }, $unset: { location_id: "", location_name: "" } }
       );
-      await base44.entities.Location.update(tunnel.id, { occupied: Math.max(0, (tunnel.occupied || 0) - 1) });
+      await syncOccupancy(tunnel.id);
       await base44.entities.MovementEvent.create({
         event_code: generateCode("MOV"),
         unit_type: "pallet", unit_id: pallet.id, unit_code: pallet.pallet_code,
@@ -155,7 +156,7 @@ export default function Prefrio() {
           { $set: { status: "prefrio_finalizado" }, $unset: { location_id: "", location_name: "" } }
         );
         if (released.length > 0) {
-          await base44.entities.Location.update(tunnel.id, { occupied: Math.max(0, (tunnel.occupied || 0) - released.length) });
+          await syncOccupancy(tunnel.id);
           await base44.entities.MovementEvent.bulkCreate(released.map(p => ({
             event_code: generateCode("MOV"),
             unit_type: "pallet", unit_id: p.id, unit_code: p.pallet_code,

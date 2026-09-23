@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { generateCode, fmtKg, fmtDate } from "@/lib/qr";
+import { syncOccupancy } from "@/lib/occupancy";
 import QRScanner from "@/components/QRScanner";
 import StatusBadge from "@/components/StatusBadge";
 import LocationQR from "@/components/LocationQR";
@@ -62,11 +63,8 @@ export default function Camaras() {
         status: "en_camara",
         location_id: chamber.id, location_name: chamber.name,
       });
-      await base44.entities.Location.update(chamber.id, { occupied: (chamber.occupied || 0) + 1 });
-      if (prevLoc) {
-        const prev = locations.find(c => c.id === prevLoc);
-        if (prev) await base44.entities.Location.update(prevLoc, { occupied: Math.max(0, (prev.occupied || 0) - 1) });
-      }
+      await syncOccupancy(chamber.id);
+      if (prevLoc && prevLoc !== chamber.id) await syncOccupancy(prevLoc);
       await base44.entities.MovementEvent.create({
         event_code: generateCode("MOV"),
         unit_type: "pallet", unit_id: pallet.id, unit_code: pallet.pallet_code,
@@ -81,9 +79,12 @@ export default function Camaras() {
 
   async function removePallet(pallet) {
     try {
-      await base44.entities.Pallet.update(pallet.id, { status: "liberado", location_id: "", location_name: "" });
-      const chamber = chambers.find(c => c.id === pallet.location_id);
-      if (chamber) await base44.entities.Location.update(chamber.id, { occupied: Math.max(0, (chamber.occupied || 0) - 1) });
+      const chamberId = pallet.location_id;
+      await base44.entities.Pallet.updateMany(
+        { id: pallet.id },
+        { $set: { status: "liberado" }, $unset: { location_id: "", location_name: "" } }
+      );
+      if (chamberId) await syncOccupancy(chamberId);
       await base44.entities.MovementEvent.create({
         event_code: generateCode("MOV"),
         unit_type: "pallet", unit_id: pallet.id, unit_code: pallet.pallet_code,
