@@ -1,12 +1,77 @@
-import { createClient } from '@base44/sdk';
-import { appParams } from '@/lib/app-params';
-
-const { appId, token, functionsVersion, appBaseUrl } = appParams;
-
-export const base44 = createClient({
-  appId,
-  token,
-  functionsVersion,
-  serverUrl: '',
-  appBaseUrl
+import { createClient } from '@supabase/supabase-js';
+const url = import.meta.env.VITE_SUPABASE_URL;
+const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+export const supabase = createClient(url || 'https://placeholder.supabase.co', key || 'placeholder', {
+  auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
 });
+const requireConfigured = () => { if (!url || !key) throw new Error('Configurá VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY'); };
+function unwrap({ data, error }) { if (error) throw error; return data; }
+async function rows(entity) {
+  const all=[];
+  for(let offset=0; ; offset+=1000) {
+    const batch=unwrap(await supabase.from('records').select('id,data,created_date').eq('entity',entity).order('created_date',{ascending:true}).order('id',{ascending:true}).range(offset,offset+999));
+    all.push(...batch);
+    if(batch.length<1000) return all;
+  }
+}
+const flatten = (record) => ({ ...record.data, id: record.id, created_date: record.created_date });
+const entityClient = (entity) => ({
+  async list(order = '-created_date', limit) {
+    requireConfigured();
+    if (entity === 'User') return unwrap(await supabase.from('profiles').select('id,email,full_name,role')).map(x => ({ ...x, name:x.full_name }));
+    // JSON fields cannot be ordered dynamically through PostgREST; sort after retrieval.
+    const data = await rows(entity);
+    const field = order.replace(/^-/, '');
+    const sign = order.startsWith('-') ? -1 : 1;
+    const sorted = data.map(flatten).sort((a,b) => String(a[field] ?? '').localeCompare(String(b[field] ?? '')) * sign);
+    return limit ? sorted.slice(0,limit) : sorted;
+  },
+  async filter(query) { return (await this.list()).filter(row => Object.entries(query).every(([k,v]) => row[k] === v)); },
+  async get(id) { const data = unwrap(await supabase.from('records').select('id,data,created_date').eq('entity',entity).eq('id',id).single()); return flatten(data); },
+  async create(record) {
+    const id = crypto.randomUUID();
+    const data = unwrap(await supabase.from('records').insert({entity,id,data:{...record,id}}).select('id,data,created_date').single());
+    return flatten(data);
+  },
+  async bulkCreate(records) {
+    if (!records.length) return [];
+    const data = unwrap(await supabase.from('records').insert(records.map(record=>{const id=crypto.randomUUID();return {entity,id,data:{...record,id}}})).select('id,data,created_date'));
+    return data.map(flatten);
+  },
+  async update(id, patch) {
+    if(entity==='User') { const data=unwrap(await supabase.from('profiles').update({role:patch.role}).eq('id',id).select().single()); return data; }
+    const data=unwrap(await supabase.rpc('patch_record',{p_entity:entity,p_id:id,p_patch:patch,p_unset:[]}));
+    return flatten(data);
+  },
+  async bulkUpdate(records) { return Promise.all(records.map(({id,...patch}) => this.update(id,patch))); },
+  async updateMany(query, patch) {
+    const data=unwrap(await supabase.rpc('patch_records',{p_entity:entity,p_query:query,p_patch:patch.$set||patch,p_unset:Object.keys(patch.$unset||{})}));
+    return data.map(flatten);
+  },
+  async delete(id) { unwrap(await supabase.from('records').delete().eq('entity',entity).eq('id',id)); },
+});
+const profile = async () => {
+  const {data:{user},error} = await supabase.auth.getUser();
+  if(error || !user) throw Object.assign(new Error('Iniciá sesión'),{status:401});
+  const p=unwrap(await supabase.from('profiles').select('*').eq('id',user.id).single());
+  return {...p, name:p.full_name};
+};
+export const base44 = {
+  app: {getPublicSettings: async()=>({id:'empaque-rimonim',public_settings:{}})},
+  auth: {
+    me: profile,
+    isAuthenticated: async()=>!!(await supabase.auth.getSession()).data.session,
+    async loginViaEmailPassword(email,password) { requireConfigured(); unwrap(await supabase.auth.signInWithPassword({email,password})); return profile(); },
+    loginWithProvider: async (_provider,returnTo='/')=>{ requireConfigured(); unwrap(await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:new URL(returnTo,location.origin).href}})); },
+    logout: async(returnTo)=>{ unwrap(await supabase.auth.signOut()); if(returnTo) location.assign('/login'); },
+    redirectToLogin: ()=>location.assign('/login'),
+    async register({email,password}) { requireConfigured(); return unwrap(await supabase.auth.signUp({email,password,options:{emailRedirectTo:location.origin}})); },
+    async verifyOtp({email,otpCode}) { const data=unwrap(await supabase.auth.verifyOtp({email,token:otpCode,type:'email'})); return {access_token:data.session?.access_token}; },
+    setToken:()=>{},
+    resendOtp: email=>supabase.auth.resend({type:'signup',email}).then(unwrap),
+    resetPasswordRequest: email=>supabase.auth.resetPasswordForEmail(email,{redirectTo:`${location.origin}/reset-password`}).then(unwrap),
+    resetPassword: ({newPassword})=>supabase.auth.updateUser({password:newPassword}).then(unwrap),
+  },
+  users: {async inviteUser(email,role) { const session=unwrap(await supabase.auth.getSession()).session; const response=await fetch('/api/invite',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session?.access_token}`},body:JSON.stringify({email,role})}); const body=await response.json(); if(!response.ok) throw new Error(body.error||'No se pudo invitar'); return body; }},
+  entities: new Proxy({}, {get:(_target,name)=>entityClient(name)}),
+};
