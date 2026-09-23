@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { fmtKg, fmtDate } from "@/lib/qr";
 import QRScanner from "@/components/QRScanner";
 import StatusBadge from "@/components/StatusBadge";
+import MovementTimeline from "@/components/MovementTimeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -148,6 +149,7 @@ function TraceResult({ result, allData }) {
           {run && <EntityBlock icon={Package} title="Corrida de producción" code={run.run_code} data={[
             ["Línea", run.line], ["Turno", run.shift], ["Fecha", fmtDate(run.date)]
           ]} />}
+          <MovementTimeline movements={allData.movements.filter(m => m.unit_type === "pallet" && m.unit_id === entity.id)} />
           <TraceSection icon={Repeat} title="Vuelcos (lotes que alimentaron la corrida)" items={dumps} render={d => ({
             code: d.dump_code, rows: [
               ["Kilos", fmtKg(d.net_weight)], ["Lote", d.receipt_lot_code], ["Fecha", fmtDate(d.dump_date)]
