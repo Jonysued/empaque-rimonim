@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import rimonimLogo from "@/rimonim-logo.svg";
 import { base44 } from "@/api/base44Client";
 import { Link } from "react-router-dom";
 import { fmtKg, fmtNum } from "@/lib/qr";
@@ -88,7 +87,6 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <img src={rimonimLogo} alt="Rimonim" className="w-56 max-w-full h-auto rounded-md mb-5" />
         <h1 className="text-2xl font-heading font-bold">Inicio del empaque</h1>
         <p className="text-muted-foreground">Visión general de la operación de empaque</p>
       </div>
