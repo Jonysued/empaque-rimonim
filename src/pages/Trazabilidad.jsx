@@ -145,6 +145,7 @@ function TraceResult({ result, allData }) {
             ["Código", entity.pallet_code], ["Producto", entity.product_type === "fresco" ? "Fresco" : "Arilos"],
             ["Neto", fmtKg(entity.net_weight)], ["Bultos", String(entity.package_count || 0)],
             ["Estado", entity.status], ["Ubicación", entity.location_name || "—"],
+            ["Creado", entity.created_date ? new Date(entity.created_date).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" }) : "—"],
           ]} />
           {run && <EntityBlock icon={Package} title="Corrida de producción" code={run.run_code} data={[
             ["Línea", run.line], ["Turno", run.shift], ["Fecha", fmtDate(run.date)]
