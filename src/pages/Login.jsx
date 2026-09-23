@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,17 +40,6 @@ export default function Login() {
       icon={LogIn}
       title="Bienvenido de nuevo"
       subtitle="Iniciá sesión en tu cuenta"
-      footer={
-        <>
-          ¿No tenés cuenta?{" "}
-          <Link
-            to={"/register" + (returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "")}
-            className="text-primary font-medium hover:underline"
-          >
-            Creá una
-          </Link>
-        </>
-      }
     >
       <Button
         variant="outline"
