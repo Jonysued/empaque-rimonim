@@ -23,15 +23,15 @@ const PALLET_STATUSES = [
   { value: "despachado", label: "Despachado" },
 ];
 
-// Abreviaturas de estación donde se encuentra el pallet
+// Etiqueta de estación donde se encuentra el pallet
 const STATION_ABBREV = {
-  armado: "PROD",
-  parcial: "PROD",
-  cerrado: "PROD",
-  en_tunel: "TÚN",
-  en_camara: "CÁM",
-  reservado: "DESP",
-  despachado: "ENV",
+  armado: "En producción",
+  parcial: "En producción",
+  cerrado: "En producción",
+  en_tunel: "En túnel",
+  en_camara: "En cámara",
+  reservado: "Para despacho",
+  despachado: "Enviado",
 };
 
 export default function Produccion() {
