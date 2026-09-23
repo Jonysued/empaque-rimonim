@@ -21,8 +21,6 @@ const PALLET_STATUSES = [
   { value: "en_camara", label: "En cámara" },
   { value: "reservado", label: "Reservado" },
   { value: "despachado", label: "Despachado" },
-  { value: "retenido", label: "Retenido" },
-  { value: "liberado", label: "Liberado" },
 ];
 
 // Abreviaturas de estación donde se encuentra el pallet
@@ -34,8 +32,6 @@ const STATION_ABBREV = {
   en_camara: "CÁM",
   reservado: "DESP",
   despachado: "ENV",
-  retenido: "CAL",
-  liberado: "LIB",
 };
 
 export default function Produccion() {
