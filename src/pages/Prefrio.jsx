@@ -68,27 +68,18 @@ export default function Prefrio() {
     if (pallet.held || pallet.status === "retenido") { setError(`El pallet ${pallet.romaneo_number} está retenido`); return; }
     if ((tunnel.occupied || 0) >= (tunnel.capacity || 0)) { setError(`El túnel ${tunnel.name} está lleno`); return; }
     try {
-      // Buscar ciclo abierto del túnel o crear uno
-      let cycle = cycles.find(c => c.tunnel_id === tunnel.id && c.status === "abierto");
-      const now = new Date().toISOString();
-      if (!cycle) {
-        cycle = await base44.entities.CoolingCycle.create({
-          cycle_code: generateCode("CIC"),
-          tunnel_id: tunnel.id, tunnel_name: tunnel.name,
-          start_time: now, reference_hours: 15,
-          status: "abierto", pallet_ids: [],
-          target_temp: tunnel.target_temp || 0, initial_temp: 0,
-        });
-      }
       // Actualizar pallet
       await base44.entities.Pallet.update(pallet.id, {
         status: "en_tunel",
         location_id: tunnel.id, location_name: tunnel.name,
       });
-      // Actualizar ciclo
-      await base44.entities.CoolingCycle.update(cycle.id, {
-        pallet_ids: [...(cycle.pallet_ids || []), pallet.id],
-      });
+      // Agregar al ciclo solo si hay un enfriado en curso
+      const cycle = cycles.find(c => c.tunnel_id === tunnel.id && c.status === "abierto");
+      if (cycle) {
+        await base44.entities.CoolingCycle.update(cycle.id, {
+          pallet_ids: [...(cycle.pallet_ids || []), pallet.id],
+        });
+      }
       // Actualizar ocupación del túnel
       await base44.entities.Location.update(tunnel.id, { occupied: (tunnel.occupied || 0) + 1 });
       // Movimiento
@@ -126,11 +117,12 @@ export default function Prefrio() {
       return;
     }
     try {
+      const inTunnel = pallets.filter(p => p.location_id === tunnel.id && p.status === "en_tunel").map(p => p.id);
       await base44.entities.CoolingCycle.create({
         cycle_code: generateCode("CIC"),
         tunnel_id: tunnel.id, tunnel_name: tunnel.name,
         start_time: new Date().toISOString(), reference_hours: 15,
-        status: "abierto", pallet_ids: [],
+        status: "abierto", pallet_ids: inTunnel,
         target_temp: tunnel.target_temp || 0, initial_temp: 0,
       });
       refresh();
