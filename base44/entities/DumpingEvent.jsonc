@@ -13,7 +13,8 @@
       "type": "string"
     },
     "production_run_id": {
-      "type": "string"
+      "type": "string",
+      "description": "Opcional: corrida asociada (no requerido en el flujo simple)"
     },
     "production_run_code": {
       "type": "string"
@@ -55,7 +56,6 @@
   "required": [
     "dump_code",
     "receipt_lot_id",
-    "production_run_id",
     "dump_date",
     "net_weight"
   ],
