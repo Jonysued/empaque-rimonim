@@ -37,7 +37,7 @@ const STATION_ABBREV = {
 export default function Produccion() {
   const [pallets, setPallets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [showPallet, setShowPallet] = useState(false);
+  const [formPallet, setFormPallet] = useState(null); // null | "new" | pallet a editar
   const [selectedPallet, setSelectedPallet] = useState(null);
   const [cats, setCats] = useState({});
   const [statusFilter, setStatusFilter] = useState("todos");
@@ -65,7 +65,7 @@ export default function Produccion() {
           <p className="text-muted-foreground">Clasificación y pallets</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setShowPallet(true)}><Package className="w-4 h-4 mr-1" /> Nuevo pallet</Button>
+          <Button onClick={() => setFormPallet("new")}><Package className="w-4 h-4 mr-1" /> Nuevo pallet</Button>
         </div>
       </div>
 
@@ -123,14 +123,32 @@ export default function Produccion() {
         </div>
       )}
 
-      {showPallet && <PalletForm cats={cats} onClose={() => setShowPallet(false)} onSaved={() => { setShowPallet(false); refresh(); }} />}
-      {selectedPallet && <PalletDetail pallet={selectedPallet} onClose={() => setSelectedPallet(null)} />}
+      {formPallet && <PalletForm cats={cats} pallet={formPallet === "new" ? null : formPallet} onClose={() => setFormPallet(null)} onSaved={() => { setFormPallet(null); refresh(); }} />}
+      {selectedPallet && <PalletDetail
+        pallet={selectedPallet}
+        onClose={() => setSelectedPallet(null)}
+        onEdit={() => { const p = selectedPallet; setSelectedPallet(null); setFormPallet(p); }}
+        onDelete={async () => {
+          if (!window.confirm(`¿Eliminar el pallet ${selectedPallet.romaneo_number}?`)) return;
+          try {
+            await base44.entities.Pallet.delete(selectedPallet.id);
+            setSelectedPallet(null);
+            refresh();
+          } catch (e) { alert(e.message || "No se pudo eliminar el pallet"); }
+        }}
+      />}
     </div>
   );
 }
 
-function PalletForm({ cats, onClose, onSaved }) {
-  const [form, setForm] = useState({
+function PalletForm({ cats, onClose, onSaved, pallet }) {
+  const [form, setForm] = useState(() => pallet ? {
+    product_type: pallet.product_type || "fresco", variety: pallet.variety || "",
+    producer: pallet.producer || "", category: pallet.category || "",
+    calibre: pallet.calibre || "", brand: pallet.brand || "", package_type: pallet.package_type || "",
+    package_count: pallet.package_count ?? "", gross_weight: pallet.gross_weight ?? "",
+    tare_weight: pallet.tare_weight ?? "", net_weight: pallet.net_weight ?? "",
+  } : {
     product_type: "fresco", variety: "", producer: "",
     category: "", calibre: "", brand: "", package_type: "", package_count: "",
     pallet_type: "Euro", gross_weight: "", tare_weight: "", net_weight: "",
@@ -146,24 +164,32 @@ function PalletForm({ cats, onClose, onSaved }) {
     if (!form.net_weight || Number(form.net_weight) <= 0) return setError("Ingrese peso neto");
     setSaving(true);
     try {
-      const code = generateCode("PAL");
-      // Romaneo: contar pallets existentes + 1
-      const existing = await base44.entities.Pallet.list();
-      const romaneo = generateRomaneoNumber((existing || []).length + 1);
       const net = Number(form.net_weight);
-      await base44.entities.Pallet.create({
+      const payload = {
         ...form,
-        pallet_code: code,
-        romaneo_number: romaneo,
         package_count: Number(form.package_count) || 0,
         gross_weight: Number(form.gross_weight) || 0,
         tare_weight: Number(form.tare_weight) || 0,
         net_weight: net,
         avg_box_weight: Number(form.package_count) > 0 ? Math.round(net / Number(form.package_count) * 100) / 100 : 0,
-        status: "armado",
-        composition_estimated: true,
-        origin_lots: [],
-      });
+      };
+      if (pallet) {
+        await base44.entities.Pallet.update(pallet.id, payload);
+      } else {
+        const code = generateCode("PAL");
+        // Romaneo: contar pallets existentes + 1
+        const existing = await base44.entities.Pallet.list();
+        const romaneo = generateRomaneoNumber((existing || []).length + 1);
+        await base44.entities.Pallet.create({
+          ...payload,
+          pallet_code: code,
+          romaneo_number: romaneo,
+          pallet_type: "Euro",
+          status: "armado",
+          composition_estimated: true,
+          origin_lots: [],
+        });
+      }
       onSaved();
     } catch (e) { setError(e.message || "Error"); setSaving(false); }
   }
@@ -173,7 +199,7 @@ function PalletForm({ cats, onClose, onSaved }) {
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Nuevo pallet / romaneo</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{pallet ? `Editar pallet ${pallet.romaneo_number}` : "Nuevo pallet / romaneo"}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           {error && <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{error}</p>}
           <div className="grid grid-cols-2 gap-3">
@@ -234,7 +260,7 @@ function PalletForm({ cats, onClose, onSaved }) {
           </div>
           <div className="flex gap-2 justify-end pt-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Creando…" : "Crear pallet"}</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Guardando…" : pallet ? "Guardar cambios" : "Crear pallet"}</Button>
           </div>
         </form>
       </DialogContent>
@@ -242,7 +268,7 @@ function PalletForm({ cats, onClose, onSaved }) {
   );
 }
 
-function PalletDetail({ pallet, onClose }) {
+function PalletDetail({ pallet, onClose, onEdit, onDelete }) {
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
@@ -264,7 +290,11 @@ function PalletDetail({ pallet, onClose }) {
             <Info label="Bruto" value={fmtKg(pallet.gross_weight)} />
             <Info label="Estado" value={pallet.status} />
           </div>
-          <PrintRomaneo pallet={pallet} />
+          <div className="flex gap-2">
+            <PrintRomaneo pallet={pallet} />
+            <Button variant="outline" className="flex-1" onClick={onEdit}>Editar</Button>
+            <Button variant="destructive" onClick={onDelete}>Eliminar</Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
