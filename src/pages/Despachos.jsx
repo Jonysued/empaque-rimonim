@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { generateCode, fmtKg, fmtDate, fmtNum } from "@/lib/qr";
 import { loadCatalog } from "@/lib/catalogs";
+import { loadPalletsIntoShipment, AVAILABLE_FOR_SHIPMENT } from "@/lib/shipments";
+import { Checkbox } from "@/components/ui/checkbox";
 import QRScanner from "@/components/QRScanner";
 import QRLabel from "@/components/QRLabel";
 import StatusBadge from "@/components/StatusBadge";
@@ -81,23 +83,35 @@ export default function Despachos() {
         </div>
       )}
 
-      {showForm && <ShipmentForm cats={cats} onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); refresh(); }} />}
+      {showForm && <ShipmentForm cats={cats} pallets={pallets} onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); refresh(); }} />}
       {selected && <ShipmentDetail shipment={selected} pallets={pallets} onClose={() => setSelected(null)} onChanged={refresh} />}
     </div>
   );
 }
 
-function ShipmentForm({ cats, onClose, onSaved }) {
+function ShipmentForm({ cats, pallets, onClose, onSaved }) {
   const [form, setForm] = useState({ load_number: "", client: "", destination: "", product_type: "fresco", target_capacity: 21, carrier: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
+  const capacity = Number(form.target_capacity) || 21;
+  const available = (pallets || []).filter(p => AVAILABLE_FOR_SHIPMENT.includes(p.status) && p.product_type === form.product_type);
+
+  function togglePallet(id, checked) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (checked) { if (next.size >= capacity) return prev; next.add(id); } else { next.delete(id); }
+      return next;
+    });
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.load_number) return setError("Número de carga obligatorio");
     setSaving(true);
     try {
-      await base44.entities.Shipment.create({
+      const created = await base44.entities.Shipment.create({
         ...form,
         shipment_code: generateCode("DSP"),
         date: new Date().toISOString(),
@@ -106,13 +120,15 @@ function ShipmentForm({ cats, onClose, onSaved }) {
         reserved_pallet_ids: [], loaded_pallet_ids: [],
         total_weight: 0, total_packages: 0,
       });
+      const selected = available.filter(p => selectedIds.has(p.id)).slice(0, capacity);
+      if (selected.length > 0) await loadPalletsIntoShipment(created, selected);
       onSaved();
     } catch (e) { setError(e.message || "Error"); setSaving(false); }
   }
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-xl">
         <DialogHeader><DialogTitle>Nueva carga / despacho</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           {error && <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{error}</p>}
@@ -128,7 +144,7 @@ function ShipmentForm({ cats, onClose, onSaved }) {
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Producto</Label>
-              <Select value={form.product_type} onValueChange={v => setForm(f => ({ ...f, product_type: v }))}>
+              <Select value={form.product_type} onValueChange={v => { setForm(f => ({ ...f, product_type: v })); setSelectedIds(new Set()); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="fresco">Fresco</SelectItem><SelectItem value="arilos">Arilos</SelectItem></SelectContent>
               </Select>
@@ -136,6 +152,24 @@ function ShipmentForm({ cats, onClose, onSaved }) {
             <div className="space-y-1"><Label className="text-xs">Capacidad objetivo</Label><Input type="number" value={form.target_capacity} onChange={e => setForm(f => ({ ...f, target_capacity: e.target.value }))} /></div>
           </div>
           <div className="space-y-1"><Label className="text-xs">Transportista</Label><Input value={form.carrier} onChange={e => setForm(f => ({ ...f, carrier: e.target.value }))} /></div>
+          <div className="space-y-2">
+            <Label className="text-xs">Pallets disponibles ({available.length})</Label>
+            {available.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No hay pallets liberados del prefrio o cámaras para este producto.</p>
+            ) : (
+              <div className="max-h-48 overflow-y-auto border rounded-md divide-y">
+                {available.map(p => (
+                  <label key={p.id} className="flex items-center gap-3 p-2 text-sm cursor-pointer hover:bg-accent">
+                    <Checkbox checked={selectedIds.has(p.id)} onCheckedChange={v => togglePallet(p.id, v)} />
+                    <span className="font-mono font-medium">{p.romaneo_number}</span>
+                    <StatusBadge status={p.status} />
+                    <span className="ml-auto text-muted-foreground">{fmtKg(p.net_weight)} · {p.package_count || 0} bultos</span>
+                  </label>
+                ))}
+              </div>
+            )}
+            <p className="text-xs text-muted-foreground">Selección: {selectedIds.size}/{capacity} pallets.</p>
+          </div>
           <div className="flex gap-2 justify-end pt-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
             <Button type="submit" disabled={saving}>{saving ? "Creando…" : "Crear carga"}</Button>
@@ -170,20 +204,7 @@ function ShipmentDetail({ shipment, pallets, onClose, onChanged }) {
     if ((shipment.loaded_pallet_ids || []).includes(pallet.id)) { setError("El pallet ya está cargado"); return; }
     if ((shipment.loaded_pallet_ids || []).length >= (shipment.target_capacity || 21)) { setError("Capacidad de carga alcanzada"); return; }
     try {
-      const loaded = [...(shipment.loaded_pallet_ids || []), pallet.id];
-      const totalWeight = (shipment.total_weight || 0) + (pallet.net_weight || 0);
-      const totalPackages = (shipment.total_packages || 0) + (pallet.package_count || 0);
-      await base44.entities.Shipment.update(shipment.id, {
-        loaded_pallet_ids: loaded, total_weight: totalWeight, total_packages: totalPackages,
-        status: loaded.length > 0 ? "cargado" : "borrador",
-      });
-      await base44.entities.Pallet.update(pallet.id, { status: "despachado", shipment_id: shipment.id });
-      await base44.entities.MovementEvent.create({
-        event_code: generateCode("MOV"),
-        unit_type: "pallet", unit_id: pallet.id, unit_code: pallet.pallet_code,
-        destination_location_id: shipment.id, destination_location_name: shipment.load_number,
-        action: "carga_despacho",
-      });
+      await loadPalletsIntoShipment(shipment, [pallet]);
       onChanged();
     } catch (e) { setError(e.message || "Error"); }
   }
