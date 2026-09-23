@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { generateCode, fmtKg, fmtDate } from "@/lib/qr";
 import QRScanner from "@/components/QRScanner";
 import StatusBadge from "@/components/StatusBadge";
+import LocationQR from "@/components/LocationQR";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -173,7 +174,10 @@ export default function Prefrio() {
                   <div className="w-full bg-muted rounded-full h-2"><div className="bg-cyan-500 h-2 rounded-full" style={{ width: `${pct}%` }} /></div>
                   <div className="text-xs space-y-1">
                     {t.setpoint_temp != null && <p className="flex items-center gap-1"><Thermometer className="w-3 h-3" /> Setpoint: {t.setpoint_temp}°C</p>}
-                    <p className="font-mono text-[10px] text-muted-foreground">{t.location_code}</p>
+                    <div className="flex items-center justify-between">
+                      <p className="font-mono text-[10px] text-muted-foreground">{t.location_code}</p>
+                      <LocationQR location={t} />
+                    </div>
                   </div>
                   {tunnelPallets.length > 0 && (
                     <div className="space-y-1 pt-1 border-t">

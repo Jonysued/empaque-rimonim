@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { generateCode, fmtKg, fmtDate } from "@/lib/qr";
 import QRScanner from "@/components/QRScanner";
 import StatusBadge from "@/components/StatusBadge";
+import LocationQR from "@/components/LocationQR";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -144,7 +145,10 @@ export default function Camaras() {
                 <CardContent className="space-y-2">
                   <div className="w-full bg-muted rounded-full h-2"><div className="bg-indigo-500 h-2 rounded-full" style={{ width: `${pct}%` }} /></div>
                   {c.setpoint_temp != null && <p className="text-xs flex items-center gap-1"><Thermometer className="w-3 h-3" /> Setpoint: {c.setpoint_temp}°C · Humedad: {c.humidity || "—"}%</p>}
-                  <p className="font-mono text-[10px] text-muted-foreground">{c.location_code}</p>
+                  <div className="flex items-center justify-between">
+                    <p className="font-mono text-[10px] text-muted-foreground">{c.location_code}</p>
+                    <LocationQR location={c} />
+                  </div>
                   {chamberPallets.length > 0 && (
                     <div className="space-y-1 pt-1 border-t max-h-40 overflow-y-auto">
                       {chamberPallets.map(p => (
