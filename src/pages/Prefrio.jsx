@@ -104,7 +104,7 @@ export default function Prefrio() {
     }
     try {
       const newStatus = pallet.status === "prefrio_finalizado" ? "prefrio_finalizado" : (pallet.previous_status || "cerrado");
-      await base44.entities.Pallet.update(pallet.id, { status: newStatus });
+      await base44.entities.Pallet.update(pallet.id, { status: newStatus, location_id: "", location_name: "" });
       await base44.entities.Location.update(tunnel.id, { occupied: Math.max(0, (tunnel.occupied || 0) - 1) });
       await base44.entities.MovementEvent.create({
         event_code: generateCode("MOV"),
@@ -146,7 +146,19 @@ export default function Prefrio() {
       });
       const cyclePalletIds = open.pallet_ids || [];
       if (cyclePalletIds.length > 0) {
-        await base44.entities.Pallet.bulkUpdate(cyclePalletIds.map(id => ({ id, status: "prefrio_finalizado" })));
+        const released = pallets.filter(p => cyclePalletIds.includes(p.id) && p.location_id === tunnel.id);
+        await base44.entities.Pallet.bulkUpdate(cyclePalletIds.map(id => ({
+          id, status: "prefrio_finalizado", location_id: "", location_name: "",
+        })));
+        if (released.length > 0) {
+          await base44.entities.Location.update(tunnel.id, { occupied: Math.max(0, (tunnel.occupied || 0) - released.length) });
+          await base44.entities.MovementEvent.bulkCreate(released.map(p => ({
+            event_code: generateCode("MOV"),
+            unit_type: "pallet", unit_id: p.id, unit_code: p.pallet_code,
+            origin_location_id: tunnel.id, origin_location_name: tunnel.name,
+            action: "liberacion_tunel",
+          })));
+        }
       }
       refresh();
     } catch (e) { setError(e.message || "Error al finalizar enfriado"); }
