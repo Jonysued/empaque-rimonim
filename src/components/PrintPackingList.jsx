@@ -85,7 +85,7 @@ export default function PrintPackingList({ shipment, pallets }) {
   }
 
   return (
-    <Button type="button" variant="outline" onClick={print} className="w-full">
+    <Button type="button" size="lg" onClick={print} className="w-full">
       <Printer className="w-4 h-4 mr-2" /> Imprimir packing list
     </Button>
   );

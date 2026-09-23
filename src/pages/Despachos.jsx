@@ -230,6 +230,7 @@ function ShipmentDetail({ shipment, pallets, onClose, onChanged }) {
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Carga {shipment.load_number}</DialogTitle></DialogHeader>
+          <PrintPackingList shipment={shipment} pallets={loadedPallets} />
         <div className="space-y-4">
           <div className="flex justify-center"><QRLabel code={shipment.shipment_code} title="Despacho" subtitle={shipment.load_number} /></div>
           <div className="grid grid-cols-2 gap-2 text-sm">
@@ -240,7 +241,6 @@ function ShipmentDetail({ shipment, pallets, onClose, onChanged }) {
             <Info label="Pallets cargados" value={`${loadedPallets.length}/${shipment.target_capacity || 21}`} />
             <Info label="Peso total" value={fmtKg(shipment.total_weight)} />
           </div>
-          <PrintPackingList shipment={shipment} pallets={loadedPallets} />
 
           {/* Datos de carga */}
           <div className="border-t pt-3 space-y-2">
