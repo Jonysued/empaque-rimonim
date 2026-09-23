@@ -1,10 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
+import jsQR from "jsqr";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScanLine, Keyboard, X, Camera } from "lucide-react";
+import { ScanLine, Keyboard, X } from "lucide-react";
 
 /**
- * Escáner QR: usa BarcodeDetector nativo si está disponible, con fallback a entrada manual.
+ * Escáner QR: usa el decodificador nativo si el navegador lo soporta,
+ * y si no (iPhone/Safari/Chrome iOS) decodifica por software con jsQR.
+ * Fallback a entrada manual si la cámara no está disponible.
  * Props: onScan(code), label
  */
 export default function QRScanner({ onScan, label = "Escanear QR" }) {
@@ -12,15 +15,12 @@ export default function QRScanner({ onScan, label = "Escanear QR" }) {
   const [manual, setManual] = useState(false);
   const [code, setCode] = useState("");
   const [error, setError] = useState("");
-  const [supported, setSupported] = useState(false);
   const videoRef = useRef(null);
   const detectorRef = useRef(null);
   const rafRef = useRef(null);
   const streamRef = useRef(null);
-
-  useEffect(() => {
-    setSupported(typeof window !== "undefined" && "BarcodeDetector" in window);
-  }, []);
+  const canvasRef = useRef(null);
+  const ctxRef = useRef(null);
 
   useEffect(() => {
     if (!scanning) return;
@@ -28,15 +28,18 @@ export default function QRScanner({ onScan, label = "Escanear QR" }) {
 
     async function start() {
       try {
-        if (!("BarcodeDetector" in window)) {
-          setError("La cámara QR no está disponible en este navegador. Use entrada manual.");
-          setManual(true);
-          return;
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          throw new Error("camera_unavailable");
         }
-        // @ts-ignore
-        detectorRef.current = new window.BarcodeDetector({ formats: ["qr_code"] });
+        if ("BarcodeDetector" in window) {
+          // @ts-ignore
+          detectorRef.current = new window.BarcodeDetector({ formats: ["qr_code"] });
+        } else {
+          canvasRef.current = document.createElement("canvas");
+          ctxRef.current = canvasRef.current.getContext("2d", { willReadFrequently: true });
+        }
         streamRef.current = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: "environment" }
+          video: { facingMode: { ideal: "environment" } }
         });
         if (cancelled) {
           streamRef.current.getTracks().forEach(t => t.stop());
@@ -48,19 +51,37 @@ export default function QRScanner({ onScan, label = "Escanear QR" }) {
           tick();
         }
       } catch (e) {
-        setError("No se pudo acceder a la cámara. Use entrada manual.");
+        if (cancelled) return;
+        setScanning(false);
         setManual(true);
+        setError("No se pudo acceder a la cámara. Verificá que el navegador tenga permiso de cámara. Podés ingresar el código manualmente.");
       }
     }
 
     async function tick() {
-      if (!detectorRef.current || !videoRef.current || cancelled) return;
+      if (cancelled || !videoRef.current) return;
       try {
-        const codes = await detectorRef.current.detect(videoRef.current);
-        if (codes && codes.length > 0) {
-          const val = codes[0].rawValue;
-          handleScan(val);
-          return;
+        if (detectorRef.current) {
+          const codes = await detectorRef.current.detect(videoRef.current);
+          if (codes && codes.length > 0) {
+            handleScan(codes[0].rawValue);
+            return;
+          }
+        } else if (videoRef.current.readyState >= videoRef.current.HAVE_ENOUGH_DATA) {
+          const vw = videoRef.current.videoWidth;
+          const vh = videoRef.current.videoHeight;
+          if (vw && vh) {
+            const scale = Math.min(1, 480 / Math.max(vw, vh));
+            canvasRef.current.width = Math.round(vw * scale);
+            canvasRef.current.height = Math.round(vh * scale);
+            ctxRef.current.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
+            const img = ctxRef.current.getImageData(0, 0, canvasRef.current.width, canvasRef.current.height);
+            const res = jsQR(img.data, img.width, img.height, { inversionAttempts: "dontInvert" });
+            if (res && res.data) {
+              handleScan(res.data);
+              return;
+            }
+          }
         }
       } catch (e) { /* ignore frame errors */ }
       rafRef.current = requestAnimationFrame(tick);
@@ -71,6 +92,8 @@ export default function QRScanner({ onScan, label = "Escanear QR" }) {
       cancelled = true;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
+      detectorRef.current = null;
     };
     // eslint-disable-next-line
   }, [scanning]);
@@ -111,9 +134,9 @@ export default function QRScanner({ onScan, label = "Escanear QR" }) {
           <X className="w-4 h-4" />
         </Button>
       </div>
-      {scanning && supported && (
+      {scanning && (
         <div className="relative rounded-xl overflow-hidden bg-black aspect-square">
-          <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
+          <video ref={videoRef} className="w-full h-full object-cover" playsInline muted autoPlay />
           <div className="absolute inset-8 border-2 border-white/70 rounded-xl pointer-events-none" />
         </div>
       )}
@@ -127,11 +150,6 @@ export default function QRScanner({ onScan, label = "Escanear QR" }) {
           />
           <Button type="submit">Confirmar</Button>
         </form>
-      )}
-      {!supported && scanning && (
-        <p className="text-sm text-muted-foreground flex items-center gap-2">
-          <Camera className="w-4 h-4" /> Cámara no soportada en este navegador. Use entrada manual.
-        </p>
       )}
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
