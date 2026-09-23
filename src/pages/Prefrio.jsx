@@ -119,6 +119,37 @@ export default function Prefrio() {
     } catch (e) { console.error(e); }
   }
 
+  async function startCooling(tunnel) {
+    setError("");
+    if (cycles.some(c => c.tunnel_id === tunnel.id && c.status === "abierto")) {
+      setError(`El túnel ${tunnel.name} ya tiene un enfriado en curso`);
+      return;
+    }
+    try {
+      await base44.entities.CoolingCycle.create({
+        cycle_code: generateCode("CIC"),
+        tunnel_id: tunnel.id, tunnel_name: tunnel.name,
+        start_time: new Date().toISOString(), reference_hours: 15,
+        status: "abierto", pallet_ids: [],
+        target_temp: tunnel.target_temp || 0, initial_temp: 0,
+      });
+      refresh();
+    } catch (e) { setError(e.message || "Error al iniciar enfriado"); }
+  }
+
+  async function stopCooling(tunnel) {
+    setError("");
+    const open = cycles.find(c => c.tunnel_id === tunnel.id && c.status === "abierto");
+    if (!open) { setError(`El túnel ${tunnel.name} no tiene un enfriado en curso`); return; }
+    try {
+      await base44.entities.CoolingCycle.update(open.id, {
+        status: "cerrado",
+        end_time: new Date().toISOString(),
+      });
+      refresh();
+    } catch (e) { setError(e.message || "Error al finalizar enfriado"); }
+  }
+
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-slate-200 border-t-red-600 rounded-full animate-spin" /></div>;
 
   return (
@@ -151,6 +182,8 @@ export default function Prefrio() {
         </Card>
       )}
 
+      {error && !scanMode && <p className="text-sm text-destructive">{error}</p>}
+
       {tunnels.length === 0 ? (
         <Card><CardContent className="py-16 text-center text-muted-foreground">
           <Snowflake className="w-12 h-12 mx-auto mb-3 opacity-40" />
@@ -164,6 +197,7 @@ export default function Prefrio() {
             const cap = t.capacity || 0;
             const pct = cap ? Math.round(occ / cap * 100) : 0;
             const tunnelPallets = pallets.filter(p => p.location_id === t.id && p.status === "en_tunel");
+            const openCycle = cycles.find(c => c.tunnel_id === t.id && c.status === "abierto");
             return (
               <Card key={t.id} className={pct >= 100 ? "border-red-300" : ""}>
                 <CardHeader className="pb-2">
@@ -181,6 +215,15 @@ export default function Prefrio() {
                       <LocationQR location={t} />
                     </div>
                   </div>
+                  <Button size="sm" className="w-full" variant={openCycle ? "outline" : "default"} onClick={() => openCycle ? stopCooling(t) : startCooling(t)}>
+                    <Clock className="w-3.5 h-3.5 mr-1" />
+                    {openCycle ? "Finalizar enfriado" : "Iniciar enfriado"}
+                  </Button>
+                  {openCycle && (
+                    <p className="text-[10px] text-cyan-700 text-center">
+                      Enfriado en curso desde {new Date(openCycle.start_time).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  )}
                   {tunnelPallets.length > 0 && (
                     <div className="space-y-1 pt-1 border-t">
                       {tunnelPallets.map(p => (
