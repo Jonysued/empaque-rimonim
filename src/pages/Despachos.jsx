@@ -6,6 +6,7 @@ import { loadPalletsIntoShipment, AVAILABLE_FOR_SHIPMENT } from "@/lib/shipments
 import { Checkbox } from "@/components/ui/checkbox";
 import QRScanner from "@/components/QRScanner";
 import QRLabel from "@/components/QRLabel";
+import PrintPackingList from "@/components/PrintPackingList";
 import StatusBadge from "@/components/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -239,6 +240,7 @@ function ShipmentDetail({ shipment, pallets, onClose, onChanged }) {
             <Info label="Pallets cargados" value={`${loadedPallets.length}/${shipment.target_capacity || 21}`} />
             <Info label="Peso total" value={fmtKg(shipment.total_weight)} />
           </div>
+          <PrintPackingList shipment={shipment} pallets={loadedPallets} />
 
           {/* Datos de carga */}
           <div className="border-t pt-3 space-y-2">
