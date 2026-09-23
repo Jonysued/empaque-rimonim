@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
+import rimonimLogo from "@/rimonim-logo.svg";
 import { base44 } from "@/api/base44Client";
 import { Link } from "react-router-dom";
 import { fmtKg, fmtNum } from "@/lib/qr";
-import StatusBadge from "@/components/StatusBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PackageOpen, Repeat, Factory, Snowflake, Warehouse, Truck, AlertTriangle, ScanLine } from "lucide-react";
 
@@ -88,7 +88,8 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-heading font-bold">Dashboard</h1>
+        <img src={rimonimLogo} alt="Rimonim" className="w-56 max-w-full h-auto rounded-md mb-5" />
+        <h1 className="text-2xl font-heading font-bold">Inicio del empaque</h1>
         <p className="text-muted-foreground">Visión general de la operación de empaque</p>
       </div>
 
