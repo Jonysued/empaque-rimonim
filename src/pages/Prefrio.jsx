@@ -103,11 +103,7 @@ export default function Prefrio() {
       return;
     }
     try {
-      const wasCooled = cycles.some(c =>
-        c.tunnel_id === tunnel.id && c.status === "cerrado" &&
-        (c.pallet_ids || []).includes(pallet.id)
-      );
-      const newStatus = wasCooled ? "liberado" : (pallet.previous_status || "cerrado");
+      const newStatus = pallet.status === "prefrio_finalizado" ? "prefrio_finalizado" : (pallet.previous_status || "cerrado");
       await base44.entities.Pallet.update(pallet.id, { status: newStatus });
       await base44.entities.Location.update(tunnel.id, { occupied: Math.max(0, (tunnel.occupied || 0) - 1) });
       await base44.entities.MovementEvent.create({
@@ -148,6 +144,10 @@ export default function Prefrio() {
         status: "cerrado",
         end_time: new Date().toISOString(),
       });
+      const cyclePalletIds = open.pallet_ids || [];
+      if (cyclePalletIds.length > 0) {
+        await base44.entities.Pallet.bulkUpdate(cyclePalletIds.map(id => ({ id, status: "prefrio_finalizado" })));
+      }
       refresh();
     } catch (e) { setError(e.message || "Error al finalizar enfriado"); }
   }
@@ -198,7 +198,7 @@ export default function Prefrio() {
             const occ = t.occupied || 0;
             const cap = t.capacity || 0;
             const pct = cap ? Math.round(occ / cap * 100) : 0;
-            const tunnelPallets = pallets.filter(p => p.location_id === t.id && p.status === "en_tunel");
+            const tunnelPallets = pallets.filter(p => p.location_id === t.id && ["en_tunel", "prefrio_finalizado"].includes(p.status));
             const openCycle = cycles.find(c => c.tunnel_id === t.id && c.status === "abierto");
             return (
               <Card key={t.id} className={pct >= 100 ? "border-red-300" : ""}>
