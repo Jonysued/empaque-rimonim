@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Settings, Plus, Trash2, Edit2 } from "lucide-react";
+import LocationConfig from "@/components/LocationConfig";
 
 const CATALOG_TYPES = [
   { value: "productor", label: "Productores/Propietarios" },
@@ -30,6 +31,12 @@ const CATALOG_TYPES = [
   { value: "cliente", label: "Clientes" },
 ];
 
+const CONFIG_TABS = [
+  ...CATALOG_TYPES,
+  { value: "loc_tunel", label: "Túneles de prefrío" },
+  { value: "loc_camara", label: "Cámaras de frío" },
+];
+
 export default function Catalogos() {
   const [activeType, setActiveType] = useState("productor");
   const [items, setItems] = useState([]);
@@ -38,6 +45,7 @@ export default function Catalogos() {
   const [editing, setEditing] = useState(null);
 
   async function refresh() {
+    if (activeType.startsWith("loc_")) { setLoading(false); return; }
     setLoading(true);
     try {
       const data = await base44.entities.Catalog.filter({ type: activeType });
@@ -63,7 +71,7 @@ export default function Catalogos() {
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {CATALOG_TYPES.map(t => (
+        {CONFIG_TABS.map(t => (
           <button
             key={t.value}
             onClick={() => setActiveType(t.value)}
@@ -74,9 +82,12 @@ export default function Catalogos() {
         ))}
       </div>
 
+      {activeType.startsWith("loc_") ? (
+        <LocationConfig type={activeType === "loc_tunel" ? "tunel" : "camara"} />
+      ) : (
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-base">{CATALOG_TYPES.find(t => t.value === activeType)?.label}</CardTitle>
+          <CardTitle className="text-base">{CONFIG_TABS.find(t => t.value === activeType)?.label}</CardTitle>
           <Button size="sm" onClick={() => { setEditing(null); setShowForm(true); }}><Plus className="w-4 h-4 mr-1" /> Agregar</Button>
         </CardHeader>
         <CardContent>
@@ -100,6 +111,7 @@ export default function Catalogos() {
           }
         </CardContent>
       </Card>
+      )}
 
       {showForm && <CatalogForm type={activeType} item={editing} onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); refresh(); }} />}
     </div>
