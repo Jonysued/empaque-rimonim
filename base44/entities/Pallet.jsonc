@@ -97,6 +97,16 @@
         "type": "string"
       },
       "description": "Lotes de origen vinculados"
+    },
+    "tunnel_entry_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Hora de ingreso al t\u00fanel de prefr\u00edo"
+    },
+    "tunnel_exit_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Hora de liberaci\u00f3n del t\u00fanel de prefr\u00edo"
     }
   },
   "required": [
