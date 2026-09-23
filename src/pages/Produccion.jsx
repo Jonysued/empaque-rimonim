@@ -10,7 +10,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Factory, Package } from "lucide-react";
+
+const PALLET_STATUSES = [
+  { value: "armado", label: "Terminado" },
+  { value: "parcial", label: "Parcial" },
+  { value: "cerrado", label: "Cerrado" },
+  { value: "en_tunel", label: "En túnel" },
+  { value: "en_camara", label: "En cámara" },
+  { value: "reservado", label: "Reservado" },
+  { value: "despachado", label: "Despachado" },
+  { value: "retenido", label: "Retenido" },
+  { value: "liberado", label: "Liberado" },
+];
 
 export default function Produccion() {
   const [pallets, setPallets] = useState([]);
@@ -18,6 +31,8 @@ export default function Produccion() {
   const [showPallet, setShowPallet] = useState(false);
   const [selectedPallet, setSelectedPallet] = useState(null);
   const [cats, setCats] = useState({});
+  const [statusFilter, setStatusFilter] = useState("todos");
+  const filteredPallets = statusFilter === "todos" ? pallets : pallets.filter(p => p.status === statusFilter);
 
   async function refresh() {
     setLoading(true);
@@ -51,25 +66,47 @@ export default function Produccion() {
         <div className="space-y-6">
           {/* Pallets */}
           <Card>
-            <CardHeader><CardTitle className="text-base">Pallets / Romaneos</CardTitle></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle className="text-base">Pallets / Romaneos</CardTitle>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los estados</SelectItem>
+                  {PALLET_STATUSES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </CardHeader>
             <CardContent>
-              {pallets.length === 0 ? <p className="text-sm text-muted-foreground">Sin pallets creados.</p> : (
-                <div className="space-y-2">
-                  {pallets.map(p => (
-                    <div key={p.id} className="border rounded-lg p-3 cursor-pointer hover:bg-muted" onClick={() => setSelectedPallet(p)}>
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <p className="font-bold">{p.romaneo_number}</p>
-                          <p className="text-xs font-mono">{p.pallet_code}</p>
-                          <p className="text-sm">{p.product_type === "fresco" ? "Fresco" : "Arilos"} · {p.variety || "—"} · {p.category || "—"}</p>
-                        </div>
-                        <div className="text-right">
-                          <StatusBadge status={p.status} />
-                          <p className="text-sm mt-1">{fmtKg(p.net_weight)} · {p.package_count || 0} bultos</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+              {pallets.length === 0 ? <p className="text-sm text-muted-foreground">Sin pallets creados.</p> : filteredPallets.length === 0 ? <p className="text-sm text-muted-foreground">No hay pallets con este estado.</p> : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Romaneo</TableHead>
+                        <TableHead>Código</TableHead>
+                        <TableHead>Producto</TableHead>
+                        <TableHead>Variedad</TableHead>
+                        <TableHead>Productor</TableHead>
+                        <TableHead className="text-right">Neto</TableHead>
+                        <TableHead className="text-right">Bultos</TableHead>
+                        <TableHead>Estado</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredPallets.map(p => (
+                        <TableRow key={p.id} className="cursor-pointer" onClick={() => setSelectedPallet(p)}>
+                          <TableCell className="font-bold">{p.romaneo_number}</TableCell>
+                          <TableCell className="text-xs font-mono">{p.pallet_code}</TableCell>
+                          <TableCell>{p.product_type === "fresco" ? "Fresco" : "Arilos"}</TableCell>
+                          <TableCell>{p.variety || "—"}</TableCell>
+                          <TableCell>{p.producer || "—"}</TableCell>
+                          <TableCell className="text-right">{fmtKg(p.net_weight)}</TableCell>
+                          <TableCell className="text-right">{p.package_count || 0}</TableCell>
+                          <TableCell><StatusBadge status={p.status} /></TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               )}
             </CardContent>
