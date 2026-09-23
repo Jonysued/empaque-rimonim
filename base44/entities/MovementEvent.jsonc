@@ -1,0 +1,62 @@
+{
+  "name": "MovementEvent",
+  "type": "object",
+  "properties": {
+    "event_code": {
+      "type": "string"
+    },
+    "unit_type": {
+      "type": "string",
+      "enum": [
+        "lote",
+        "bin",
+        "pallet"
+      ]
+    },
+    "unit_id": {
+      "type": "string"
+    },
+    "unit_code": {
+      "type": "string"
+    },
+    "quantity": {
+      "type": "number"
+    },
+    "origin_location_id": {
+      "type": "string"
+    },
+    "origin_location_name": {
+      "type": "string"
+    },
+    "destination_location_id": {
+      "type": "string"
+    },
+    "destination_location_name": {
+      "type": "string"
+    },
+    "action": {
+      "type": "string",
+      "enum": [
+        "vuelco",
+        "carga_tunel",
+        "liberacion_tunel",
+        "carga_camara",
+        "traslado",
+        "reserva",
+        "carga_despacho",
+        "descarga",
+        "retencion",
+        "liberacion_calidad"
+      ]
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "event_code",
+    "unit_type",
+    "unit_id",
+    "action"
+  ]
+}

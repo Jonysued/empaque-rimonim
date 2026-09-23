@@ -1,0 +1,62 @@
+{
+  "name": "DumpingEvent",
+  "type": "object",
+  "properties": {
+    "dump_code": {
+      "type": "string",
+      "description": "ID \u00fanico del evento de vuelco"
+    },
+    "receipt_lot_id": {
+      "type": "string"
+    },
+    "receipt_lot_code": {
+      "type": "string"
+    },
+    "production_run_id": {
+      "type": "string"
+    },
+    "production_run_code": {
+      "type": "string"
+    },
+    "dump_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "shift": {
+      "type": "string"
+    },
+    "line": {
+      "type": "string"
+    },
+    "bins_count": {
+      "type": "number"
+    },
+    "net_weight": {
+      "type": "number",
+      "description": "Kilos efectivamente volcados"
+    },
+    "measurement_method": {
+      "type": "string",
+      "enum": [
+        "balanza",
+        "estimada"
+      ]
+    },
+    "incidence": {
+      "type": "string"
+    },
+    "producer": {
+      "type": "string"
+    },
+    "variety": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "dump_code",
+    "receipt_lot_id",
+    "production_run_id",
+    "dump_date",
+    "net_weight"
+  ]
+}

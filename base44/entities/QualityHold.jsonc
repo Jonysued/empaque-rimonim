@@ -1,0 +1,54 @@
+{
+  "name": "QualityHold",
+  "type": "object",
+  "properties": {
+    "hold_code": {
+      "type": "string"
+    },
+    "unit_type": {
+      "type": "string",
+      "enum": [
+        "lote",
+        "bin",
+        "pallet"
+      ]
+    },
+    "unit_id": {
+      "type": "string"
+    },
+    "unit_code": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "held_by": {
+      "type": "string"
+    },
+    "held_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "released_by": {
+      "type": "string"
+    },
+    "released_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "activa",
+        "liberada"
+      ],
+      "default": "activa"
+    }
+  },
+  "required": [
+    "hold_code",
+    "unit_type",
+    "unit_id",
+    "reason"
+  ]
+}

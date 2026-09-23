@@ -1,0 +1,88 @@
+{
+  "name": "Shipment",
+  "type": "object",
+  "properties": {
+    "shipment_code": {
+      "type": "string",
+      "description": "ID \u00fanico del despacho/carga (QR)"
+    },
+    "load_number": {
+      "type": "string",
+      "description": "N\u00famero de carga"
+    },
+    "date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "client": {
+      "type": "string"
+    },
+    "destination": {
+      "type": "string"
+    },
+    "product_type": {
+      "type": "string",
+      "enum": [
+        "fresco",
+        "arilos"
+      ]
+    },
+    "target_capacity": {
+      "type": "number",
+      "default": 21,
+      "description": "Capacidad objetivo de pallets"
+    },
+    "container_number": {
+      "type": "string"
+    },
+    "carrier": {
+      "type": "string"
+    },
+    "remito": {
+      "type": "string"
+    },
+    "thermograph": {
+      "type": "string"
+    },
+    "seal": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "borrador",
+        "reservado",
+        "cargado",
+        "enviado",
+        "anulado"
+      ],
+      "default": "borrador"
+    },
+    "reserved_pallet_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "loaded_pallet_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "total_weight": {
+      "type": "number",
+      "default": 0
+    },
+    "total_packages": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "shipment_code",
+    "load_number",
+    "date",
+    "product_type"
+  ]
+}

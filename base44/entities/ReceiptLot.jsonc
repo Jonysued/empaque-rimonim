@@ -1,0 +1,120 @@
+{
+  "name": "ReceiptLot",
+  "type": "object",
+  "properties": {
+    "lot_code": {
+      "type": "string",
+      "description": "ID interno \u00fanico del lote de recepci\u00f3n (QR)"
+    },
+    "harvest_lot_code": {
+      "type": "string",
+      "description": "Lote de cosecha de referencia"
+    },
+    "harvest_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "receipt_date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "producer": {
+      "type": "string"
+    },
+    "farm": {
+      "type": "string",
+      "description": "Finca"
+    },
+    "origin": {
+      "type": "string",
+      "description": "Procedencia/cuadro"
+    },
+    "species": {
+      "type": "string",
+      "description": "Especie"
+    },
+    "variety": {
+      "type": "string"
+    },
+    "harvest_type": {
+      "type": "string"
+    },
+    "crew": {
+      "type": "string",
+      "description": "Cuadrilla"
+    },
+    "shift": {
+      "type": "string"
+    },
+    "transport": {
+      "type": "string"
+    },
+    "bins_count": {
+      "type": "number"
+    },
+    "gross_weight": {
+      "type": "number",
+      "description": "Peso bruto (kg)"
+    },
+    "tare_weight": {
+      "type": "number",
+      "description": "Tara (kg)"
+    },
+    "net_weight": {
+      "type": "number",
+      "description": "Peso neto (kg)"
+    },
+    "weighing_method": {
+      "type": "string",
+      "enum": [
+        "camion",
+        "partida",
+        "lote",
+        "balanza_individual"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "recibido",
+        "parcialmente_volcado",
+        "volcado",
+        "retenido"
+      ],
+      "default": "recibido"
+    },
+    "remaining_weight": {
+      "type": "number",
+      "description": "Saldo neto sin volcar (kg)"
+    },
+    "dumped_weight": {
+      "type": "number",
+      "description": "Acumulado volcado (kg)",
+      "default": 0
+    },
+    "location": {
+      "type": "string",
+      "description": "Ubicaci\u00f3n inicial: playa, espera, c\u00e1mara sin procesar"
+    },
+    "photos": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "quality_notes": {
+      "type": "string"
+    },
+    "held": {
+      "type": "boolean",
+      "default": false
+    }
+  },
+  "required": [
+    "lot_code",
+    "receipt_date",
+    "producer",
+    "variety",
+    "net_weight"
+  ]
+}

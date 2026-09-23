@@ -1,0 +1,62 @@
+{
+  "name": "CoolingCycle",
+  "type": "object",
+  "properties": {
+    "cycle_code": {
+      "type": "string"
+    },
+    "tunnel_id": {
+      "type": "string"
+    },
+    "tunnel_name": {
+      "type": "string"
+    },
+    "start_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "target_temp": {
+      "type": "number"
+    },
+    "initial_temp": {
+      "type": "number"
+    },
+    "final_temp": {
+      "type": "number"
+    },
+    "reference_hours": {
+      "type": "number",
+      "default": 15,
+      "description": "Ciclo de referencia en horas (no liberaci\u00f3n autom\u00e1tica)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "abierto",
+        "cerrado"
+      ],
+      "default": "abierto"
+    },
+    "pallet_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "released_by": {
+      "type": "string"
+    },
+    "incidents": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "cycle_code",
+    "tunnel_id",
+    "start_time"
+  ]
+}

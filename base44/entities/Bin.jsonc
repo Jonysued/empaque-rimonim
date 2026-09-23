@@ -1,0 +1,52 @@
+{
+  "name": "Bin",
+  "type": "object",
+  "properties": {
+    "bin_code": {
+      "type": "string",
+      "description": "ID interno \u00fanico del BIN (QR)"
+    },
+    "receipt_lot_id": {
+      "type": "string"
+    },
+    "visible_number": {
+      "type": "string",
+      "description": "N\u00famero visible (puede repetirse entre fechas)"
+    },
+    "bin_type": {
+      "type": "string"
+    },
+    "tare": {
+      "type": "number"
+    },
+    "gross_weight": {
+      "type": "number"
+    },
+    "net_weight": {
+      "type": "number"
+    },
+    "measured": {
+      "type": "boolean",
+      "default": false,
+      "description": "false = peso estimado/no medido"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "disponible",
+        "parcialmente_volcado",
+        "volcado",
+        "retenido",
+        "descartado"
+      ],
+      "default": "disponible"
+    },
+    "location": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "bin_code",
+    "receipt_lot_id"
+  ]
+}

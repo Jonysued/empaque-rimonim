@@ -1,0 +1,59 @@
+{
+  "name": "Location",
+  "type": "object",
+  "properties": {
+    "location_code": {
+      "type": "string",
+      "description": "ID \u00fanico de ubicaci\u00f3n (QR fijo)"
+    },
+    "name": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "tunel",
+        "camara",
+        "muelle",
+        "playa",
+        "espera",
+        "camara_sin_procesar"
+      ]
+    },
+    "capacity": {
+      "type": "number",
+      "description": "Capacidad en pallets"
+    },
+    "occupied": {
+      "type": "number",
+      "default": 0
+    },
+    "setpoint_temp": {
+      "type": "number",
+      "description": "Setpoint temperatura (\u00b0C)"
+    },
+    "target_temp": {
+      "type": "number"
+    },
+    "humidity": {
+      "type": "number"
+    },
+    "product_type_filter": {
+      "type": "string",
+      "description": "Filtro de producto: fresco, arilos, sin_procesar"
+    },
+    "positions": {
+      "type": "number",
+      "description": "Posiciones internas (t\u00faneles: 18 = 2 filas x 9)"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "location_code",
+    "name",
+    "type"
+  ]
+}

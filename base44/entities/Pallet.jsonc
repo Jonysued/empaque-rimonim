@@ -1,0 +1,108 @@
+{
+  "name": "Pallet",
+  "type": "object",
+  "properties": {
+    "pallet_code": {
+      "type": "string",
+      "description": "ID interno \u00fanico del pallet (QR)"
+    },
+    "romaneo_number": {
+      "type": "string",
+      "description": "N\u00famero de romaneo legible"
+    },
+    "production_run_id": {
+      "type": "string"
+    },
+    "production_run_code": {
+      "type": "string"
+    },
+    "product_type": {
+      "type": "string",
+      "enum": [
+        "fresco",
+        "arilos"
+      ]
+    },
+    "variety": {
+      "type": "string"
+    },
+    "producer": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "calibre": {
+      "type": "string"
+    },
+    "brand": {
+      "type": "string"
+    },
+    "package_type": {
+      "type": "string",
+      "description": "Tipo de caja/envase"
+    },
+    "package_count": {
+      "type": "number",
+      "description": "Cantidad de bultos"
+    },
+    "pallet_type": {
+      "type": "string"
+    },
+    "gross_weight": {
+      "type": "number"
+    },
+    "tare_weight": {
+      "type": "number"
+    },
+    "net_weight": {
+      "type": "number"
+    },
+    "avg_box_weight": {
+      "type": "number",
+      "description": "Peso promedio por caja"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "armado",
+        "parcial",
+        "cerrado",
+        "en_tunel",
+        "en_camara",
+        "reservado",
+        "despachado",
+        "retenido",
+        "liberado"
+      ],
+      "default": "armado"
+    },
+    "location_id": {
+      "type": "string"
+    },
+    "location_name": {
+      "type": "string"
+    },
+    "shipment_id": {
+      "type": "string"
+    },
+    "composition_estimated": {
+      "type": "boolean",
+      "default": true,
+      "description": "Composici\u00f3n de lotes estimada/compartida"
+    },
+    "origin_lots": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Lotes de origen vinculados"
+    }
+  },
+  "required": [
+    "pallet_code",
+    "romaneo_number",
+    "product_type",
+    "net_weight"
+  ]
+}

@@ -6,6 +6,16 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
+import Layout from '@/components/Layout';
+import Dashboard from '@/pages/Dashboard';
+import Recepcion from '@/pages/Recepcion';
+import Vuelco from '@/pages/Vuelco';
+import Produccion from '@/pages/Produccion';
+import Prefrio from '@/pages/Prefrio';
+import Camaras from '@/pages/Camaras';
+import Despachos from '@/pages/Despachos';
+import Trazabilidad from '@/pages/Trazabilidad';
+import Catalogos from '@/pages/Catalogos';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -34,7 +44,17 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
-      {/* Add your page Route elements here */}
+      <Route element={<Layout />}>
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/recepcion" element={<Recepcion />} />
+        <Route path="/vuelco" element={<Vuelco />} />
+        <Route path="/produccion" element={<Produccion />} />
+        <Route path="/prefrio" element={<Prefrio />} />
+        <Route path="/camaras" element={<Camaras />} />
+        <Route path="/despachos" element={<Despachos />} />
+        <Route path="/trazabilidad" element={<Trazabilidad />} />
+        <Route path="/catalogos" element={<Catalogos />} />
+      </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

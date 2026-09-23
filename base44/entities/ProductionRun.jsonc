@@ -1,0 +1,70 @@
+{
+  "name": "ProductionRun",
+  "type": "object",
+  "properties": {
+    "run_code": {
+      "type": "string",
+      "description": "ID de la corrida/orden de producci\u00f3n"
+    },
+    "date": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "line": {
+      "type": "string"
+    },
+    "shift": {
+      "type": "string"
+    },
+    "start_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "end_time": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "operator": {
+      "type": "string"
+    },
+    "supervisor": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "abierta",
+        "cerrada"
+      ],
+      "default": "abierta"
+    },
+    "dumped_pending": {
+      "type": "number",
+      "description": "Saldo volcado pendiente de clasificar (kg)",
+      "default": 0
+    },
+    "fresh_weight": {
+      "type": "number",
+      "default": 0
+    },
+    "aril_weight": {
+      "type": "number",
+      "default": 0
+    },
+    "discard_weight": {
+      "type": "number",
+      "default": 0
+    },
+    "loss_weight": {
+      "type": "number",
+      "default": 0,
+      "description": "Merma/diferencia de proceso"
+    }
+  },
+  "required": [
+    "run_code",
+    "date",
+    "line",
+    "shift"
+  ]
+}

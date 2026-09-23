@@ -1,0 +1,53 @@
+{
+  "name": "Catalog",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "productor",
+        "finca",
+        "cuadro",
+        "variedad",
+        "tipo_cosecha",
+        "cuadrilla",
+        "tipo_proceso",
+        "destino",
+        "categoria",
+        "calibre",
+        "envase",
+        "tipo_pallet",
+        "tara",
+        "linea",
+        "turno",
+        "tunel",
+        "camara",
+        "muelle",
+        "causa_descarte",
+        "causa_retencion",
+        "cliente",
+        "especie"
+      ]
+    },
+    "value": {
+      "type": "string",
+      "description": "Valor interno/clave"
+    },
+    "label": {
+      "type": "string",
+      "description": "Etiqueta legible"
+    },
+    "extra": {
+      "type": "object",
+      "description": "Config adicional: capacidad, temperatura, tara, bultos por pallet, etc."
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "type",
+    "label"
+  ]
+}
