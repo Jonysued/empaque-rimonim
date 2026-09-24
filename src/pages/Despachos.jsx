@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { generateCode, fmtKg, fmtDate, fmtNum } from "@/lib/qr";
 import { loadCatalog } from "@/lib/catalogs";
-import { loadPalletsIntoShipment, AVAILABLE_FOR_SHIPMENT } from "@/lib/shipments";
+import { loadPalletsIntoShipment, unloadPalletFromShipment, AVAILABLE_FOR_SHIPMENT } from "@/lib/shipments";
 import { Checkbox } from "@/components/ui/checkbox";
 import QRScanner from "@/components/QRScanner";
 import QRLabel from "@/components/QRLabel";
@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Truck, Plus, Package, CheckCircle2, ClipboardList, Pencil } from "lucide-react";
+import { Truck, Plus, Package, CheckCircle2, ClipboardList, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Despachos() {
@@ -228,6 +228,8 @@ function ShipmentForm({ shipment = null, cats, pallets, onClose, onSaved }) {
 function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
   const [scanMode, setScanMode] = useState(false);
   const [error, setError] = useState("");
+  const [palletToRemove, setPalletToRemove] = useState(null);
+  const [removing, setRemoving] = useState(false);
   const [extra, setExtra] = useState({ container_number: "", remito: "", thermograph: "", seal: "" });
 
   useEffect(() => {
@@ -261,6 +263,19 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
     } catch (e) { setError(e.message); }
   }
 
+  async function removePallet() {
+    if (!palletToRemove || removing) return;
+    setRemoving(true);
+    setError("");
+    try {
+      const result = await unloadPalletFromShipment(shipment.id, palletToRemove.id);
+      setPalletToRemove(null);
+      if (result.pending) toast.warning("Retiro guardado en este dispositivo; pendiente de sincronizar");
+      else { toast.success("Pallet retirado de la carga"); onChanged(); }
+    } catch (e) { setError(e.message || "No se pudo retirar el pallet"); }
+    finally { setRemoving(false); }
+  }
+
   async function closeShipment() {
     try {
       await base44.entities.Shipment.update(shipment.id, { status: "enviado", ...extra });
@@ -269,6 +284,7 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
   }
 
   const loadedPallets = (shipment.loaded_pallet_ids || []).map(id => pallets.find(p => p.id === id)).filter(Boolean);
+  const canChangePallets = ["borrador", "reservado", "cargado"].includes(shipment.status);
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -303,30 +319,39 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
           <div className="border-t pt-3 space-y-2">
             <div className="flex items-center justify-between">
               <h4 className="font-medium flex items-center gap-2"><Package className="w-4 h-4" /> Pallets cargados ({loadedPallets.length})</h4>
-              <Button size="sm" onClick={() => setScanMode(!scanMode)}>{scanMode ? "Salir" : "Cargar pallet"}</Button>
+              {canChangePallets && <Button size="sm" onClick={() => setScanMode(!scanMode)}>{scanMode ? "Salir" : "Cargar pallet"}</Button>}
             </div>
             {scanMode && (
               <div className="bg-muted/50 p-3 rounded-lg space-y-2">
                 <p className="text-sm">Escanee el QR del pallet para cargarlo en esta carga</p>
                 <QRScanner label="Escanear QR del pallet" onScan={handleScan} />
-                {error && <p className="text-sm text-destructive">{error}</p>}
               </div>
             )}
+            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
             {loadedPallets.length === 0 ? (
               <p className="text-sm text-muted-foreground">Sin pallets cargados.</p>
             ) : (
               <div className="space-y-1 max-h-48 overflow-y-auto">
                 {loadedPallets.map(p => (
-                  <div key={p.id} className="flex justify-between text-sm border rounded p-2">
+                  <div key={p.id} className="flex items-center justify-between gap-2 text-sm border rounded p-2">
                     <span className="font-mono">{p.romaneo_number}</span>
-                    <span>{fmtKg(p.net_weight)} · {p.package_count || 0} bultos</span>
+                    <span className="ml-auto">{fmtKg(p.net_weight)} · {p.package_count || 0} bultos</span>
+                    {canChangePallets && <Button type="button" size="sm" variant="outline" aria-label={`Retirar pallet ${p.romaneo_number}`} onClick={() => setPalletToRemove(p)}><Trash2 className="w-4 h-4 mr-1" /> Retirar</Button>}
                   </div>
                 ))}
               </div>
             )}
+            {palletToRemove && <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-2 text-sm" role="group" aria-label="Confirmar retiro de pallet">
+              <p className="font-medium">¿Retirar el pallet {palletToRemove.romaneo_number} de la carga {shipment.load_number}?</p>
+              <p>Volverá a estar disponible para despacho. Se recalcularán el peso y los bultos, y el movimiento quedará registrado.</p>
+              <div className="flex gap-2 justify-end">
+                <Button size="sm" variant="outline" disabled={removing} onClick={() => setPalletToRemove(null)}>Cancelar</Button>
+                <Button size="sm" disabled={removing} onClick={removePallet}>{removing ? "Retirando…" : "Confirmar retiro"}</Button>
+              </div>
+            </div>}
           </div>
 
-          {shipment.status !== "enviado" && loadedPallets.length > 0 && (
+          {canChangePallets && loadedPallets.length > 0 && (
             <Button onClick={closeShipment} className="w-full"><CheckCircle2 className="w-4 h-4 mr-2" /> Cerrar y enviar despacho</Button>
           )}
         </div>
