@@ -41,9 +41,9 @@ export default function Layout() {
       {/* Sidebar desktop */}
       <aside className="hidden lg:flex fixed inset-y-0 left-0 w-60 flex-col bg-sidebar border-r border-sidebar-border">
         <div className="h-16 flex items-center px-6 border-b border-sidebar-border">
-          <div className="flex flex-col gap-1">
-            <img src={rimonimLogo} alt="Rimonim" className="w-36 h-auto rounded" />
-            <p className="text-[11px] text-muted-foreground">Operación de empaque</p>
+          <div className="flex w-36 flex-col items-center gap-1">
+            <img src={rimonimLogo} alt="Rimonim" className="w-full h-auto rounded" />
+            <p className="w-full text-center text-[11px] text-muted-foreground">Operación de empaque</p>
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
