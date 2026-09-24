@@ -10,7 +10,7 @@ const DefaultFallback = () => (
 );
 
 export default function ProtectedRoute({ fallback = <DefaultFallback />, unauthenticatedElement }) {
-  const { isAuthenticated, isLoadingAuth, authChecked, authError, checkUserAuth } = useAuth();
+  const { isAuthenticated, isLoadingAuth, authChecked, authError, checkUserAuth, user, logout } = useAuth();
 
   useEffect(() => {
     if (!authChecked && !isLoadingAuth) {
@@ -31,6 +31,18 @@ export default function ProtectedRoute({ fallback = <DefaultFallback />, unauthe
 
   if (!isAuthenticated) {
     return unauthenticatedElement;
+  }
+
+  if (!user || user.role === 'user') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
+        <div className="max-w-md rounded-2xl border bg-card p-8 text-center space-y-4">
+          <h1 className="text-2xl font-semibold">Cuenta pendiente de autorización</h1>
+          <p className="text-muted-foreground">Tu email está validado. Un administrador debe asignarte un rol para acceder a los datos del empaque.</p>
+          <button className="text-primary underline" onClick={() => logout()}>Cerrar sesión</button>
+        </div>
+      </div>
+    );
   }
 
   return <Outlet />;

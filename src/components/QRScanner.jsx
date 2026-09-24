@@ -50,7 +50,7 @@ export default function QRScanner({ onScan, label = "Escanear QR" }) {
           await videoRef.current.play();
           tick();
         }
-      } catch (e) {
+      } catch {
         if (cancelled) return;
         setScanning(false);
         setManual(true);
@@ -83,7 +83,7 @@ export default function QRScanner({ onScan, label = "Escanear QR" }) {
             }
           }
         }
-      } catch (e) { /* ignore frame errors */ }
+      } catch { /* ignore frame errors */ }
       rafRef.current = requestAnimationFrame(tick);
     }
 
@@ -95,7 +95,7 @@ export default function QRScanner({ onScan, label = "Escanear QR" }) {
       streamRef.current = null;
       detectorRef.current = null;
     };
-    // eslint-disable-next-line
+
   }, [scanning]);
 
   function handleScan(val) {

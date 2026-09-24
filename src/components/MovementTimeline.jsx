@@ -17,7 +17,7 @@ const ACTION_LABELS = {
 function fmtDateTime(iso) {
   if (!iso) return "—";
   const d = new Date(iso);
-  if (isNaN(d)) return iso;
+  if (isNaN(d.getTime())) return iso;
   return d.toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
 }
 
@@ -35,7 +35,7 @@ function fmtDuration(ms) {
 }
 
 export default function MovementTimeline({ movements }) {
-  const events = [...(movements || [])].sort((a, b) => new Date(a.created_date) - new Date(b.created_date));
+  const events = [...(movements || [])].sort((a, b) => new Date(a.created_date).getTime() - new Date(b.created_date).getTime());
   return (
     <div className="border rounded-lg p-3">
       <p className="text-xs font-medium flex items-center gap-1 mb-2 text-muted-foreground">
@@ -48,7 +48,7 @@ export default function MovementTimeline({ movements }) {
           {events.map((m, i) => {
             const prev = i > 0 ? events[i - 1] : null;
             const elapsed = prev && prev.created_date && m.created_date
-              ? fmtDuration(new Date(m.created_date) - new Date(prev.created_date))
+              ? fmtDuration(new Date(m.created_date).getTime() - new Date(prev.created_date).getTime())
               : null;
             return (
               <div key={m.id} className="border-l-2 border-muted pl-2 py-1 text-sm">

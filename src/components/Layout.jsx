@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
+import rimonimLogo from "@/rimonim-logo.svg";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { cn } from "@/lib/utils";
 import { canAccess, roleLabel } from "@/lib/permissions";
 import {
   LayoutDashboard, PackageOpen, Repeat, Factory, Snowflake,
-  Warehouse, Truck, Search, Settings, Menu, X, ScanLine, Users
+  Warehouse, Truck, Search, Settings, Menu, X, Users
 } from "lucide-react";
 
 const NAV = [
@@ -39,12 +40,9 @@ export default function Layout() {
       {/* Sidebar desktop */}
       <aside className="hidden lg:flex fixed inset-y-0 left-0 w-60 flex-col bg-sidebar border-r border-sidebar-border">
         <div className="h-16 flex items-center px-6 border-b border-sidebar-border">
-          <div className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-lg bg-red-600 flex items-center justify-center text-white font-bold text-lg">R</div>
-            <div>
-              <p className="font-heading font-bold text-sm leading-tight">Empaque Rimonim</p>
-              <p className="text-[11px] text-muted-foreground">Trazabilidad de granadas</p>
-            </div>
+          <div className="flex flex-col gap-1">
+            <img src={rimonimLogo} alt="Rimonim" className="w-36 h-auto rounded" />
+            <p className="text-[11px] text-muted-foreground">Operación de empaque</p>
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
@@ -77,8 +75,7 @@ export default function Layout() {
       {/* Topbar mobile */}
       <header className="lg:hidden sticky top-0 z-30 h-14 bg-background border-b flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-red-600 flex items-center justify-center text-white font-bold">R</div>
-          <span className="font-bold text-sm">Empaque Rimonim</span>
+          <img src={rimonimLogo} alt="Rimonim" className="w-32 h-auto rounded" />
         </div>
         <button onClick={() => setSidebarOpen(true)} className="p-2 -mr-2">
           <Menu className="w-5 h-5" />
