@@ -80,7 +80,6 @@ export const base44 = {
     loginWithProvider: async (_provider,returnTo='/')=>{ requireConfigured(); unwrap(await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:new URL(returnTo,location.origin).href}})); },
     logout: async(returnTo)=>{ unwrap(await supabase.auth.signOut()); if(returnTo) location.assign('/login'); },
     redirectToLogin: ()=>location.assign('/login'),
-    async register({email,password}) { requireConfigured(); return unwrap(await supabase.auth.signUp({email,password,options:{emailRedirectTo:`${location.origin}/login`}})); },
     async verifyOtp({email,otpCode}) { const data=unwrap(await supabase.auth.verifyOtp({email,token:otpCode,type:'email'})); return {access_token:data.session?.access_token}; },
     setToken:()=>{},
     resendOtp: email=>supabase.auth.resend({type:'signup',email}).then(unwrap),
