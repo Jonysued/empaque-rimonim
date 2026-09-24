@@ -18,6 +18,17 @@ export function generateRomaneoNumber(seq = 1) {
   return `ROM-${year}-${String(seq).padStart(5, "0")}`;
 }
 
+export function nextRomaneoNumber(pallets, year = new Date().getFullYear()) {
+  const prefix = `ROM-${year}-`;
+  const highest = pallets.reduce((max, pallet) => {
+    const value = pallet.romaneo_number;
+    if (typeof value !== "string" || !value.startsWith(prefix)) return max;
+    const suffix = value.slice(prefix.length);
+    return /^\d+$/.test(suffix) ? Math.max(max, Number(suffix)) : max;
+  }, 0);
+  return `ROM-${year}-${String(highest + 1).padStart(5, "0")}`;
+}
+
 // Formatea kg
 export function fmtKg(v) {
   if (v == null || isNaN(v)) return "0 kg";
