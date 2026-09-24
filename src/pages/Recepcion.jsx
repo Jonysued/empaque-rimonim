@@ -13,6 +13,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PackageOpen, Plus, Layers } from "lucide-react";
 
+const CUADROS_POR_PRODUCTOR = {
+  "Glonet": [16, 15, 14, 13, 12, 11, 9, 8, 7, 6, 5, 4, 3, 2, 1].map(n => `CUADRO ${n}`),
+  "Las 500": [3, 2, 1].flatMap(n => ["NE", "SE", "NO", "SO"].map(sector => `OP${n}${sector}`)),
+};
+
 export default function Recepcion() {
   const [lots, setLots] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,13 +28,12 @@ export default function Recepcion() {
   async function refresh() {
     setLoading(true);
     try {
-      const [data, prods, vars, origins, crews, htypes, species] = await Promise.all([
+      const [data, vars, crews, htypes, species] = await Promise.all([
         base44.entities.ReceiptLot.list("-created_date", 50),
-        loadCatalog("productor"), loadCatalog("variedad"),
-        loadCatalog("cuadro"), loadCatalog("cuadrilla"), loadCatalog("tipo_cosecha"), loadCatalog("especie"),
+        loadCatalog("variedad"), loadCatalog("cuadrilla"), loadCatalog("tipo_cosecha"), loadCatalog("especie"),
       ]);
       setLots(data || []);
-      setCats({ productor: prods, variedad: vars, cuadro: origins, cuadrilla: crews, tipo_cosecha: htypes, especie: species });
+      setCats({ variedad: vars, cuadrilla: crews, tipo_cosecha: htypes, especie: species });
     } catch (e) { console.error(e); } finally { setLoading(false); }
   }
 
@@ -108,6 +112,7 @@ function LotForm({ cats, onClose, onSaved }) {
     setError("");
     const net = Number(form.net_weight);
     if (!form.producer) return setError("Productor es obligatorio");
+    if (form.origin && !CUADROS_POR_PRODUCTOR[form.producer]?.includes(form.origin)) return setError("Seleccioná un cuadro del productor indicado");
     if (!form.variety) return setError("Variedad es obligatoria");
     if (!net || net <= 0) return setError("Peso neto debe ser mayor a 0");
     setSaving(true);
@@ -144,9 +149,9 @@ function LotForm({ cats, onClose, onSaved }) {
           {error && <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{error}</p>}
           <div className="grid grid-cols-2 gap-3">
             <Field label="Productor *">
-              <Select value={form.producer} onValueChange={v => update("producer", v)}>
+              <Select value={form.producer} onValueChange={v => setForm(f => ({ ...f, producer: v, origin: "" }))}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                <SelectContent>{opt(cats.productor).map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                <SelectContent>{Object.keys(CUADROS_POR_PRODUCTOR).map(name => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent>
               </Select>
             </Field>
             <Field label="Variedad *">
@@ -155,7 +160,12 @@ function LotForm({ cats, onClose, onSaved }) {
                 <SelectContent>{opt(cats.variedad).map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
               </Select>
             </Field>
-            <Field label="Procedencia/Cuadro"><Input value={form.origin} onChange={e => update("origin", e.target.value)} /></Field>
+            <Field label="Procedencia/Cuadro">
+              <Select value={form.origin} disabled={!form.producer} onValueChange={v => update("origin", v)}>
+                <SelectTrigger><SelectValue placeholder={form.producer ? "Seleccionar cuadro" : "Primero elegí un productor"} /></SelectTrigger>
+                <SelectContent>{(CUADROS_POR_PRODUCTOR[form.producer] || []).map(cuadro => <SelectItem key={cuadro} value={cuadro}>{cuadro}</SelectItem>)}</SelectContent>
+              </Select>
+            </Field>
             <Field label="Especie"><Input value={form.species} onChange={e => update("species", e.target.value)} /></Field>
             <Field label="Tipo de cosecha">
               <Select value={form.harvest_type} onValueChange={v => update("harvest_type", v)}>
