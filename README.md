@@ -5,8 +5,8 @@ React/Vite frontend on Vercel; Supabase Auth and Postgres for users and operatio
 ## Setup
 
 1. Create a Supabase project. Run `supabase/migrations/001_empaque.sql` in its SQL editor.
-2. In Supabase Auth, configure the Site URL to the production Vercel URL and allow `/login` as a redirect. Enable email signups **with email confirmation**. For an existing project, run `supabase/migrations/002_signup_permissions.sql` before enabling signups. Configure an email sender for signup and password recovery.
-3. Register the first user through `/register`, confirm their email, then run `update public.profiles set role='admin' where email='YOUR_EMAIL';` in the SQL editor for the intended administrator. New users start with role `user` and cannot view operational records until an administrator assigns a role.
+2. In Supabase Auth, configure the Site URL to the production Vercel URL and the redirect URLs used by invitations and password recovery. Keep public email signups disabled and configure an email sender for invitations and password recovery.
+3. Create the first administrator through the Supabase Auth dashboard, then set `role='admin'` on their row in `public.profiles`. After that, administrators invite users from **Usuarios y roles** inside the app and assign their roles there. Public self-registration is unavailable.
 4. In Vercel, import this GitHub repo as a Vite project. Configure `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and server-only `SUPABASE_SERVICE_ROLE_KEY`. Set `APP_URL` to the production origin for invitation links. Redeploy after adding variables.
 5. For local development, copy `example.env` to `.env.local`, fill the first two variables, run `npm install` and `npm run dev`. The invitation endpoint runs only on Vercel or `vercel dev`.
 
