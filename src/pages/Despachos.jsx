@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Truck, Plus, Package, CheckCircle2, ClipboardList } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Despachos() {
   const [shipments, setShipments] = useState([]);
@@ -112,8 +113,9 @@ function ShipmentForm({ cats, pallets, onClose, onSaved }) {
     e.preventDefault();
     if (!form.load_number) return setError("Número de carga obligatorio");
     setSaving(true);
+    let created;
     try {
-      const created = await base44.entities.Shipment.create({
+      created = await base44.entities.Shipment.create({
         ...form,
         shipment_code: generateCode("DSP"),
         date: new Date().toISOString(),
@@ -125,7 +127,15 @@ function ShipmentForm({ cats, pallets, onClose, onSaved }) {
       const selected = available.filter(p => selectedIds.has(p.id)).slice(0, capacity);
       if (selected.length > 0) await loadPalletsIntoShipment(created, selected);
       onSaved();
-    } catch (e) { setError(e.message || "Error"); setSaving(false); }
+    } catch (e) {
+      if (created) {
+        toast.error(`Se creó la carga ${created.load_number}, pero no se completaron todos los pallets. Revisala en Despachos: ${e.message || "error de carga"}`);
+        onSaved();
+      } else {
+        setError(e.message || "Error");
+        setSaving(false);
+      }
+    }
   }
 
   return (
