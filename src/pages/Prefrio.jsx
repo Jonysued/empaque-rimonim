@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Snowflake, Plus, Thermometer, Clock, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Prefrio() {
   const [tunnels, setTunnels] = useState([]);
@@ -65,9 +66,9 @@ export default function Prefrio() {
     setError("");
     const tunnel = tunnels.find(x => x.id === tunnelRef.id) || tunnelRef;
     try {
-      await movePalletLocation("carga_tunel", pallet.id, tunnel.id);
-      setScannedPallet(pallet);
-      refresh();
+      const result = await movePalletLocation("carga_tunel", pallet.id, tunnel.id);
+      if (result.pending) toast.warning("Guardado en este dispositivo; pendiente de sincronizar");
+      else { setScannedPallet(pallet); refresh(); }
     } catch (e) { setError(e.message || "Error al cargar pallet"); }
   }
 
@@ -75,24 +76,27 @@ export default function Prefrio() {
     const tunnel = tunnels.find(t => t.id === pallet.location_id);
     if (!tunnel) return;
     try {
-      await movePalletLocation("liberacion_tunel", pallet.id, tunnel.id);
-      refresh();
+      const result = await movePalletLocation("liberacion_tunel", pallet.id, tunnel.id);
+      if (result.pending) toast.warning("Guardado en este dispositivo; pendiente de sincronizar");
+      else refresh();
     } catch (e) { setError(e.message || "Error al liberar pallet"); }
   }
 
   async function startCooling(tunnel) {
     setError("");
     try {
-      await changeCoolingCycle("iniciar", tunnel.id);
-      refresh();
+      const result = await changeCoolingCycle("iniciar", tunnel.id);
+      if (result.pending) toast.warning("Guardado en este dispositivo; pendiente de sincronizar");
+      else refresh();
     } catch (e) { setError(e.message || "Error al iniciar enfriado"); }
   }
 
   async function stopCooling(tunnel) {
     setError("");
     try {
-      await changeCoolingCycle("finalizar", tunnel.id);
-      refresh();
+      const result = await changeCoolingCycle("finalizar", tunnel.id);
+      if (result.pending) toast.warning("Guardado en este dispositivo; pendiente de sincronizar");
+      else refresh();
     } catch (e) { setError(e.message || "Error al finalizar enfriado"); }
   }
 

@@ -125,7 +125,8 @@ function ShipmentForm({ cats, pallets, onClose, onSaved }) {
         total_weight: 0, total_packages: 0,
       });
       const selected = available.filter(p => selectedIds.has(p.id)).slice(0, capacity);
-      if (selected.length > 0) await loadPalletsIntoShipment(created, selected);
+      const results = selected.length > 0 ? await loadPalletsIntoShipment(created, selected) : [];
+      if (results.some(result => result.pending)) toast.warning("Carga creada; algunos pallets están pendientes de sincronizar");
       onSaved();
     } catch (e) {
       if (created) {
@@ -215,8 +216,9 @@ function ShipmentDetail({ shipment, pallets, onClose, onChanged }) {
     if ((shipment.loaded_pallet_ids || []).includes(pallet.id)) { setError("El pallet ya está cargado"); return; }
     if ((shipment.loaded_pallet_ids || []).length >= (shipment.target_capacity || 21)) { setError("Capacidad de carga alcanzada"); return; }
     try {
-      await loadPalletsIntoShipment(shipment, [pallet]);
-      onChanged();
+      const results = await loadPalletsIntoShipment(shipment, [pallet]);
+      if (results.some(result => result.pending)) toast.warning("Guardado en este dispositivo; pendiente de sincronizar");
+      else onChanged();
     } catch (e) { setError(e.message || "Error"); }
   }
 
