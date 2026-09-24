@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { generateCode, fmtKg } from "@/lib/qr";
-import { syncOccupancy } from "@/lib/occupancy";
+import { movePalletLocation } from "@/lib/palletMovements";
 import QRScanner from "@/components/QRScanner";
 import LocationQR from "@/components/LocationQR";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,24 +51,8 @@ export default function Camaras() {
   async function loadPalletIntoChamber(chamberRef, pallet) {
     setError("");
     const chamber = chambers.find(x => x.id === chamberRef.id) || chamberRef;
-    if (pallet.status === "en_camara") { setError(`El pallet ${pallet.romaneo_number} ya está en una cámara`); return; }
-    if (pallet.status === "retenido" || pallet.status === "despachado") { setError(`El pallet ${pallet.romaneo_number} no se puede ingresar (${pallet.status})`); return; }
-    if ((chamber.occupied || 0) >= (chamber.capacity || 0)) { setError(`La cámara ${chamber.name} está llena`); return; }
     try {
-      const prevLoc = pallet.location_id;
-      await base44.entities.Pallet.update(pallet.id, {
-        status: "en_camara",
-        location_id: chamber.id, location_name: chamber.name,
-      });
-      await syncOccupancy(chamber.id);
-      if (prevLoc && prevLoc !== chamber.id) await syncOccupancy(prevLoc);
-      await base44.entities.MovementEvent.create({
-        event_code: generateCode("MOV"),
-        unit_type: "pallet", unit_id: pallet.id, unit_code: pallet.pallet_code,
-        origin_location_id: prevLoc || "",
-        destination_location_id: chamber.id, destination_location_name: chamber.name,
-        action: "carga_camara",
-      });
+      await movePalletLocation("carga_camara", pallet.id, chamber.id);
       setScannedPallet(pallet);
       refresh();
     } catch (e) { setError(e.message || "Error"); }
@@ -76,20 +60,9 @@ export default function Camaras() {
 
   async function removePallet(pallet) {
     try {
-      const chamberId = pallet.location_id;
-      await base44.entities.Pallet.updateMany(
-        { id: pallet.id },
-        { $set: { status: "liberado" }, $unset: { location_id: "", location_name: "" } }
-      );
-      if (chamberId) await syncOccupancy(chamberId);
-      await base44.entities.MovementEvent.create({
-        event_code: generateCode("MOV"),
-        unit_type: "pallet", unit_id: pallet.id, unit_code: pallet.pallet_code,
-        origin_location_id: pallet.location_id, origin_location_name: pallet.location_name,
-        action: "traslado",
-      });
+      await movePalletLocation("retiro_camara", pallet.id, pallet.location_id);
       refresh();
-    } catch (e) { console.error(e); }
+    } catch (e) { setError(e.message || "Error al retirar pallet"); }
   }
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-slate-200 border-t-red-600 rounded-full animate-spin" /></div>;
@@ -123,6 +96,8 @@ export default function Camaras() {
           </CardContent>
         </Card>
       )}
+
+      {error && !scanMode && <p className="text-sm text-destructive">{error}</p>}
 
       {chambers.length === 0 ? (
         <Card><CardContent className="py-16 text-center text-muted-foreground">
