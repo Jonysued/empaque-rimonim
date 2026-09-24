@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Truck, Plus, Package, CheckCircle2, ClipboardList } from "lucide-react";
+import { Truck, Plus, Package, CheckCircle2, ClipboardList, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 export default function Despachos() {
@@ -22,6 +22,7 @@ export default function Despachos() {
   const [pallets, setPallets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
   const [selected, setSelected] = useState(null);
   const [cats, setCats] = useState({});
 
@@ -35,7 +36,7 @@ export default function Despachos() {
       ]);
       setShipments(s || []);
       setPallets(p || []);
-      setSelected(previous => previous ? (s || []).find(item => item.id === previous.id) || previous : null);
+      setSelected(previous => previous ? (s || []).find(item => item.id === previous.id) || null : null);
       setCats({ cliente: clients });
     } catch (e) { console.error(e); } finally { setLoading(false); }
   }
@@ -78,6 +79,7 @@ export default function Despachos() {
                     <p className="text-sm"><b>{(s.loaded_pallet_ids || []).length}</b> / {s.target_capacity || 21} pallets</p>
                     <p className="text-sm">{fmtKg(s.total_weight)}</p>
                     <p className="text-xs text-muted-foreground">{fmtNum(s.total_packages)} bultos</p>
+                    <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); setEditing(s); }}><Pencil className="w-3.5 h-3.5 mr-1" /> Editar</Button>
                   </div>
                 </div>
               </CardContent>
@@ -87,18 +89,24 @@ export default function Despachos() {
       )}
 
       {showForm && <ShipmentForm cats={cats} pallets={pallets} onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); refresh(); }} />}
-      {selected && <ShipmentDetail shipment={selected} pallets={pallets} onClose={() => setSelected(null)} onChanged={refresh} />}
+      {editing && <ShipmentForm key={editing.id} shipment={editing} cats={cats} pallets={pallets} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); refresh(); }} />}
+      {selected && !editing && <ShipmentDetail shipment={selected} pallets={pallets} onClose={() => setSelected(null)} onEdit={() => setEditing(selected)} onChanged={refresh} />}
     </div>
   );
 }
 
-function ShipmentForm({ cats, pallets, onClose, onSaved }) {
-  const [form, setForm] = useState({ load_number: "", client: "", destination: "", product_type: "fresco", target_capacity: "21", carrier: "" });
+function ShipmentForm({ shipment = null, cats, pallets, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    load_number: shipment?.load_number || "", client: shipment?.client || "", destination: shipment?.destination || "",
+    product_type: shipment?.product_type || "fresco", target_capacity: String(shipment?.target_capacity || 21), carrier: shipment?.carrier || "",
+    container_number: shipment?.container_number || "", remito: shipment?.remito || "", thermograph: shipment?.thermograph || "", seal: shipment?.seal || "",
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [selectedIds, setSelectedIds] = useState(new Set());
 
-  const capacity = Number(form.target_capacity) || 21;
+  const capacity = Number(form.target_capacity);
+  const loadedCount = shipment?.loaded_pallet_ids?.length || 0;
   const available = (pallets || []).filter(p => AVAILABLE_FOR_SHIPMENT.includes(p.status) && p.product_type === form.product_type);
 
   function togglePallet(id, checked) {
@@ -111,15 +119,33 @@ function ShipmentForm({ cats, pallets, onClose, onSaved }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.load_number) return setError("Número de carga obligatorio");
+    if (!form.load_number.trim()) return setError("Número de carga obligatorio");
+    if (!Number.isInteger(capacity) || capacity < 1) return setError("La capacidad debe ser un número entero mayor a cero");
+    if (capacity < loadedCount) return setError(`La capacidad no puede ser menor a los ${loadedCount} pallets ya cargados`);
+    if (shipment && loadedCount > 0 && form.product_type !== shipment.product_type) return setError("No se puede cambiar el producto de una carga con pallets");
     setSaving(true);
     let created;
     try {
+      if (shipment) {
+        const latest = await base44.entities.Shipment.get(shipment.id);
+        const currentCount = latest.loaded_pallet_ids?.length || 0;
+        if (capacity < currentCount) throw new Error(`La carga ahora tiene ${currentCount} pallets. Actualizá la capacidad.`);
+        if (currentCount > 0 && form.product_type !== latest.product_type) throw new Error("La carga ya tiene pallets y no permite cambiar el producto");
+        await base44.entities.Shipment.update(shipment.id, {
+          load_number: form.load_number.trim(), client: form.client, destination: form.destination.trim(),
+          product_type: form.product_type, target_capacity: capacity, carrier: form.carrier.trim(),
+          container_number: form.container_number.trim(), remito: form.remito.trim(),
+          thermograph: form.thermograph.trim(), seal: form.seal.trim(),
+        });
+        toast.success("Carga actualizada");
+        onSaved();
+        return;
+      }
       created = await base44.entities.Shipment.create({
-        ...form,
+        ...form, load_number: form.load_number.trim(), destination: form.destination.trim(), carrier: form.carrier.trim(),
         shipment_code: generateCode("DSP"),
         date: new Date().toISOString(),
-        target_capacity: Number(form.target_capacity) || 21,
+        target_capacity: capacity,
         status: "borrador",
         reserved_pallet_ids: [], loaded_pallet_ids: [],
         total_weight: 0, total_packages: 0,
@@ -142,7 +168,7 @@ function ShipmentForm({ cats, pallets, onClose, onSaved }) {
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-xl">
-        <DialogHeader><DialogTitle>Nueva carga / despacho</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>{shipment ? `Editar carga ${shipment.load_number}` : "Nueva carga / despacho"}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           {error && <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{error}</p>}
           <div className="space-y-1"><Label className="text-xs">Número de carga *</Label><Input value={form.load_number} onChange={e => setForm(f => ({ ...f, load_number: e.target.value }))} placeholder="Carga-001" /></div>
@@ -150,22 +176,28 @@ function ShipmentForm({ cats, pallets, onClose, onSaved }) {
             <Label className="text-xs">Cliente</Label>
             <Select value={form.client} onValueChange={v => setForm(f => ({ ...f, client: v }))}>
               <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-              <SelectContent>{(cats.cliente || []).map(o => <SelectItem key={o.label} value={o.label}>{o.label}</SelectItem>)}</SelectContent>
+              <SelectContent>{form.client && !(cats.cliente || []).some(o => o.label === form.client) && <SelectItem value={form.client}>{form.client}</SelectItem>}{(cats.cliente || []).map(o => <SelectItem key={o.label} value={o.label}>{o.label}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div className="space-y-1"><Label className="text-xs">Destino</Label><Input value={form.destination} onChange={e => setForm(f => ({ ...f, destination: e.target.value }))} /></div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Producto</Label>
-              <Select value={form.product_type} onValueChange={v => { setForm(f => ({ ...f, product_type: v })); setSelectedIds(new Set()); }}>
+              <Select value={form.product_type} disabled={loadedCount > 0} onValueChange={v => { setForm(f => ({ ...f, product_type: v })); setSelectedIds(new Set()); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="fresco">Fresco</SelectItem><SelectItem value="arilos">Arilos</SelectItem></SelectContent>
               </Select>
             </div>
-            <div className="space-y-1"><Label className="text-xs">Capacidad objetivo</Label><Input type="number" value={form.target_capacity} onChange={e => setForm(f => ({ ...f, target_capacity: e.target.value }))} /></div>
+            <div className="space-y-1"><Label className="text-xs">Capacidad objetivo</Label><Input type="number" min={Math.max(1, loadedCount)} step="1" value={form.target_capacity} onChange={e => setForm(f => ({ ...f, target_capacity: e.target.value }))} /></div>
           </div>
           <div className="space-y-1"><Label className="text-xs">Transportista</Label><Input value={form.carrier} onChange={e => setForm(f => ({ ...f, carrier: e.target.value }))} /></div>
-          <div className="space-y-2">
+          {shipment && <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1"><Label className="text-xs">Contenedor</Label><Input value={form.container_number} onChange={e => setForm(f => ({ ...f, container_number: e.target.value }))} /></div>
+            <div className="space-y-1"><Label className="text-xs">Remito</Label><Input value={form.remito} onChange={e => setForm(f => ({ ...f, remito: e.target.value }))} /></div>
+            <div className="space-y-1"><Label className="text-xs">Termógrafo</Label><Input value={form.thermograph} onChange={e => setForm(f => ({ ...f, thermograph: e.target.value }))} /></div>
+            <div className="space-y-1"><Label className="text-xs">Precinto</Label><Input value={form.seal} onChange={e => setForm(f => ({ ...f, seal: e.target.value }))} /></div>
+          </div>}
+          {!shipment && <div className="space-y-2">
             <Label className="text-xs">Pallets disponibles ({available.length})</Label>
             {available.length === 0 ? (
               <p className="text-sm text-muted-foreground">No hay pallets liberados del prefrio o cámaras para este producto.</p>
@@ -182,10 +214,10 @@ function ShipmentForm({ cats, pallets, onClose, onSaved }) {
               </div>
             )}
             <p className="text-xs text-muted-foreground">Selección: {selectedIds.size}/{capacity} pallets.</p>
-          </div>
+          </div>}
           <div className="flex gap-2 justify-end pt-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Creando…" : "Crear carga"}</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Guardando…" : shipment ? "Guardar cambios" : "Crear carga"}</Button>
           </div>
         </form>
       </DialogContent>
@@ -193,7 +225,7 @@ function ShipmentForm({ cats, pallets, onClose, onSaved }) {
   );
 }
 
-function ShipmentDetail({ shipment, pallets, onClose, onChanged }) {
+function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
   const [scanMode, setScanMode] = useState(false);
   const [error, setError] = useState("");
   const [extra, setExtra] = useState({ container_number: "", remito: "", thermograph: "", seal: "" });
@@ -242,6 +274,7 @@ function ShipmentDetail({ shipment, pallets, onClose, onChanged }) {
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Carga {shipment.load_number}</DialogTitle></DialogHeader>
+          <Button size="sm" variant="outline" className="self-start" onClick={onEdit}><Pencil className="w-4 h-4 mr-1" /> Editar carga</Button>
           <PrintPackingList shipment={{ ...shipment, ...Object.fromEntries(Object.entries(extra).filter(entry => entry[1])) }} pallets={loadedPallets} />
         <div className="space-y-4">
           <div className="flex justify-center"><QRLabel code={shipment.shipment_code} title="Despacho" subtitle={shipment.load_number} /></div>
