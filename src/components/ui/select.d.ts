@@ -1,0 +1,11 @@
+import * as SelectPrimitive from '@radix-ui/react-select';
+export const Select: typeof SelectPrimitive.Root;
+export const SelectGroup: typeof SelectPrimitive.Group;
+export const SelectValue: typeof SelectPrimitive.Value;
+export const SelectTrigger: typeof SelectPrimitive.Trigger;
+export const SelectContent: typeof SelectPrimitive.Content;
+export const SelectLabel: typeof SelectPrimitive.Label;
+export const SelectItem: typeof SelectPrimitive.Item;
+export const SelectSeparator: typeof SelectPrimitive.Separator;
+export const SelectScrollUpButton: typeof SelectPrimitive.ScrollUpButton;
+export const SelectScrollDownButton: typeof SelectPrimitive.ScrollDownButton;
