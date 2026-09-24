@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { generateCode, fmtKg, fmtDate, fmtNum } from "@/lib/qr";
 import { loadCatalog } from "@/lib/catalogs";
-import { loadPalletsIntoShipment, unloadPalletFromShipment, AVAILABLE_FOR_SHIPMENT } from "@/lib/shipments";
+import { loadPalletsIntoShipment, unloadPalletFromShipment, reopenShipmentForCorrection, AVAILABLE_FOR_SHIPMENT } from "@/lib/shipments";
 import { Checkbox } from "@/components/ui/checkbox";
 import QRScanner from "@/components/QRScanner";
 import QRLabel from "@/components/QRLabel";
@@ -230,6 +230,9 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
   const [error, setError] = useState("");
   const [palletToRemove, setPalletToRemove] = useState(null);
   const [removing, setRemoving] = useState(false);
+  const [confirmReopen, setConfirmReopen] = useState(false);
+  const [reopening, setReopening] = useState(false);
+  const [reopenOperationId] = useState(() => crypto.randomUUID());
   const [extra, setExtra] = useState({ container_number: "", remito: "", thermograph: "", seal: "" });
 
   useEffect(() => {
@@ -276,6 +279,19 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
     finally { setRemoving(false); }
   }
 
+  async function reopenShipment() {
+    if (reopening) return;
+    setReopening(true);
+    setError("");
+    try {
+      await reopenShipmentForCorrection(shipment.id, reopenOperationId);
+      setConfirmReopen(false);
+      toast.success("Carga reabierta. Ya podés corregir los pallets.");
+      onChanged();
+    } catch (e) { setError(e.message || "No se pudo reabrir la carga"); }
+    finally { setReopening(false); }
+  }
+
   async function closeShipment() {
     try {
       await base44.entities.Shipment.update(shipment.id, { status: "enviado", ...extra });
@@ -317,6 +333,18 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
 
           {/* Carga de pallets */}
           <div className="border-t pt-3 space-y-2">
+            {shipment.status === "enviado" && <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-2 text-sm">
+              <p>Esta carga está enviada. Reabrila para corregir los pallets y volvé a cerrarla al terminar.</p>
+              {!confirmReopen ? (
+                <Button type="button" size="sm" variant="outline" onClick={() => setConfirmReopen(true)}>Reabrir para corregir pallets</Button>
+              ) : <div className="space-y-2">
+                <p className="font-medium">¿Confirmás la reapertura de la carga {shipment.load_number}?</p>
+                <div className="flex gap-2 justify-end">
+                  <Button size="sm" variant="outline" disabled={reopening} onClick={() => setConfirmReopen(false)}>Cancelar</Button>
+                  <Button size="sm" disabled={reopening} onClick={reopenShipment}>{reopening ? "Reabriendo…" : "Confirmar reapertura"}</Button>
+                </div>
+              </div>}
+            </div>}
             <div className="flex items-center justify-between">
               <h4 className="font-medium flex items-center gap-2"><Package className="w-4 h-4" /> Pallets cargados ({loadedPallets.length})</h4>
               {canChangePallets && <Button size="sm" onClick={() => setScanMode(!scanMode)}>{scanMode ? "Salir" : "Cargar pallet"}</Button>}
