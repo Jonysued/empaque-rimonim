@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { generateCode, generateRomaneoNumber, fmtKg } from "@/lib/qr";
-import { loadCatalog, loadAllCatalogs } from "@/lib/catalogs";
+import { loadAllCatalogs } from "@/lib/catalogs";
 import StatusBadge from "@/components/StatusBadge";
 import PrintRomaneo from "@/components/PrintRomaneo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";

@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Settings, Plus, Trash2, Edit2 } from "lucide-react";
 import LocationConfig from "@/components/LocationConfig";
@@ -135,7 +134,7 @@ function CatalogForm({ type, item, onClose, onSaved }) {
         await base44.entities.Catalog.create(payload);
       }
       onSaved();
-    } catch (e) { setSaving(false); }
+    } catch { setSaving(false); }
   }
 
   return (

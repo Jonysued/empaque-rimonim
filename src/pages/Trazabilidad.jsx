@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { fmtKg, fmtDate } from "@/lib/qr";
 import QRScanner from "@/components/QRScanner";
-import StatusBadge from "@/components/StatusBadge";
 import MovementTimeline from "@/components/MovementTimeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
