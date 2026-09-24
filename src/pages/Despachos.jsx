@@ -79,7 +79,6 @@ export default function Despachos() {
                     <p className="text-sm"><b>{(s.loaded_pallet_ids || []).length}</b> / {s.target_capacity || 21} pallets</p>
                     <p className="text-sm">{fmtKg(s.total_weight)}</p>
                     <p className="text-xs text-muted-foreground">{fmtNum(s.total_packages)} bultos</p>
-                    <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); setEditing(s); }}><Pencil className="w-3.5 h-3.5 mr-1" /> Editar</Button>
                   </div>
                 </div>
               </CardContent>
@@ -167,7 +166,7 @@ function ShipmentForm({ shipment = null, cats, pallets, onClose, onSaved }) {
 
   return (
     <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>{shipment ? `Editar carga ${shipment.load_number}` : "Nueva carga / despacho"}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           {error && <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{error}</p>}
@@ -197,6 +196,9 @@ function ShipmentForm({ shipment = null, cats, pallets, onClose, onSaved }) {
             <div className="space-y-1"><Label className="text-xs">Termógrafo</Label><Input value={form.thermograph} onChange={e => setForm(f => ({ ...f, thermograph: e.target.value }))} /></div>
             <div className="space-y-1"><Label className="text-xs">Precinto</Label><Input value={form.seal} onChange={e => setForm(f => ({ ...f, seal: e.target.value }))} /></div>
           </div>}
+          {shipment && ["borrador", "reservado", "cargado"].includes(shipment.status) && (
+            <ShipmentPalletEditor shipment={shipment} pallets={pallets} onSaved={onSaved} />
+          )}
           {!shipment && <div className="space-y-2">
             <Label className="text-xs">Pallets disponibles ({available.length})</Label>
             {available.length === 0 ? (
@@ -223,6 +225,61 @@ function ShipmentForm({ shipment = null, cats, pallets, onClose, onSaved }) {
       </DialogContent>
     </Dialog>
   );
+}
+
+function ShipmentPalletEditor({ shipment, pallets, onSaved }) {
+  const [palletToRemove, setPalletToRemove] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const loadedIds = shipment.loaded_pallet_ids || [];
+  const loaded = loadedIds.map(id => pallets.find(p => p.id === id) || { id, romaneo_number: "Pallet sin datos locales" });
+  const available = pallets.filter(p => AVAILABLE_FOR_SHIPMENT.includes(p.status) && p.product_type === shipment.product_type);
+
+  async function changePallet(pallet, remove = false) {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = remove
+        ? await unloadPalletFromShipment(shipment.id, pallet.id)
+        : (await loadPalletsIntoShipment(shipment, [pallet]))[0];
+      if (result?.pending) toast.warning("Cambio guardado en este dispositivo; pendiente de sincronizar");
+      else toast.success(remove ? "Pallet retirado de la carga" : "Pallet agregado a la carga");
+      onSaved();
+    } catch (e) {
+      setError(e.message || "No se pudo modificar el pallet");
+      setBusy(false);
+    }
+  }
+
+  return <div className="border-t pt-3 space-y-2">
+    <Label>Pallets cargados ({loaded.length}/{shipment.target_capacity || 21})</Label>
+    <p className="text-xs text-muted-foreground">Los pallets se actualizan al agregarlos o retirarlos. Guardá los cambios en los datos de la carga por separado.</p>
+    {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+    {loaded.length === 0 && <p className="text-sm text-muted-foreground">Sin pallets cargados.</p>}
+    <div className="max-h-40 overflow-y-auto divide-y border rounded-md">
+      {loaded.map(p => <div key={p.id} className="flex items-center justify-between gap-2 p-2 text-sm">
+        <span className="font-mono">{p.romaneo_number}</span>
+        <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => setPalletToRemove(p)}>Retirar</Button>
+      </div>)}
+    </div>
+    {palletToRemove && <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-2 text-sm">
+      <p>¿Retirar el pallet {palletToRemove.romaneo_number} de la carga {shipment.load_number}?</p>
+      <p>Volverá a estar disponible y se recalcularán el peso y los bultos.</p>
+      <div className="flex gap-2 justify-end">
+        <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => setPalletToRemove(null)}>Cancelar</Button>
+        <Button type="button" size="sm" disabled={busy} onClick={() => changePallet(palletToRemove, true)}>{busy ? "Retirando…" : "Confirmar retiro"}</Button>
+      </div>
+    </div>}
+    <Label>Pallets disponibles ({available.length})</Label>
+    {available.length === 0 && <p className="text-sm text-muted-foreground">No hay pallets disponibles para este producto.</p>}
+    <div className="max-h-40 overflow-y-auto divide-y border rounded-md">
+      {available.map(p => <div key={p.id} className="flex items-center justify-between gap-2 p-2 text-sm">
+        <span className="font-mono">{p.romaneo_number}</span>
+        <Button type="button" size="sm" variant="outline" disabled={busy || loaded.length >= (shipment.target_capacity || 21)} onClick={() => changePallet(p)}>Agregar</Button>
+      </div>)}
+    </div>
+  </div>;
 }
 
 function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
