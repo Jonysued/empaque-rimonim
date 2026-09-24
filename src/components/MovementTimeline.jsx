@@ -9,6 +9,7 @@ const ACTION_LABELS = {
   traslado: "Traslado / retiro",
   reserva: "Reserva para despacho",
   carga_despacho: "Carga a despacho",
+  retiro_despacho: "Corrección: retiro de despacho",
   descarga: "Descarga",
   retencion: "Retención por calidad",
   liberacion_calidad: "Liberación por calidad",
