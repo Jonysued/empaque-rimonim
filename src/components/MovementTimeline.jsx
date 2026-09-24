@@ -10,6 +10,7 @@ const ACTION_LABELS = {
   reserva: "Reserva para despacho",
   carga_despacho: "Carga a despacho",
   retiro_despacho: "Corrección: retiro de despacho",
+  reapertura_despacho: "Reapertura para corregir despacho",
   descarga: "Descarga",
   retencion: "Retención por calidad",
   liberacion_calidad: "Liberación por calidad",
