@@ -23,13 +23,13 @@ export default function Recepcion() {
   async function refresh() {
     setLoading(true);
     try {
-      const [data, prods, vars, farms, origins, crews, htypes, species] = await Promise.all([
+      const [data, prods, vars, origins, crews, htypes, species] = await Promise.all([
         base44.entities.ReceiptLot.list("-created_date", 50),
-        loadCatalog("productor"), loadCatalog("variedad"), loadCatalog("finca"),
+        loadCatalog("productor"), loadCatalog("variedad"),
         loadCatalog("cuadro"), loadCatalog("cuadrilla"), loadCatalog("tipo_cosecha"), loadCatalog("especie"),
       ]);
       setLots(data || []);
-      setCats({ productor: prods, variedad: vars, finca: farms, cuadro: origins, cuadrilla: crews, tipo_cosecha: htypes, especie: species });
+      setCats({ productor: prods, variedad: vars, cuadro: origins, cuadrilla: crews, tipo_cosecha: htypes, especie: species });
     } catch (e) { console.error(e); } finally { setLoading(false); }
   }
 
@@ -92,10 +92,10 @@ export default function Recepcion() {
 
 function LotForm({ cats, onClose, onSaved }) {
   const [form, setForm] = useState({
-    producer: "", variety: "", farm: "", origin: "", species: "Granada",
-    harvest_type: "", crew: "", shift: "Mañana", transport: "",
+    producer: "", variety: "", origin: "", species: "Granada",
+    harvest_type: "", crew: "", transport: "",
     bins_count: "", gross_weight: "", tare_weight: "", net_weight: "",
-    weighing_method: "camion", harvest_lot_code: "", harvest_date: "", location: "Playa de espera",
+    harvest_date: "",
     quality_notes: ""
   });
   const [saving, setSaving] = useState(false);
@@ -155,7 +155,6 @@ function LotForm({ cats, onClose, onSaved }) {
                 <SelectContent>{opt(cats.variedad).map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
               </Select>
             </Field>
-            <Field label="Finca"><Input value={form.farm} onChange={e => update("farm", e.target.value)} /></Field>
             <Field label="Procedencia/Cuadro"><Input value={form.origin} onChange={e => update("origin", e.target.value)} /></Field>
             <Field label="Especie"><Input value={form.species} onChange={e => update("species", e.target.value)} /></Field>
             <Field label="Tipo de cosecha">
@@ -165,41 +164,9 @@ function LotForm({ cats, onClose, onSaved }) {
               </Select>
             </Field>
             <Field label="Cuadrilla"><Input value={form.crew} onChange={e => update("crew", e.target.value)} /></Field>
-            <Field label="Turno">
-              <Select value={form.shift} onValueChange={v => update("shift", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Mañana">Mañana</SelectItem>
-                  <SelectItem value="Tarde">Tarde</SelectItem>
-                  <SelectItem value="Noche">Noche</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
             <Field label="Transporte"><Input value={form.transport} onChange={e => update("transport", e.target.value)} /></Field>
-            <Field label="Lote de cosecha (ref.)"><Input value={form.harvest_lot_code} onChange={e => update("harvest_lot_code", e.target.value)} /></Field>
             <Field label="Fecha de cosecha"><Input type="date" value={form.harvest_date} onChange={e => update("harvest_date", e.target.value)} /></Field>
             <Field label="Cantidad de BINs"><Input type="number" value={form.bins_count} onChange={e => update("bins_count", e.target.value)} /></Field>
-            <Field label="Método de pesada">
-              <Select value={form.weighing_method} onValueChange={v => update("weighing_method", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="camion">Camión</SelectItem>
-                  <SelectItem value="partida">Partida</SelectItem>
-                  <SelectItem value="lote">Lote</SelectItem>
-                  <SelectItem value="balanza_individual">Balanza individual</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Ubicación inicial">
-              <Select value={form.location} onValueChange={v => update("location", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Playa de espera">Playa de espera</SelectItem>
-                  <SelectItem value="Cámara sin procesar">Cámara sin procesar</SelectItem>
-                  <SelectItem value="Playa de recepción">Playa de recepción</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
             <Field label="Peso bruto (kg)"><Input type="number" step="0.1" value={form.gross_weight} onChange={e => update("gross_weight", e.target.value)} /></Field>
             <Field label="Tara (kg)"><Input type="number" step="0.1" value={form.tare_weight} onChange={e => update("tare_weight", e.target.value)} /></Field>
             <Field label="Peso neto (kg) *"><Input type="number" step="0.1" value={form.net_weight} onChange={e => update("net_weight", e.target.value)} /></Field>
