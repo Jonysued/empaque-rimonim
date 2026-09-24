@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { generateCode, generateRomaneoNumber, fmtKg } from "@/lib/qr";
+import { generateCode, nextRomaneoNumber, fmtKg } from "@/lib/qr";
 import { loadAllCatalogs } from "@/lib/catalogs";
 import StatusBadge from "@/components/StatusBadge";
 import PrintRomaneo from "@/components/PrintRomaneo";
@@ -179,9 +179,9 @@ function PalletForm({ cats, onClose, onSaved, pallet }) {
         await base44.entities.Pallet.update(pallet.id, payload);
       } else {
         const code = generateCode("PAL");
-        // Romaneo: contar pallets existentes + 1
+        // El siguiente número debe superar al mayor existente, incluso si se borró otro pallet.
         const existing = await base44.entities.Pallet.list();
-        const romaneo = generateRomaneoNumber((existing || []).length + 1);
+        const romaneo = nextRomaneoNumber(existing || []);
         await base44.entities.Pallet.create({
           ...payload,
           pallet_code: code,

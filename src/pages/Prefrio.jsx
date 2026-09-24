@@ -66,6 +66,10 @@ export default function Prefrio() {
     const tunnel = tunnels.find(x => x.id === tunnelRef.id) || tunnelRef;
     if (pallet.status === "en_tunel") { setError(`El pallet ${pallet.romaneo_number} ya está en un túnel`); return; }
     if (pallet.held || pallet.status === "retenido") { setError(`El pallet ${pallet.romaneo_number} está retenido`); return; }
+    if (!["armado", "cerrado", "prefrio_finalizado"].includes(pallet.status) || pallet.location_id || pallet.shipment_id) {
+      setError(`El pallet ${pallet.romaneo_number} no está disponible para ingresar al túnel`);
+      return;
+    }
     if ((tunnel.occupied || 0) >= (tunnel.capacity || 0)) { setError(`El túnel ${tunnel.name} está lleno`); return; }
     try {
       // Actualizar pallet
@@ -149,12 +153,12 @@ export default function Prefrio() {
       });
       const cyclePalletIds = open.pallet_ids || [];
       if (cyclePalletIds.length > 0) {
-        const released = pallets.filter(p => cyclePalletIds.includes(p.id) && p.location_id === tunnel.id);
-        await base44.entities.Pallet.updateMany(
-          { id: { "$in": cyclePalletIds } },
-          { $set: { status: "prefrio_finalizado" }, $unset: { location_id: "", location_name: "" } }
-        );
+        const released = pallets.filter(p => cyclePalletIds.includes(p.id) && p.location_id === tunnel.id && p.status === "en_tunel");
         if (released.length > 0) {
+          await base44.entities.Pallet.updateMany(
+            { id: { "$in": released.map(p => p.id) } },
+            { $set: { status: "prefrio_finalizado" }, $unset: { location_id: "", location_name: "" } }
+          );
           await syncOccupancy(tunnel.id);
           await base44.entities.MovementEvent.bulkCreate(released.map(p => ({
             event_code: generateCode("MOV"),
