@@ -1,4 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
+import { readSnapshot, saveSnapshot } from '@/lib/offlineStore';
+import { Capacitor } from '@capacitor/core';
+const webAppUrl = import.meta.env.VITE_PUBLIC_APP_URL || 'https://empaque-rimonim.vercel.app';
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabase = createClient(url || 'https://placeholder.supabase.co', key || 'placeholder', {
@@ -8,11 +11,30 @@ const requireConfigured = () => { if (!url || !key) throw new Error('Configurá 
 /** @param {{ data?: any, error?: Error | null }} result */
 function unwrap({ data, error }) { if (error) throw error; return data; }
 async function rows(entity) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const ownerId = session?.user?.id;
+  if (!ownerId) throw Object.assign(new Error('Iniciá sesión'), {status:401});
+  if (!navigator.onLine) {
+    const cached = await readSnapshot(ownerId, entity);
+    if (cached) return cached;
+    throw new Error('No hay datos de esta sección guardados para usar sin conexión');
+  }
   const all=[];
-  for(let offset=0; ; offset+=1000) {
-    const batch=unwrap(await supabase.from('records').select('id,data,created_date').eq('entity',entity).order('created_date',{ascending:true}).order('id',{ascending:true}).range(offset,offset+999));
-    all.push(...batch);
-    if(batch.length<1000) return all;
+  try {
+    for(let offset=0; ; offset+=1000) {
+      const batch=unwrap(await supabase.from('records').select('id,data,created_date').eq('entity',entity).order('created_date',{ascending:true}).order('id',{ascending:true}).range(offset,offset+999));
+      all.push(...batch);
+      if(batch.length<1000) {
+        await saveSnapshot(ownerId, entity, all).catch(() => {});
+        return all;
+      }
+    }
+  } catch (error) {
+    if (!navigator.onLine || error?.status === 0 || /failed to fetch|networkerror/i.test(error?.message || '')) {
+      const cached = await readSnapshot(ownerId, entity);
+      if (cached) return cached;
+    }
+    throw error;
   }
 }
 const flatten = (record) => ({ ...record.data, id: record.id, created_date: record.created_date });
@@ -66,10 +88,23 @@ const entityClient = (entity) => ({
   async delete(id) { unwrap(await supabase.from('records').delete().eq('entity',entity).eq('id',id)); },
 });
 const profile = async () => {
-  const {data:{user},error} = await supabase.auth.getUser();
-  if(error || !user) throw Object.assign(new Error('Iniciá sesión'),{status:401});
-  const p=unwrap(await supabase.from('profiles').select('*').eq('id',user.id).single());
-  return {...p, name:p.full_name};
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session?.user?.id) throw Object.assign(new Error('Iniciá sesión'), {status:401});
+  try {
+    if (!navigator.onLine) throw new TypeError('Sin conexión');
+    const {data:{user},error} = await supabase.auth.getUser();
+    if(error || !user) throw Object.assign(new Error('Iniciá sesión'),{status:401});
+    const p=unwrap(await supabase.from('profiles').select('*').eq('id',user.id).single());
+    const value={...p, name:p.full_name};
+    await saveSnapshot(user.id, 'profile', value).catch(() => {});
+    return value;
+  } catch (error) {
+    if (!navigator.onLine || error instanceof TypeError || error?.status === 0) {
+      const cached = await readSnapshot(session.user.id, 'profile');
+      if (cached) return cached;
+    }
+    throw error;
+  }
 };
 export const base44 = {
   app: {getPublicSettings: async()=>({id:'empaque-rimonim',public_settings:{}})},
@@ -83,9 +118,9 @@ export const base44 = {
     async verifyOtp({email,otpCode}) { const data=unwrap(await supabase.auth.verifyOtp({email,token:otpCode,type:'email'})); return {access_token:data.session?.access_token}; },
     setToken:()=>{},
     resendOtp: email=>supabase.auth.resend({type:'signup',email}).then(unwrap),
-    resetPasswordRequest: email=>supabase.auth.resetPasswordForEmail(email,{redirectTo:`${location.origin}/reset-password`}).then(unwrap),
+    resetPasswordRequest: email=>supabase.auth.resetPasswordForEmail(email,{redirectTo:`${Capacitor.isNativePlatform() ? webAppUrl : location.origin}/reset-password`}).then(unwrap),
     resetPassword: ({newPassword})=>supabase.auth.updateUser({password:newPassword}).then(unwrap),
   },
-  users: {async inviteUser(email,role) { const session=unwrap(await supabase.auth.getSession()).session; const response=await fetch('/api/invite',{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session?.access_token}`},body:JSON.stringify({email,role})}); const body=await response.json(); if(!response.ok) throw new Error(body.error||'No se pudo invitar'); return body; }},
+  users: {async inviteUser(email,role) { const session=unwrap(await supabase.auth.getSession()).session; const endpoint=Capacitor.isNativePlatform() ? `${webAppUrl}/api/invite` : '/api/invite'; const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session?.access_token}`},body:JSON.stringify({email,role})}); const body=await response.json(); if(!response.ok) throw new Error(body.error||'No se pudo invitar'); return body; }},
   entities: /** @type {Record<string, ReturnType<typeof entityClient>>} */ (new Proxy({}, {get:(_target,name)=>entityClient(String(name))})),
 };

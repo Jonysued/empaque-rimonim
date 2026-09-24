@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import jsQR from "jsqr";
+import { Capacitor } from "@capacitor/core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScanLine, Keyboard, X } from "lucide-react";
@@ -21,6 +22,24 @@ export default function QRScanner({ onScan, label = "Escanear QR" }) {
   const streamRef = useRef(null);
   const canvasRef = useRef(null);
   const ctxRef = useRef(null);
+  const native = Capacitor.isNativePlatform();
+
+  async function scanNative() {
+    setError("");
+    try {
+      const { CapacitorBarcodeScanner, CapacitorBarcodeScannerTypeHint } = await import("@capacitor/barcode-scanner");
+      const result = await CapacitorBarcodeScanner.scanBarcode({
+        hint: CapacitorBarcodeScannerTypeHint.QR_CODE,
+        scanInstructions: "Enfocá el código QR",
+      });
+      if (result.ScanResult) handleScan(result.ScanResult);
+    } catch (scanError) {
+      // Closing the native camera is not a failed movement.
+      if (!/cancel/i.test(scanError?.message || "")) {
+        setError("No se pudo abrir la cámara. Revisá el permiso de la app o ingresá el código manualmente.");
+      }
+    }
+  }
 
   useEffect(() => {
     if (!scanning) return;
@@ -115,7 +134,7 @@ export default function QRScanner({ onScan, label = "Escanear QR" }) {
   if (!scanning && !manual) {
     return (
       <div className="flex flex-col gap-2">
-        <Button type="button" size="lg" className="h-14 text-base" onClick={() => setScanning(true)}>
+        <Button type="button" size="lg" className="h-14 text-base" onClick={native ? scanNative : () => setScanning(true)}>
           <ScanLine className="w-5 h-5 mr-2" /> {label}
         </Button>
         <Button type="button" variant="outline" onClick={() => { setManual(true); setError(""); }}>

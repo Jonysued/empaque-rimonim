@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import rimonimLogo from "@/rimonim-logo.svg";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
+import SyncStatus from "@/components/SyncStatus";
 import { cn } from "@/lib/utils";
 import { canAccess, roleLabel } from "@/lib/permissions";
 import {
@@ -117,6 +118,7 @@ export default function Layout() {
       {/* Content */}
       <main className="lg:pl-60">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <SyncStatus />
           <Outlet />
         </div>
       </main>

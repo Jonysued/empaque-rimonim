@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Warehouse, Plus, Thermometer, ArrowRightLeft } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Camaras() {
   const [chambers, setChambers] = useState([]);
@@ -52,16 +53,17 @@ export default function Camaras() {
     setError("");
     const chamber = chambers.find(x => x.id === chamberRef.id) || chamberRef;
     try {
-      await movePalletLocation("carga_camara", pallet.id, chamber.id);
-      setScannedPallet(pallet);
-      refresh();
+      const result = await movePalletLocation("carga_camara", pallet.id, chamber.id);
+      if (result.pending) toast.warning("Guardado en este dispositivo; pendiente de sincronizar");
+      else { setScannedPallet(pallet); refresh(); }
     } catch (e) { setError(e.message || "Error"); }
   }
 
   async function removePallet(pallet) {
     try {
-      await movePalletLocation("retiro_camara", pallet.id, pallet.location_id);
-      refresh();
+      const result = await movePalletLocation("retiro_camara", pallet.id, pallet.location_id);
+      if (result.pending) toast.warning("Guardado en este dispositivo; pendiente de sincronizar");
+      else refresh();
     } catch (e) { setError(e.message || "Error al retirar pallet"); }
   }
 
