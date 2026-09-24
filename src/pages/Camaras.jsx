@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { generateCode, fmtKg, fmtDate } from "@/lib/qr";
+import { generateCode, fmtKg } from "@/lib/qr";
 import { syncOccupancy } from "@/lib/occupancy";
 import QRScanner from "@/components/QRScanner";
-import StatusBadge from "@/components/StatusBadge";
 import LocationQR from "@/components/LocationQR";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,7 +12,6 @@ import { Warehouse, Plus, Thermometer, ArrowRightLeft } from "lucide-react";
 
 export default function Camaras() {
   const [chambers, setChambers] = useState([]);
-  const [locations, setLocations] = useState([]);
   const [pallets, setPallets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -29,7 +27,6 @@ export default function Camaras() {
         base44.entities.Location.list(),
         base44.entities.Pallet.list(),
       ]);
-      setLocations(locs || []);
       setChambers((locs || []).filter(l => l.type === "camara"));
       setPallets(p || []);
       setActiveChamber(prev => prev ? (locs || []).find(x => x.id === prev.id) || prev : prev);
@@ -181,7 +178,7 @@ export default function Camaras() {
 }
 
 function ChamberForm({ onClose, onSaved }) {
-  const [form, setForm] = useState({ name: "", capacity: 100, setpoint_temp: 0, humidity: 85, product_type_filter: "" });
+  const [form, setForm] = useState({ name: "", capacity: "100", setpoint_temp: "0", humidity: "85", product_type_filter: "" });
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e) {
@@ -200,7 +197,7 @@ function ChamberForm({ onClose, onSaved }) {
         active: true,
       });
       onSaved();
-    } catch (e) { setSaving(false); }
+    } catch { setSaving(false); }
   }
 
   return (

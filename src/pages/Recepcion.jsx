@@ -4,15 +4,14 @@ import { generateCode, fmtKg, fmtDate } from "@/lib/qr";
 import { loadCatalog } from "@/lib/catalogs";
 import StatusBadge from "@/components/StatusBadge";
 import QRLabel from "@/components/QRLabel";
-import QRScanner from "@/components/QRScanner";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { PackageOpen, Plus, QrCode, Layers } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PackageOpen, Plus, Layers } from "lucide-react";
 
 export default function Recepcion() {
   const [lots, setLots] = useState([]);
@@ -86,7 +85,7 @@ export default function Recepcion() {
       )}
 
       {showForm && <LotForm cats={cats} onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); refresh(); }} />}
-      {selectedLot && <LotDetail lot={selectedLot} cats={cats} onClose={() => setSelectedLot(null)} onChanged={refresh} />}
+      {selectedLot && <LotDetail lot={selectedLot} onClose={() => setSelectedLot(null)} />}
     </div>
   );
 }
@@ -96,7 +95,7 @@ function LotForm({ cats, onClose, onSaved }) {
     producer: "", variety: "", farm: "", origin: "", species: "Granada",
     harvest_type: "", crew: "", shift: "Mañana", transport: "",
     bins_count: "", gross_weight: "", tare_weight: "", net_weight: "",
-    weighing_method: "camion", harvest_lot_code: "", location: "Playa de espera",
+    weighing_method: "camion", harvest_lot_code: "", harvest_date: "", location: "Playa de espera",
     quality_notes: ""
   });
   const [saving, setSaving] = useState(false);
@@ -178,6 +177,7 @@ function LotForm({ cats, onClose, onSaved }) {
             </Field>
             <Field label="Transporte"><Input value={form.transport} onChange={e => update("transport", e.target.value)} /></Field>
             <Field label="Lote de cosecha (ref.)"><Input value={form.harvest_lot_code} onChange={e => update("harvest_lot_code", e.target.value)} /></Field>
+            <Field label="Fecha de cosecha"><Input type="date" value={form.harvest_date} onChange={e => update("harvest_date", e.target.value)} /></Field>
             <Field label="Cantidad de BINs"><Input type="number" value={form.bins_count} onChange={e => update("bins_count", e.target.value)} /></Field>
             <Field label="Método de pesada">
               <Select value={form.weighing_method} onValueChange={v => update("weighing_method", v)}>
@@ -224,7 +224,7 @@ function Field({ label, children }) {
   );
 }
 
-function LotDetail({ lot, cats, onClose, onChanged }) {
+function LotDetail({ lot, onClose }) {
   const [bins, setBins] = useState([]);
   const [showBins, setShowBins] = useState(false);
 
@@ -289,7 +289,7 @@ function LotDetail({ lot, cats, onClose, onChanged }) {
 }
 
 function BinForm({ lot, onClose, onSaved }) {
-  const [count, setCount] = useState(1);
+  const [count, setCount] = useState("1");
   const [tare, setTare] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -316,7 +316,7 @@ function BinForm({ lot, onClose, onSaved }) {
       }
       await base44.entities.Bin.bulkCreate(records);
       onSaved();
-    } catch (e) { setSaving(false); }
+    } catch { setSaving(false); }
   }
 
   return (

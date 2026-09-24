@@ -8,7 +8,7 @@ import QRScanner from "@/components/QRScanner";
 import QRLabel from "@/components/QRLabel";
 import PrintPackingList from "@/components/PrintPackingList";
 import StatusBadge from "@/components/StatusBadge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,6 +34,7 @@ export default function Despachos() {
       ]);
       setShipments(s || []);
       setPallets(p || []);
+      setSelected(previous => previous ? (s || []).find(item => item.id === previous.id) || previous : null);
       setCats({ cliente: clients });
     } catch (e) { console.error(e); } finally { setLoading(false); }
   }
@@ -91,7 +92,7 @@ export default function Despachos() {
 }
 
 function ShipmentForm({ cats, pallets, onClose, onSaved }) {
-  const [form, setForm] = useState({ load_number: "", client: "", destination: "", product_type: "fresco", target_capacity: 21, carrier: "" });
+  const [form, setForm] = useState({ load_number: "", client: "", destination: "", product_type: "fresco", target_capacity: "21", carrier: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -200,8 +201,7 @@ function ShipmentDetail({ shipment, pallets, onClose, onChanged }) {
     const pallet = pallets.find(p => p.pallet_code === code || p.romaneo_number === code);
     if (!pallet) { setError(`Pallet no encontrado: ${code}`); return; }
     if (pallet.product_type !== shipment.product_type) { setError(`El pallet es ${pallet.product_type}, la carga es ${shipment.product_type}`); return; }
-    if (pallet.status === "despachado") { setError("El pallet ya está despachado"); return; }
-    if (pallet.status === "retenido") { setError("El pallet está retenido"); return; }
+    if (!AVAILABLE_FOR_SHIPMENT.includes(pallet.status)) { setError("El pallet debe estar liberado de prefrío o cámara antes de cargarlo"); return; }
     if ((shipment.loaded_pallet_ids || []).includes(pallet.id)) { setError("El pallet ya está cargado"); return; }
     if ((shipment.loaded_pallet_ids || []).length >= (shipment.target_capacity || 21)) { setError("Capacidad de carga alcanzada"); return; }
     try {
@@ -230,7 +230,7 @@ function ShipmentDetail({ shipment, pallets, onClose, onChanged }) {
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Carga {shipment.load_number}</DialogTitle></DialogHeader>
-          <PrintPackingList shipment={shipment} pallets={loadedPallets} />
+          <PrintPackingList shipment={{ ...shipment, ...Object.fromEntries(Object.entries(extra).filter(entry => entry[1])) }} pallets={loadedPallets} />
         <div className="space-y-4">
           <div className="flex justify-center"><QRLabel code={shipment.shipment_code} title="Despacho" subtitle={shipment.load_number} /></div>
           <div className="grid grid-cols-2 gap-2 text-sm">

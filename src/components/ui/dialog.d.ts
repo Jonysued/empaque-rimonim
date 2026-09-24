@@ -1,0 +1,12 @@
+import * as React from 'react';
+import * as DialogPrimitive from '@radix-ui/react-dialog';
+export const Dialog: typeof DialogPrimitive.Root;
+export const DialogPortal: typeof DialogPrimitive.Portal;
+export const DialogTrigger: typeof DialogPrimitive.Trigger;
+export const DialogClose: typeof DialogPrimitive.Close;
+export const DialogOverlay: typeof DialogPrimitive.Overlay;
+export const DialogContent: typeof DialogPrimitive.Content;
+export const DialogTitle: typeof DialogPrimitive.Title;
+export const DialogDescription: typeof DialogPrimitive.Description;
+export const DialogHeader: React.FC<React.HTMLAttributes<HTMLDivElement>>;
+export const DialogFooter: React.FC<React.HTMLAttributes<HTMLDivElement>>;

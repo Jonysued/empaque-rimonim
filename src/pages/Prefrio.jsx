@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
-import { generateCode, fmtKg, fmtDate } from "@/lib/qr";
+import { generateCode } from "@/lib/qr";
 import { syncOccupancy } from "@/lib/occupancy";
 import QRScanner from "@/components/QRScanner";
-import StatusBadge from "@/components/StatusBadge";
 import LocationQR from "@/components/LocationQR";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -271,7 +270,7 @@ export default function Prefrio() {
 }
 
 function TunnelForm({ onClose, onSaved }) {
-  const [form, setForm] = useState({ name: "", capacity: 18, positions: 18, setpoint_temp: 0, target_temp: 0 });
+  const [form, setForm] = useState({ name: "", capacity: "18", positions: "18", setpoint_temp: "0", target_temp: "0" });
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e) {
@@ -290,7 +289,7 @@ function TunnelForm({ onClose, onSaved }) {
         active: true,
       });
       onSaved();
-    } catch (e) { setSaving(false); }
+    } catch { setSaving(false); }
   }
 
   return (

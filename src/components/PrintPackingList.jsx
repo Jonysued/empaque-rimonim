@@ -1,16 +1,20 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
-import { qrImageUrl, fmtKg, fmtDate } from "@/lib/qr";
+import { qrImageUrl, fmtDate } from "@/lib/qr";
 import { printHtml } from "@/lib/catalogs";
+
+const escapeHtml = value => String(value ?? "—").replace(/[&<>"']/g, char => ({
+  "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+})[char]);
 
 export default function PrintPackingList({ shipment, pallets }) {
   if (!shipment) return null;
 
   function print() {
     const list = pallets || [];
-    const totalBultos = list.reduce((s, p) => s + (p.package_count || 0), 0);
-    const totalNeto = list.reduce((s, p) => s + (p.net_weight || 0), 0);
+    const totalBultos = list.reduce((s, p) => s + Number(p.package_count || 0), 0);
+    const totalNeto = list.reduce((s, p) => s + Number(p.net_weight || 0), 0);
 
     const info = [
       ["Carga", shipment.load_number],
@@ -26,21 +30,21 @@ export default function PrintPackingList({ shipment, pallets }) {
       ["Pallets", `${list.length}/${shipment.target_capacity || 21}`],
     ];
     const infoHtml = info
-      .map(([k, v]) => `<div class="row"><span><b>${k}</b></span><span>${v}</span></div>`)
+      .map(([k, v]) => `<div class="row"><span><b>${escapeHtml(k)}</b></span><span>${escapeHtml(v)}</span></div>`)
       .join("");
 
     const rows = list
       .map((p, i) => `
         <tr>
           <td>${i + 1}</td>
-          <td>${p.romaneo_number || ""}</td>
+          <td>${escapeHtml(p.romaneo_number || "")}</td>
           <td>${p.product_type === "fresco" ? "Fresco" : "Arilos"}</td>
-          <td>${p.variety || ""}</td>
-          <td>${p.category || ""}</td>
-          <td>${p.calibre || ""}</td>
-          <td>${p.package_type || ""}</td>
-          <td class="num">${p.package_count ?? ""}</td>
-          <td class="num">${p.net_weight ?? ""}</td>
+          <td>${escapeHtml(p.variety || "")}</td>
+          <td>${escapeHtml(p.category || "")}</td>
+          <td>${escapeHtml(p.calibre || "")}</td>
+          <td>${escapeHtml(p.package_type || "")}</td>
+          <td class="num">${escapeHtml(p.package_count ?? "")}</td>
+          <td class="num">${escapeHtml(p.net_weight ?? "")}</td>
         </tr>`)
       .join("");
 
@@ -59,9 +63,9 @@ export default function PrintPackingList({ shipment, pallets }) {
         <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #000; padding-bottom:8px; margin-bottom:12px;">
           <div>
             <div style="font-size:22px; font-weight:bold;">PACKING LIST</div>
-            <div style="font-size:16px; font-weight:bold;">${shipment.load_number}</div>
+            <div style="font-size:16px; font-weight:bold;">${escapeHtml(shipment.load_number)}</div>
           </div>
-          <img src="${qrImageUrl(shipment.shipment_code, 120)}" width="90" height="90" />
+          <img src="${escapeHtml(qrImageUrl(shipment.shipment_code, 120))}" width="90" height="90" />
         </div>
         <div class="grid2">${infoHtml}</div>
         <table>

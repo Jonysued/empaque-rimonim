@@ -7,16 +7,17 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import Layout from '@/components/Layout';
-import Dashboard from '@/pages/Dashboard';
-import Recepcion from '@/pages/Recepcion';
-import Vuelco from '@/pages/Vuelco';
-import Produccion from '@/pages/Produccion';
-import Prefrio from '@/pages/Prefrio';
-import Camaras from '@/pages/Camaras';
-import Despachos from '@/pages/Despachos';
-import Trazabilidad from '@/pages/Trazabilidad';
-import Catalogos from '@/pages/Catalogos';
-import Usuarios from '@/pages/Usuarios';
+import { lazy, Suspense } from 'react';
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const Recepcion = lazy(() => import('@/pages/Recepcion'));
+const Vuelco = lazy(() => import('@/pages/Vuelco'));
+const Produccion = lazy(() => import('@/pages/Produccion'));
+const Prefrio = lazy(() => import('@/pages/Prefrio'));
+const Camaras = lazy(() => import('@/pages/Camaras'));
+const Despachos = lazy(() => import('@/pages/Despachos'));
+const Trazabilidad = lazy(() => import('@/pages/Trazabilidad'));
+const Catalogos = lazy(() => import('@/pages/Catalogos'));
+const Usuarios = lazy(() => import('@/pages/Usuarios'));
 import RouteGuard from '@/components/RouteGuard';
 import Login from '@/pages/Login';
 import Register from '@/pages/Register';
@@ -44,6 +45,7 @@ const AuthenticatedApp = () => {
 
   // Auth pages (public) + app routes (require session)
   return (
+    <Suspense fallback={<div className="fixed inset-0 flex items-center justify-center"><div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" /></div>}>
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -65,6 +67,7 @@ const AuthenticatedApp = () => {
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>
+    </Suspense>
   );
 };
 

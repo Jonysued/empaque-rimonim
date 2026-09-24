@@ -1,5 +1,5 @@
 {
-  "name": "base44-app",
+  "name": "empaque-rimonim",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -9,11 +9,10 @@
     "lint": "eslint . --quiet",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p ./jsconfig.json",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "import-data": "node scripts/import-base44.mjs"
   },
   "dependencies": {
-    "@base44/sdk": "^0.8.50",
-    "@base44/vite-plugin": "^1.0.42",
     "@hello-pangea/dnd": "^17.0.0",
     "@hookform/resolvers": "^4.1.2",
     "@radix-ui/react-accordion": "^1.2.3",
@@ -77,7 +76,8 @@
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.171.0",
     "vaul": "^1.1.2",
-    "zod": "^3.24.2"
+    "zod": "^3.24.2",
+    "@supabase/supabase-js": "^2.58.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",

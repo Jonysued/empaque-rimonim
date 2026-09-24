@@ -51,6 +51,7 @@ const LABELS = {
   libre: "Libre",
 };
 
+/** @param {{ status: string, className?: string, label?: string }} props */
 export default function StatusBadge({ status, className, label: customLabel }) {
   const color = STATUS_COLORS[status] || "bg-gray-100 text-gray-700";
   const label = customLabel || LABELS[status] || status;
