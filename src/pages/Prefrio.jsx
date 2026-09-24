@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { generateCode } from "@/lib/qr";
-import { syncOccupancy } from "@/lib/occupancy";
+import { movePalletLocation, changeCoolingCycle } from "@/lib/palletMovements";
 import QRScanner from "@/components/QRScanner";
 import LocationQR from "@/components/LocationQR";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,36 +64,8 @@ export default function Prefrio() {
   async function loadPalletIntoTunnel(tunnelRef, pallet) {
     setError("");
     const tunnel = tunnels.find(x => x.id === tunnelRef.id) || tunnelRef;
-    if (pallet.status === "en_tunel") { setError(`El pallet ${pallet.romaneo_number} ya está en un túnel`); return; }
-    if (pallet.held || pallet.status === "retenido") { setError(`El pallet ${pallet.romaneo_number} está retenido`); return; }
-    if (!["armado", "cerrado", "prefrio_finalizado"].includes(pallet.status) || pallet.location_id || pallet.shipment_id) {
-      setError(`El pallet ${pallet.romaneo_number} no está disponible para ingresar al túnel`);
-      return;
-    }
-    if ((tunnel.occupied || 0) >= (tunnel.capacity || 0)) { setError(`El túnel ${tunnel.name} está lleno`); return; }
     try {
-      // Actualizar pallet
-      await base44.entities.Pallet.update(pallet.id, {
-        status: "en_tunel",
-        previous_status: pallet.status,
-        location_id: tunnel.id, location_name: tunnel.name,
-      });
-      // Agregar al ciclo solo si hay un enfriado en curso
-      const cycle = cycles.find(c => c.tunnel_id === tunnel.id && c.status === "abierto");
-      if (cycle) {
-        await base44.entities.CoolingCycle.update(cycle.id, {
-          pallet_ids: [...(cycle.pallet_ids || []), pallet.id],
-        });
-      }
-      // Actualizar ocupación del túnel (recalculada desde la base)
-      await syncOccupancy(tunnel.id);
-      // Movimiento
-      await base44.entities.MovementEvent.create({
-        event_code: generateCode("MOV"),
-        unit_type: "pallet", unit_id: pallet.id, unit_code: pallet.pallet_code,
-        destination_location_id: tunnel.id, destination_location_name: tunnel.name,
-        action: "carga_tunel",
-      });
+      await movePalletLocation("carga_tunel", pallet.id, tunnel.id);
       setScannedPallet(pallet);
       refresh();
     } catch (e) { setError(e.message || "Error al cargar pallet"); }
@@ -102,72 +74,24 @@ export default function Prefrio() {
   async function releasePallet(pallet) {
     const tunnel = tunnels.find(t => t.id === pallet.location_id);
     if (!tunnel) return;
-    if (cycles.some(c => c.tunnel_id === tunnel.id && c.status === "abierto")) {
-      setError(`El pallet ${pallet.romaneo_number} está retenido hasta finalizar el enfriado del túnel ${tunnel.name}`);
-      return;
-    }
     try {
-      const newStatus = pallet.status === "prefrio_finalizado" ? "prefrio_finalizado" : (pallet.previous_status || "cerrado");
-      await base44.entities.Pallet.updateMany(
-        { id: pallet.id },
-        { $set: { status: newStatus }, $unset: { location_id: "", location_name: "" } }
-      );
-      await syncOccupancy(tunnel.id);
-      await base44.entities.MovementEvent.create({
-        event_code: generateCode("MOV"),
-        unit_type: "pallet", unit_id: pallet.id, unit_code: pallet.pallet_code,
-        origin_location_id: tunnel.id, origin_location_name: tunnel.name,
-        action: "liberacion_tunel",
-      });
+      await movePalletLocation("liberacion_tunel", pallet.id, tunnel.id);
       refresh();
-    } catch (e) { console.error(e); }
+    } catch (e) { setError(e.message || "Error al liberar pallet"); }
   }
 
   async function startCooling(tunnel) {
     setError("");
-    if (cycles.some(c => c.tunnel_id === tunnel.id && c.status === "abierto")) {
-      setError(`El túnel ${tunnel.name} ya tiene un enfriado en curso`);
-      return;
-    }
     try {
-      const inTunnel = pallets.filter(p => p.location_id === tunnel.id && p.status === "en_tunel").map(p => p.id);
-      await base44.entities.CoolingCycle.create({
-        cycle_code: generateCode("CIC"),
-        tunnel_id: tunnel.id, tunnel_name: tunnel.name,
-        start_time: new Date().toISOString(), reference_hours: 15,
-        status: "abierto", pallet_ids: inTunnel,
-        target_temp: tunnel.target_temp || 0, initial_temp: 0,
-      });
+      await changeCoolingCycle("iniciar", tunnel.id);
       refresh();
     } catch (e) { setError(e.message || "Error al iniciar enfriado"); }
   }
 
   async function stopCooling(tunnel) {
     setError("");
-    const open = cycles.find(c => c.tunnel_id === tunnel.id && c.status === "abierto");
-    if (!open) { setError(`El túnel ${tunnel.name} no tiene un enfriado en curso`); return; }
     try {
-      await base44.entities.CoolingCycle.update(open.id, {
-        status: "cerrado",
-        end_time: new Date().toISOString(),
-      });
-      const cyclePalletIds = open.pallet_ids || [];
-      if (cyclePalletIds.length > 0) {
-        const released = pallets.filter(p => cyclePalletIds.includes(p.id) && p.location_id === tunnel.id && p.status === "en_tunel");
-        if (released.length > 0) {
-          await base44.entities.Pallet.updateMany(
-            { id: { "$in": released.map(p => p.id) } },
-            { $set: { status: "prefrio_finalizado" }, $unset: { location_id: "", location_name: "" } }
-          );
-          await syncOccupancy(tunnel.id);
-          await base44.entities.MovementEvent.bulkCreate(released.map(p => ({
-            event_code: generateCode("MOV"),
-            unit_type: "pallet", unit_id: p.id, unit_code: p.pallet_code,
-            origin_location_id: tunnel.id, origin_location_name: tunnel.name,
-            action: "liberacion_tunel",
-          })));
-        }
-      }
+      await changeCoolingCycle("finalizar", tunnel.id);
       refresh();
     } catch (e) { setError(e.message || "Error al finalizar enfriado"); }
   }
