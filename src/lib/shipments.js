@@ -1,4 +1,5 @@
 import { submitOperation } from "@/lib/operationQueue";
+import { supabase } from "@/api/base44Client";
 
 // Estados de pallet disponibles para armar una carga:
 // liberados del prefrio o de las cámaras
@@ -18,6 +19,14 @@ export async function unloadPalletFromShipment(shipmentId, palletId, operationId
     p_shipment_id: shipmentId,
     p_pallet_id: palletId,
   }, `pallet:${palletId}`, operationId);
+}
+
+export async function reopenShipmentForCorrection(shipmentId, operationId = crypto.randomUUID()) {
+  const { error } = await supabase.rpc("reopen_shipment_for_correction", {
+    p_operation_id: operationId,
+    p_shipment_id: shipmentId,
+  });
+  if (error) throw error;
 }
 
 export async function loadPalletsIntoShipment(shipment, palletsToAdd) {
