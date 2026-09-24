@@ -13,6 +13,13 @@ export async function loadPalletIntoShipment(shipmentId, palletId, operationId =
   }, `pallet:${palletId}`, operationId);
 }
 
+export async function unloadPalletFromShipment(shipmentId, palletId, operationId = crypto.randomUUID()) {
+  return submitOperation("unload_pallet_from_shipment", {
+    p_shipment_id: shipmentId,
+    p_pallet_id: palletId,
+  }, `pallet:${palletId}`, operationId);
+}
+
 export async function loadPalletsIntoShipment(shipment, palletsToAdd) {
   if (!shipment || !palletsToAdd?.length) return [];
   const results = [];
