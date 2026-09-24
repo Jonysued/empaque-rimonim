@@ -4,7 +4,6 @@ import { generateCode, fmtKg, fmtDate, fmtNum } from "@/lib/qr";
 import { loadCatalog } from "@/lib/catalogs";
 import { loadPalletsIntoShipment, unloadPalletFromShipment, reopenShipmentForCorrection, AVAILABLE_FOR_SHIPMENT } from "@/lib/shipments";
 import { Checkbox } from "@/components/ui/checkbox";
-import QRScanner from "@/components/QRScanner";
 import QRLabel from "@/components/QRLabel";
 import PrintPackingList from "@/components/PrintPackingList";
 import StatusBadge from "@/components/StatusBadge";
@@ -283,7 +282,6 @@ function ShipmentPalletEditor({ shipment, pallets, onSaved }) {
 }
 
 function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
-  const [scanMode, setScanMode] = useState(false);
   const [error, setError] = useState("");
   const [palletToRemove, setPalletToRemove] = useState(null);
   const [removing, setRemoving] = useState(false);
@@ -300,21 +298,6 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
       seal: shipment.seal || "",
     });
   }, [shipment.id]);
-
-  async function handleScan(code) {
-    setError("");
-    const pallet = pallets.find(p => p.pallet_code === code || p.romaneo_number === code);
-    if (!pallet) { setError(`Pallet no encontrado: ${code}`); return; }
-    if (pallet.product_type !== shipment.product_type) { setError(`El pallet es ${pallet.product_type}, la carga es ${shipment.product_type}`); return; }
-    if (!AVAILABLE_FOR_SHIPMENT.includes(pallet.status)) { setError("El pallet debe estar liberado de prefrío o cámara antes de cargarlo"); return; }
-    if ((shipment.loaded_pallet_ids || []).includes(pallet.id)) { setError("El pallet ya está cargado"); return; }
-    if ((shipment.loaded_pallet_ids || []).length >= (shipment.target_capacity || 21)) { setError("Capacidad de carga alcanzada"); return; }
-    try {
-      const results = await loadPalletsIntoShipment(shipment, [pallet]);
-      if (results.some(result => result.pending)) toast.warning("Guardado en este dispositivo; pendiente de sincronizar");
-      else onChanged();
-    } catch (e) { setError(e.message || "Error"); }
-  }
 
   async function saveExtra() {
     try {
@@ -402,16 +385,7 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
                 </div>
               </div>}
             </div>}
-            <div className="flex items-center justify-between">
-              <h4 className="font-medium flex items-center gap-2"><Package className="w-4 h-4" /> Pallets cargados ({loadedPallets.length})</h4>
-              {canChangePallets && <Button size="sm" onClick={() => setScanMode(!scanMode)}>{scanMode ? "Salir" : "Cargar pallet"}</Button>}
-            </div>
-            {scanMode && (
-              <div className="bg-muted/50 p-3 rounded-lg space-y-2">
-                <p className="text-sm">Escanee el QR del pallet para cargarlo en esta carga</p>
-                <QRScanner label="Escanear QR del pallet" onScan={handleScan} />
-              </div>
-            )}
+            <h4 className="font-medium flex items-center gap-2"><Package className="w-4 h-4" /> Pallets cargados ({loadedPallets.length})</h4>
             {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
             {loadedPallets.length === 0 ? (
               <p className="text-sm text-muted-foreground">Sin pallets cargados.</p>
