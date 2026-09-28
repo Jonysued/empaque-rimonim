@@ -27,15 +27,15 @@ export default function Recepcion() {
   async function refresh() {
     setLoading(true);
     try {
+      const operations = await getOperations().catch(() => []);
+      setPendingLots(operations.filter(op => op.rpc === "create_receipt_lot")
+        .map(op => ({ ...op.params.p_record, id: op.id, pendingStatus: op.status, created_date: op.createdAt })));
       const [data, producers, origins, vars, crews, htypes, species] = await Promise.all([
         base44.entities.ReceiptLot.list("-created_date", 50),
         loadCatalog("productor"), loadCatalog("cuadro"),
         loadCatalog("variedad"), loadCatalog("cuadrilla"), loadCatalog("tipo_cosecha"), loadCatalog("especie"),
       ]);
       setLots(data || []);
-      const operations = await getOperations().catch(() => []);
-      setPendingLots(operations.filter(op => op.rpc === "create_receipt_lot")
-        .map(op => ({ ...op.params.p_record, id: op.id, pendingStatus: op.status, created_date: op.createdAt })));
       setCats({ productor: producers, cuadro: origins, variedad: vars, cuadrilla: crews, tipo_cosecha: htypes, especie: species });
     } catch (e) { console.error(e); } finally { setLoading(false); }
   }
