@@ -3,9 +3,10 @@
 La web y Android usan el mismo proyecto Supabase y las mismas cuentas invitadas.
 El APK incluye la interfaz en el dispositivo y prepara una copia de las listas
 operativas al iniciarse con internet. Prefrío, cámaras, carga de pallets de un
-despacho y vuelco de BINs guardan operaciones pendientes al perder la conexión.
+despacho, vuelco de BINs y nuevos lotes de ingreso guardan operaciones pendientes
+al perder la conexión.
 La pantalla muestra el estado pendiente y las sincroniza al volver la conexión.
-Los demás formularios (como crear lotes, pallets y cargas o editar catálogos)
+Los demás formularios (como crear pallets y cargas o editar catálogos)
 siguen requiriendo conexión. La copia local es una referencia del último
 estado confirmado: no incluye cambios de otros dispositivos hasta reconectar.
 Se necesita iniciar sesión con internet al menos una vez. Si la sesión vence
