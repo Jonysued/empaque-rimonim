@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { readSnapshot, saveSnapshot } from '@/lib/offlineStore';
+import { readSnapshot, saveSnapshot, saveLastOwner, readLastOwner, clearLastOwner } from '@/lib/offlineStore';
 import { Capacitor } from '@capacitor/core';
 const webAppUrl = import.meta.env.VITE_PUBLIC_APP_URL || 'https://empaque-rimonim.vercel.app';
 const url = import.meta.env.VITE_SUPABASE_URL;
@@ -11,8 +11,8 @@ const requireConfigured = () => { if (!url || !key) throw new Error('Configurá 
 /** @param {{ data?: any, error?: Error | null }} result */
 function unwrap({ data, error }) { if (error) throw error; return data; }
 async function rows(entity) {
-  const { data: { session } } = await supabase.auth.getSession();
-  const ownerId = session?.user?.id;
+  const offlineNative = Capacitor.isNativePlatform() && !navigator.onLine;
+  const ownerId = offlineNative ? await readLastOwner() : (await supabase.auth.getSession()).data.session?.user?.id;
   if (!ownerId) throw Object.assign(new Error('Iniciá sesión'), {status:401});
   if (!navigator.onLine) {
     const cached = await readSnapshot(ownerId, entity);
@@ -88,6 +88,12 @@ const entityClient = (entity) => ({
   async delete(id) { unwrap(await supabase.from('records').delete().eq('entity',entity).eq('id',id)); },
 });
 const profile = async () => {
+  if (Capacitor.isNativePlatform() && !navigator.onLine) {
+    const ownerId = await readLastOwner();
+    const cached = ownerId && await readSnapshot(ownerId, 'profile');
+    if (cached) return cached;
+    throw Object.assign(new Error('Conectate para iniciar sesión por primera vez'), { status: 401 });
+  }
   const { data: { session } } = await supabase.auth.getSession();
   if (!session?.user?.id) throw Object.assign(new Error('Iniciá sesión'), {status:401});
   try {
@@ -97,6 +103,7 @@ const profile = async () => {
     const p=unwrap(await supabase.from('profiles').select('*').eq('id',user.id).single());
     const value={...p, name:p.full_name};
     await saveSnapshot(user.id, 'profile', value).catch(() => {});
+    if (Capacitor.isNativePlatform()) await saveLastOwner(user.id).catch(() => {});
     return value;
   } catch (error) {
     if (!navigator.onLine || error instanceof TypeError || error?.status === 0) {
@@ -113,7 +120,7 @@ export const base44 = {
     isAuthenticated: async()=>!!(await supabase.auth.getSession()).data.session,
     async loginViaEmailPassword(email,password) { requireConfigured(); unwrap(await supabase.auth.signInWithPassword({email,password})); return profile(); },
     loginWithProvider: async (_provider,returnTo='/')=>{ requireConfigured(); unwrap(await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:new URL(returnTo,location.origin).href}})); },
-    logout: async(returnTo)=>{ unwrap(await supabase.auth.signOut()); if(returnTo) location.assign('/login'); },
+    logout: async(returnTo)=>{ if (Capacitor.isNativePlatform()) await clearLastOwner(); unwrap(await supabase.auth.signOut()); if(returnTo) location.assign('/login'); },
     redirectToLogin: ()=>location.assign('/login'),
     async verifyOtp({email,otpCode}) { const data=unwrap(await supabase.auth.verifyOtp({email,token:otpCode,type:'email'})); return {access_token:data.session?.access_token}; },
     setToken:()=>{},

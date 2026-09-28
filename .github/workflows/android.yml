@@ -7,6 +7,7 @@ on:
     paths:
       - 'android/**'
       - 'src/**'
+      - 'scripts/check-offline-queue.mjs'
       - 'capacitor.config.ts'
       - 'package*.json'
       - '.github/workflows/android.yml'
@@ -29,7 +30,7 @@ jobs:
       - run: npm ci
       - name: Verify configuration
         run: test -n "$VITE_SUPABASE_URL" && test -n "$VITE_SUPABASE_ANON_KEY"
-      - run: npm run lint && npm run typecheck && npm run mobile:android
+      - run: npm run lint && npm run typecheck && node scripts/check-offline-queue.mjs && npm run mobile:android
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

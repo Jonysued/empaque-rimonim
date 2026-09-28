@@ -1,11 +1,17 @@
 # Rimonim para Android
 
 La web y Android usan el mismo proyecto Supabase y las mismas cuentas invitadas.
-El APK incluye la interfaz en el dispositivo; para confirmar cambios se conecta
-con la base compartida. Prefrío, cámaras y carga de pallets de un despacho
-guardan operaciones pendientes en el teléfono cuando se pierde la conexión.
+El APK incluye la interfaz en el dispositivo y prepara una copia de las listas
+operativas al iniciarse con internet. Prefrío, cámaras, carga de pallets de un
+despacho y vuelco de BINs guardan operaciones pendientes al perder la conexión.
 La pantalla muestra el estado pendiente y las sincroniza al volver la conexión.
-Los demás formularios siguen requiriendo conexión.
+Los demás formularios (como crear lotes, pallets y cargas o editar catálogos)
+siguen requiriendo conexión. La copia local es una referencia del último
+estado confirmado: no incluye cambios de otros dispositivos hasta reconectar.
+Se necesita iniciar sesión con internet al menos una vez. Si la sesión vence
+sin señal, el usuario previamente autenticado puede consultar su copia local
+y guardar movimientos en la cola; se vuelven a autorizar en el servidor al
+reconectar. Cerrar sesión borra la identidad local para uso sin conexión.
 
 ## Compilar
 

@@ -1,10 +1,15 @@
 import { supabase } from "@/api/base44Client";
-import { listCommands, removeCommand, saveCommand } from "@/lib/offlineStore";
+import { listCommands, removeCommand, saveCommand, readLastOwner } from "@/lib/offlineStore";
+import { Capacitor } from "@capacitor/core";
 
 const notify = () => window.dispatchEvent(new Event("rimonim-queue-change"));
 let draining;
 
 async function currentOwner() {
+  if (Capacitor.isNativePlatform() && !navigator.onLine) {
+    const ownerId = await readLastOwner();
+    if (ownerId) return ownerId;
+  }
   const { data: { session }, error } = await supabase.auth.getSession();
   if (error || !session?.user?.id) throw new Error("Iniciá sesión para registrar operaciones");
   return session.user.id;
@@ -53,7 +58,7 @@ export async function submitOperation(rpc, params, resourceKey, operationId = cr
   const ownerId = await currentOwner();
   const operations = await listCommands(ownerId);
   if (operations.some(item => item.resourceKey === resourceKey)) {
-    throw new Error("Hay un movimiento pendiente o en revisión para este pallet o túnel");
+    throw new Error("Este registro ya tiene una operación pendiente o en revisión");
   }
   const id = operationId;
   const command = {

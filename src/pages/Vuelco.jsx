@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { base44, supabase } from "@/api/base44Client";
+import { base44 } from "@/api/base44Client";
+import { getOperations, submitOperation } from "@/lib/operationQueue";
 import { generateCode, fmtKg, fmtDate } from "@/lib/qr";
 import QRScanner from "@/components/QRScanner";
 import StatusBadge from "@/components/StatusBadge";
@@ -8,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Repeat, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 
 export default function Vuelco() {
   const [lots, setLots] = useState([]);
@@ -15,6 +17,18 @@ export default function Vuelco() {
   const [loading, setLoading] = useState(true);
   const [scannedLot, setScannedLot] = useState(null);
   const [error, setError] = useState("");
+  const [pendingLots, setPendingLots] = useState(new Set());
+
+  useEffect(() => {
+    let active = true;
+    const updatePending = () => getOperations().then(operations => {
+      if (active) setPendingLots(new Set(operations.filter(op => op.rpc === "dump_lot_by_bins").map(op => op.params.p_lot_id)));
+    }).catch(() => {});
+    updatePending();
+    const onQueueChange = () => { updatePending(); if (navigator.onLine) refresh(); };
+    window.addEventListener("rimonim-queue-change", onQueueChange);
+    return () => { active = false; window.removeEventListener("rimonim-queue-change", onQueueChange); };
+  }, []);
 
   async function refresh() {
     setLoading(true);
@@ -38,10 +52,11 @@ export default function Vuelco() {
       return;
     }
     if (lot.held) { setError(`El lote ${code} está retenido por calidad`); return; }
+    if (pendingLots.has(lot.id)) { setError(`El lote ${code} tiene un vuelco pendiente de sincronizar`); return; }
     setScannedLot(lot);
   }
 
-  const availableLots = lots.filter(l => !l.held && (l.remaining_weight || 0) > 0);
+  const availableLots = lots.filter(l => !l.held && !pendingLots.has(l.id) && (l.remaining_weight || 0) > 0);
 
   return (
     <div className="space-y-6">
@@ -76,7 +91,7 @@ export default function Vuelco() {
                 </div>
               </>
             ) : (
-              <DumpForm lot={scannedLot} onCancel={() => { setScannedLot(null); setError(""); }} onSaved={() => { setScannedLot(null); refresh(); }} />
+              <DumpForm lot={scannedLot} onCancel={() => { setScannedLot(null); setError(""); }} onSaved={pending => { setScannedLot(null); if (pending) toast.warning("Vuelco guardado en este dispositivo; pendiente de sincronizar"); else refresh(); }} />
             )}
           </CardContent>
         </Card>
@@ -130,14 +145,12 @@ function DumpForm({ lot, onCancel, onSaved }) {
     if (lot.dumped_weight > 0 && lot.bins_dumped == null && lot.status !== "volcado") return setError("Este lote tiene vuelcos anteriores sin BINs; requiere conciliación");
     setSaving(true);
     try {
-      const { error: rpcError } = await supabase.rpc("dump_lot_by_bins", {
-        p_operation_id: operationId,
+      const result = await submitOperation("dump_lot_by_bins", {
         p_lot_id: lot.id,
         p_bins: selectedBins,
         p_dump_code: dumpCode,
-      });
-      if (rpcError) throw rpcError;
-      onSaved();
+      }, `lot:${lot.id}`, operationId);
+      onSaved(result.pending);
     } catch (e) {
       setError(e.message || "Error al registrar vuelco");
       setSaving(false);

@@ -35,6 +35,9 @@ export const saveSnapshot = (ownerId, key, value) =>
   store("snapshots", "readwrite", s => s.put(value, `${ownerId}:${key}`));
 export const readSnapshot = (ownerId, key) =>
   store("snapshots", "readonly", s => s.get(`${ownerId}:${key}`));
+export const saveLastOwner = id => store("snapshots", "readwrite", s => s.put(id, "last-authenticated-user"));
+export const readLastOwner = () => store("snapshots", "readonly", s => s.get("last-authenticated-user"));
+export const clearLastOwner = () => store("snapshots", "readwrite", s => s.delete("last-authenticated-user"));
 export const saveCommand = command => store("commands", "readwrite", s => s.put(command));
 export const removeCommand = id => store("commands", "readwrite", s => s.delete(id));
 export const listCommands = async ownerId =>
