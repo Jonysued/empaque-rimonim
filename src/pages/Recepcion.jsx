@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
+import { getOperations, submitOperation } from "@/lib/operationQueue";
+import { Capacitor } from "@capacitor/core";
+import { toast } from "sonner";
 import { generateCode, fmtKg, fmtDate } from "@/lib/qr";
 import { loadCatalog } from "@/lib/catalogs";
 import StatusBadge from "@/components/StatusBadge";
@@ -19,6 +22,7 @@ export default function Recepcion() {
   const [showForm, setShowForm] = useState(false);
   const [selectedLot, setSelectedLot] = useState(null);
   const [cats, setCats] = useState({});
+  const [pendingLots, setPendingLots] = useState([]);
 
   async function refresh() {
     setLoading(true);
@@ -29,11 +33,21 @@ export default function Recepcion() {
         loadCatalog("variedad"), loadCatalog("cuadrilla"), loadCatalog("tipo_cosecha"), loadCatalog("especie"),
       ]);
       setLots(data || []);
+      const operations = await getOperations().catch(() => []);
+      setPendingLots(operations.filter(op => op.rpc === "create_receipt_lot")
+        .map(op => ({ ...op.params.p_record, id: op.id, pendingStatus: op.status, created_date: op.createdAt })));
       setCats({ productor: producers, cuadro: origins, variedad: vars, cuadrilla: crews, tipo_cosecha: htypes, especie: species });
     } catch (e) { console.error(e); } finally { setLoading(false); }
   }
 
   useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    const onChange = () => { refresh(); };
+    window.addEventListener("rimonim-queue-change", onChange);
+    return () => window.removeEventListener("rimonim-queue-change", onChange);
+  }, []);
+
+  const visibleLots = [...pendingLots, ...lots.filter(lot => !pendingLots.some(item => item.id === lot.id))];
 
   return (
     <div className="space-y-6">
@@ -49,7 +63,7 @@ export default function Recepcion() {
 
       {loading ? (
         <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-slate-200 border-t-red-600 rounded-full animate-spin" /></div>
-      ) : lots.length === 0 ? (
+      ) : visibleLots.length === 0 ? (
         <Card><CardContent className="py-16 text-center text-muted-foreground">
           <PackageOpen className="w-12 h-12 mx-auto mb-3 opacity-40" />
           <p>No hay lotes de ingreso registrados.</p>
@@ -57,14 +71,15 @@ export default function Recepcion() {
         </CardContent></Card>
       ) : (
         <div className="grid gap-3">
-          {lots.map(lot => (
-            <Card key={lot.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => setSelectedLot(lot)}>
+          {visibleLots.map(lot => (
+            <Card key={lot.id} className={`hover:shadow-md transition-shadow ${lot.pendingStatus ? "border-amber-300" : "cursor-pointer"}`} onClick={() => { if (!lot.pendingStatus) setSelectedLot(lot); }}>
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-mono font-bold">{lot.lot_code}</span>
-                      <StatusBadge status={lot.status} />
+                      {!lot.pendingStatus && <StatusBadge status={lot.status} />}
+                      {lot.pendingStatus && <span className="text-xs text-amber-700">{lot.pendingStatus === "conflict" ? "Requiere revisión" : "Pendiente de sincronizar"}</span>}
                       {lot.held && <StatusBadge status="retenido" />}
                     </div>
                     <p className="text-sm text-muted-foreground">
@@ -84,7 +99,7 @@ export default function Recepcion() {
         </div>
       )}
 
-      {showForm && <LotForm cats={cats} onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); refresh(); }} />}
+      {showForm && <LotForm cats={cats} onClose={() => setShowForm(false)} onSaved={pending => { setShowForm(false); if (pending) toast.warning("Lote guardado en este dispositivo; pendiente de sincronizar"); refresh(); }} />}
       {selectedLot && <LotDetail lot={selectedLot} onClose={() => setSelectedLot(null)} />}
     </div>
   );
@@ -139,7 +154,7 @@ function LotForm({ cats, onClose, onSaved }) {
     setSaving(true);
     try {
       const code = generateCode("LOT");
-      await base44.entities.ReceiptLot.create({
+      const record = {
         ...form,
         crew_breakdown: crewBreakdown,
         bins_count: binCount,
@@ -154,8 +169,15 @@ function LotForm({ cats, onClose, onSaved }) {
         harvest_date: form.harvest_date,
         status: "recibido",
         held: false,
-      });
-      onSaved();
+      };
+      if (Capacitor.isNativePlatform()) {
+        const operationId = crypto.randomUUID();
+        const result = await submitOperation("create_receipt_lot", { p_record: record }, `receipt:${operationId}`, operationId);
+        onSaved(result.pending);
+      } else {
+        await base44.entities.ReceiptLot.create(record);
+        onSaved(false);
+      }
     } catch (e) {
       setError(e.message || "Error al guardar");
       setSaving(false);
