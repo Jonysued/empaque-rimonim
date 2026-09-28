@@ -10,23 +10,15 @@ import LocationConfig from "@/components/LocationConfig";
 
 const CATALOG_TYPES = [
   { value: "productor", label: "Productores/Propietarios" },
-  { value: "finca", label: "Fincas" },
   { value: "cuadro", label: "Procedencias/Cuadros" },
   { value: "variedad", label: "Variedades" },
   { value: "especie", label: "Especies" },
   { value: "tipo_cosecha", label: "Tipos de cosecha" },
   { value: "cuadrilla", label: "Cuadrillas" },
-  { value: "tipo_proceso", label: "Tipos de proceso" },
   { value: "destino", label: "Destinos" },
   { value: "categoria", label: "Categorías" },
   { value: "calibre", label: "Calibres" },
   { value: "envase", label: "Envases/Cajas" },
-  { value: "tipo_pallet", label: "Tipos de pallet" },
-  { value: "tara", label: "Taras" },
-  { value: "linea", label: "Líneas" },
-  { value: "turno", label: "Turnos" },
-  { value: "causa_descarte", label: "Causas de descarte" },
-  { value: "causa_retencion", label: "Causas de retención" },
   { value: "cliente", label: "Clientes" },
 ];
 
@@ -42,12 +34,17 @@ export default function Catalogos() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
+  const [producers, setProducers] = useState([]);
 
   async function refresh() {
     if (activeType.startsWith("loc_")) { setLoading(false); return; }
     setLoading(true);
     try {
-      const data = await base44.entities.Catalog.filter({ type: activeType });
+      const [data, producerItems] = await Promise.all([
+        base44.entities.Catalog.filter({ type: activeType }),
+        activeType === "cuadro" ? base44.entities.Catalog.filter({ type: "productor", active: true }) : Promise.resolve([]),
+      ]);
+      setProducers(producerItems);
       setItems((data || []).sort((a, b) => (a.label || "").localeCompare(b.label || "")));
     } catch (e) { console.error(e); } finally { setLoading(false); }
   }
@@ -57,7 +54,7 @@ export default function Catalogos() {
   async function handleDelete(id) {
     if (!confirm("¿Eliminar este valor del catálogo?")) return;
     try {
-      await base44.entities.Catalog.delete(id);
+      await base44.entities.Catalog.update(id, { active: false });
       refresh();
     } catch (e) { console.error(e); }
   }
@@ -91,13 +88,14 @@ export default function Catalogos() {
         </CardHeader>
         <CardContent>
           {loading ? <p className="text-sm text-muted-foreground">Cargando…</p> :
-            items.length === 0 ? <p className="text-sm text-muted-foreground py-8 text-center">Sin valores. Agregue el primero.</p> : (
+            items.filter(item => item.active !== false).length === 0 ? <p className="text-sm text-muted-foreground py-8 text-center">Sin valores. Agregue el primero.</p> : (
               <div className="space-y-1">
-                {items.map(item => (
+                {items.filter(item => item.active !== false).map(item => (
                   <div key={item.id} className="flex items-center justify-between border rounded-lg p-2">
                     <div>
                       <p className="font-medium text-sm">{item.label}</p>
                       {item.value && item.value !== item.label && <p className="text-xs text-muted-foreground font-mono">{item.value}</p>}
+                      {activeType === "cuadro" && <p className="text-xs text-muted-foreground">Productor: {item.producer || "Sin asignar"}</p>}
                     </div>
                     <div className="flex gap-1">
                       <Button size="sm" variant="ghost" onClick={() => { setEditing(item); setShowForm(true); }}><Edit2 className="w-3.5 h-3.5" /></Button>
@@ -112,29 +110,38 @@ export default function Catalogos() {
       </Card>
       )}
 
-      {showForm && <CatalogForm type={activeType} item={editing} onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); refresh(); }} />}
+      {showForm && <CatalogForm type={activeType} item={editing} producers={producers} onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); refresh(); }} />}
     </div>
   );
 }
 
-function CatalogForm({ type, item, onClose, onSaved }) {
+function CatalogForm({ type, item, producers, onClose, onSaved }) {
   const [label, setLabel] = useState(item?.label || "");
   const [value, setValue] = useState(item?.value || "");
+  const [producer, setProducer] = useState(item?.producer || "");
+  const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!label) return;
+    if (!label.trim() || (type === "cuadro" && !producer)) return;
     setSaving(true);
     try {
-      const payload = { type, label, value: value || label, active: true };
+      const payload = { type, label: label.trim(), value: value.trim() || label.trim(), active: true };
+      if (type === "cuadro") payload.producer = producer;
+      const existing = await base44.entities.Catalog.filter({ type });
+      if (existing.some(row => row.id !== item?.id && row.active !== false && row.label.toLocaleLowerCase() === payload.label.toLocaleLowerCase() && (type !== "cuadro" || row.producer === producer))) {
+        setError("Ya existe ese valor en el catálogo");
+        setSaving(false);
+        return;
+      }
       if (item) {
         await base44.entities.Catalog.update(item.id, payload);
       } else {
         await base44.entities.Catalog.create(payload);
       }
       onSaved();
-    } catch { setSaving(false); }
+    } catch (err) { setError(err.message || "No se pudo guardar"); setSaving(false); }
   }
 
   return (
@@ -142,7 +149,9 @@ function CatalogForm({ type, item, onClose, onSaved }) {
       <DialogContent className="max-w-md">
         <DialogHeader><DialogTitle>{item ? "Editar" : "Agregar"} valor</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
+          {error && <p className="text-sm text-destructive">{error}</p>}
           <div className="space-y-1"><Label className="text-xs">Etiqueta *</Label><Input value={label} onChange={e => setLabel(e.target.value)} autoFocus /></div>
+          {type === "cuadro" && <div className="space-y-1"><Label className="text-xs">Productor *</Label><select className="flex h-10 w-full rounded-md border bg-background px-3 text-sm" value={producer} onChange={e => setProducer(e.target.value)} required><option value="">Seleccionar</option>{producers.map(p => <option key={p.id} value={p.label}>{p.label}</option>)}</select></div>}
           <div className="space-y-1"><Label className="text-xs">Valor interno (opcional)</Label><Input value={value} onChange={e => setValue(e.target.value)} placeholder="= etiqueta si vacío" /></div>
           <div className="flex gap-2 justify-end pt-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>

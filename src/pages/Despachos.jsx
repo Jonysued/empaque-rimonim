@@ -28,15 +28,16 @@ export default function Despachos() {
   async function refresh() {
     setLoading(true);
     try {
-      const [s, p, clients] = await Promise.all([
+      const [s, p, clients, destinations] = await Promise.all([
         base44.entities.Shipment.list("-created_date", 50),
         base44.entities.Pallet.list(),
         loadCatalog("cliente"),
+        loadCatalog("destino"),
       ]);
       setShipments(s || []);
       setPallets(p || []);
       setSelected(previous => previous ? (s || []).find(item => item.id === previous.id) || null : null);
-      setCats({ cliente: clients });
+      setCats({ cliente: clients, destino: destinations });
     } catch (e) { console.error(e); } finally { setLoading(false); }
   }
 
@@ -177,7 +178,7 @@ function ShipmentForm({ shipment = null, cats, pallets, onClose, onSaved }) {
               <SelectContent>{form.client && !(cats.cliente || []).some(o => o.label === form.client) && <SelectItem value={form.client}>{form.client}</SelectItem>}{(cats.cliente || []).map(o => <SelectItem key={o.label} value={o.label}>{o.label}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div className="space-y-1"><Label className="text-xs">Destino</Label><Input value={form.destination} onChange={e => setForm(f => ({ ...f, destination: e.target.value }))} /></div>
+          <div className="space-y-1"><Label className="text-xs">Destino</Label><Select value={form.destination} onValueChange={v => setForm(f => ({ ...f, destination: v }))}><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger><SelectContent>{form.destination && !(cats.destino || []).some(o => o.label === form.destination) && <SelectItem value={form.destination}>{form.destination}</SelectItem>}{(cats.destino || []).map(o => <SelectItem key={o.id} value={o.label}>{o.label}</SelectItem>)}</SelectContent></Select></div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Producto</Label>

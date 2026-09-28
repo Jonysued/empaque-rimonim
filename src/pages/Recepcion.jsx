@@ -13,11 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PackageOpen, Plus, Layers } from "lucide-react";
 
-const CUADROS_POR_PRODUCTOR = {
-  "Glonet": [16, 15, 14, 13, 12, 11, 9, 8, 7, 6, 5, 4, 3, 2, 1].map(n => `CUADRO ${n}`),
-  "Las 500": [3, 2, 1].flatMap(n => ["NE", "SE", "NO", "SO"].map(sector => `OP${n}${sector}`)),
-};
-
 export default function Recepcion() {
   const [lots, setLots] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,12 +23,13 @@ export default function Recepcion() {
   async function refresh() {
     setLoading(true);
     try {
-      const [data, vars, crews, htypes, species] = await Promise.all([
+      const [data, producers, origins, vars, crews, htypes, species] = await Promise.all([
         base44.entities.ReceiptLot.list("-created_date", 50),
+        loadCatalog("productor"), loadCatalog("cuadro"),
         loadCatalog("variedad"), loadCatalog("cuadrilla"), loadCatalog("tipo_cosecha"), loadCatalog("especie"),
       ]);
       setLots(data || []);
-      setCats({ variedad: vars, cuadrilla: crews, tipo_cosecha: htypes, especie: species });
+      setCats({ productor: producers, cuadro: origins, variedad: vars, cuadrilla: crews, tipo_cosecha: htypes, especie: species });
     } catch (e) { console.error(e); } finally { setLoading(false); }
   }
 
@@ -113,7 +109,7 @@ function LotForm({ cats, onClose, onSaved }) {
     const net = Number(form.net_weight);
     const binCount = Number(form.bins_count);
     if (!form.producer) return setError("Productor es obligatorio");
-    if (form.origin && !CUADROS_POR_PRODUCTOR[form.producer]?.includes(form.origin)) return setError("Seleccioná un cuadro del productor indicado");
+    if (form.origin && !cats.cuadro?.some(item => item.producer === form.producer && item.label === form.origin)) return setError("Seleccioná un cuadro del productor indicado");
     if (!form.variety) return setError("Variedad es obligatoria");
     if (!Number.isInteger(binCount) || binCount <= 0) return setError("La cantidad de BINs debe ser un número entero mayor a cero");
     if (!net || net <= 0) return setError("Peso neto debe ser mayor a 0");
@@ -154,7 +150,7 @@ function LotForm({ cats, onClose, onSaved }) {
             <Field label="Productor *">
               <Select value={form.producer} onValueChange={v => setForm(f => ({ ...f, producer: v, origin: "" }))}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                <SelectContent>{Object.keys(CUADROS_POR_PRODUCTOR).map(name => <SelectItem key={name} value={name}>{name}</SelectItem>)}</SelectContent>
+                <SelectContent>{opt(cats.productor).map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
               </Select>
             </Field>
             <Field label="Variedad *">
@@ -166,17 +162,17 @@ function LotForm({ cats, onClose, onSaved }) {
             <Field label="Procedencia/Cuadro">
               <Select value={form.origin} disabled={!form.producer} onValueChange={v => update("origin", v)}>
                 <SelectTrigger><SelectValue placeholder={form.producer ? "Seleccionar cuadro" : "Primero elegí un productor"} /></SelectTrigger>
-                <SelectContent>{(CUADROS_POR_PRODUCTOR[form.producer] || []).map(cuadro => <SelectItem key={cuadro} value={cuadro}>{cuadro}</SelectItem>)}</SelectContent>
+                <SelectContent>{(cats.cuadro || []).filter(item => item.producer === form.producer).map(item => <SelectItem key={item.id} value={item.label}>{item.label}</SelectItem>)}</SelectContent>
               </Select>
             </Field>
-            <Field label="Especie"><Input value={form.species} onChange={e => update("species", e.target.value)} /></Field>
+            <Field label="Especie"><Select value={form.species} onValueChange={v => update("species", v)}><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger><SelectContent>{opt(cats.especie).map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></Field>
             <Field label="Tipo de cosecha">
               <Select value={form.harvest_type} onValueChange={v => update("harvest_type", v)}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                 <SelectContent>{opt(cats.tipo_cosecha).map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
               </Select>
             </Field>
-            <Field label="Cuadrilla"><Input value={form.crew} onChange={e => update("crew", e.target.value)} /></Field>
+            <Field label="Cuadrilla"><Select value={form.crew} onValueChange={v => update("crew", v)}><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger><SelectContent>{opt(cats.cuadrilla).map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></Field>
             <Field label="Transporte"><Input value={form.transport} onChange={e => update("transport", e.target.value)} /></Field>
             <Field label="Fecha de cosecha"><Input type="date" value={form.harvest_date} onChange={e => update("harvest_date", e.target.value)} /></Field>
             <Field label="Cantidad de BINs *"><Input type="number" min="1" step="1" value={form.bins_count} onChange={e => update("bins_count", e.target.value)} /></Field>
