@@ -235,7 +235,6 @@ function Field({ label, children }) {
 
 function LotDetail({ lot, onClose }) {
   const [bins, setBins] = useState([]);
-  const [showBins, setShowBins] = useState(false);
 
   async function loadBins() {
     try {
@@ -276,10 +275,7 @@ function LotDetail({ lot, onClose }) {
           </div>
 
           <div className="border-t pt-3">
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="font-medium flex items-center gap-2"><Layers className="w-4 h-4" /> BINs del lote ({bins.length})</h4>
-              <Button size="sm" variant="outline" onClick={() => setShowBins(true)}><Plus className="w-4 h-4 mr-1" /> Crear BINs</Button>
-            </div>
+            <h4 className="font-medium flex items-center gap-2 mb-2"><Layers className="w-4 h-4" /> BINs del lote ({bins.length})</h4>
             {bins.length === 0 ? (
               <p className="text-sm text-muted-foreground">Sin BINs individualizados. El lote opera como unidad.</p>
             ) : (
@@ -295,56 +291,6 @@ function LotDetail({ lot, onClose }) {
             )}
           </div>
         </div>
-        {showBins && <BinForm lot={lot} onClose={() => setShowBins(false)} onSaved={() => { setShowBins(false); loadBins(); }} />}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function BinForm({ lot, onClose, onSaved }) {
-  const [count, setCount] = useState("1");
-  const [tare, setTare] = useState("");
-  const [saving, setSaving] = useState(false);
-
-  async function handleSubmit(e) {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const n = Number(count) || 1;
-      const tareVal = Number(tare) || 0;
-      const estNet = n > 0 ? (lot.remaining_weight || lot.net_weight || 0) / (n + (0)) : 0;
-      const records = [];
-      for (let i = 0; i < n; i++) {
-        records.push({
-          bin_code: generateCode("BIN"),
-          receipt_lot_id: lot.id,
-          visible_number: String(i + 1),
-          bin_type: "Estándar",
-          tare: tareVal,
-          gross_weight: 0,
-          net_weight: Math.round(estNet * 10) / 10,
-          measured: false,
-          status: "disponible",
-        });
-      }
-      await base44.entities.Bin.bulkCreate(records);
-      onSaved();
-    } catch { setSaving(false); }
-  }
-
-  return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
-        <DialogHeader><DialogTitle>Crear BINs para {lot.lot_code}</DialogTitle></DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <p className="text-sm text-muted-foreground">El peso se reparte como <b>estimado/no medido</b>. El total medido del lote se conserva.</p>
-          <Field label="Cantidad de BINs"><Input type="number" min="1" value={count} onChange={e => setCount(e.target.value)} /></Field>
-          <Field label="Tara por BIN (kg)"><Input type="number" step="0.1" value={tare} onChange={e => setTare(e.target.value)} /></Field>
-          <div className="flex gap-2 justify-end">
-            <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Creando…" : "Crear BINs"}</Button>
-          </div>
-        </form>
       </DialogContent>
     </Dialog>
   );
