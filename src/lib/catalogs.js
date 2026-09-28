@@ -1,25 +1,13 @@
 import { base44 } from "@/api/base44Client";
 
-const cache = {};
-
 export async function loadCatalog(type) {
-  if (cache[type]) return cache[type];
-  try {
-    const items = await base44.entities.Catalog.filter({ type, active: true });
-    const sorted = (items || []).sort((a, b) => (a.label || "").localeCompare(b.label || ""));
-    cache[type] = sorted;
-    return sorted;
-  } catch (e) {
-    cache[type] = [];
-    return [];
-  }
+  const items = await base44.entities.Catalog.filter({ type, active: true });
+  return (items || []).sort((a, b) => (a.label || "").localeCompare(b.label || ""));
 }
 
 export async function loadAllCatalogs() {
   const types = [
-    "productor", "finca", "cuadro", "variedad", "tipo_cosecha", "cuadrilla",
-    "tipo_proceso", "destino", "categoria", "calibre", "envase", "tipo_pallet",
-    "tara", "linea", "turno", "causa_descarte", "causa_retencion", "cliente", "especie"
+    "productor", "variedad", "categoria", "calibre", "envase"
   ];
   const entries = await Promise.all(types.map(t => loadCatalog(t).then(v => [t, v])));
   return Object.fromEntries(entries);
