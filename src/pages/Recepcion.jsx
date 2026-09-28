@@ -91,43 +91,67 @@ export default function Recepcion() {
 }
 
 function LotForm({ cats, onClose, onSaved }) {
+  const today = () => {
+    const date = new Date();
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+  };
   const [form, setForm] = useState({
     producer: "", variety: "", origin: "", species: "Granada",
     harvest_type: "", crew: "", transport: "",
-    bins_count: "", gross_weight: "", tare_weight: "", net_weight: "",
-    harvest_date: "",
+    bins_count: "", gross_weight: "", tare_weight: "",
+    harvest_date: today(),
     quality_notes: ""
   });
+  const [mixedCrews, setMixedCrews] = useState([{ crew: "", bins_count: "" }, { crew: "", bins_count: "" }]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   function update(k, v) { setForm(f => ({ ...f, [k]: v })); }
+  function updateMixed(index, key, value) {
+    setMixedCrews(items => items.map((item, i) => i === index ? { ...item, [key]: value } : item));
+  }
+  const gross = Number(form.gross_weight);
+  const tare = Number(form.tare_weight);
+  const net = form.gross_weight !== "" && form.tare_weight !== "" && Number.isFinite(gross) && Number.isFinite(tare)
+    ? Math.round((gross - tare) * 10) / 10 : null;
+  const binCount = Number(form.bins_count);
+  const binWeight = net > 0 && Number.isInteger(binCount) && binCount > 0 ? net / binCount : null;
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
-    const net = Number(form.net_weight);
-    const binCount = Number(form.bins_count);
     if (!form.producer) return setError("Productor es obligatorio");
     if (form.origin && !cats.cuadro?.some(item => item.producer === form.producer && item.label === form.origin)) return setError("Seleccioná un cuadro del productor indicado");
     if (!form.variety) return setError("Variedad es obligatoria");
     if (!Number.isInteger(binCount) || binCount <= 0) return setError("La cantidad de BINs debe ser un número entero mayor a cero");
-    if (!net || net <= 0) return setError("Peso neto debe ser mayor a 0");
+    if (form.gross_weight === "" || !Number.isFinite(gross) || gross <= 0) return setError("Ingresá un peso bruto mayor a cero");
+    if (form.tare_weight === "" || !Number.isFinite(tare) || tare < 0 || tare >= gross) return setError("La tara debe ser menor que el peso bruto y no puede ser negativa");
+    if (!form.harvest_date) return setError("Ingresá la fecha de cosecha");
+    let crewBreakdown = [];
+    if (form.crew === "MIXTO") {
+      crewBreakdown = mixedCrews.map(item => ({ crew: item.crew, bins_count: Number(item.bins_count) }));
+      if (crewBreakdown.some((item, index) => !item.crew || !cats.cuadrilla?.some(c => c.label === item.crew) || !Number.isInteger(item.bins_count) || item.bins_count <= 0 || mixedCrews[index].bins_count === "")) {
+        return setError("Seleccioná las dos cuadrillas e ingresá sus cantidades de BINs");
+      }
+      if (crewBreakdown[0].crew === crewBreakdown[1].crew) return setError("Seleccioná dos cuadrillas distintas");
+      if (crewBreakdown[0].bins_count + crewBreakdown[1].bins_count !== binCount) return setError("Los BINs de ambas cuadrillas deben sumar el total del lote");
+    }
     setSaving(true);
     try {
       const code = generateCode("LOT");
       await base44.entities.ReceiptLot.create({
         ...form,
+        crew_breakdown: crewBreakdown,
         bins_count: binCount,
         bins_dumped: 0,
-        gross_weight: Number(form.gross_weight) || 0,
-        tare_weight: Number(form.tare_weight) || 0,
+        gross_weight: gross,
+        tare_weight: tare,
         net_weight: net,
         remaining_weight: net,
         dumped_weight: 0,
         lot_code: code,
         receipt_date: new Date().toISOString(),
-        harvest_date: form.harvest_date || new Date().toISOString(),
+        harvest_date: form.harvest_date,
         status: "recibido",
         held: false,
       });
@@ -172,13 +196,22 @@ function LotForm({ cats, onClose, onSaved }) {
                 <SelectContent>{opt(cats.tipo_cosecha).map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
               </Select>
             </Field>
-            <Field label="Cuadrilla"><Select value={form.crew} onValueChange={v => update("crew", v)}><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger><SelectContent>{opt(cats.cuadrilla).map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></Field>
+            <Field label="Cuadrilla"><Select value={form.crew} onValueChange={v => update("crew", v)}><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger><SelectContent>{opt(cats.cuadrilla).filter(o => o.value !== "MIXTO").map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}<SelectItem value="MIXTO">MIXTO</SelectItem></SelectContent></Select></Field>
+            {form.crew === "MIXTO" && mixedCrews.map((item, index) => (
+              <React.Fragment key={index}>
+                <Field label={`Cuadrilla ${index + 1} *`}><Select value={item.crew} onValueChange={v => updateMixed(index, "crew", v)}><SelectTrigger><SelectValue placeholder="Seleccionar cuadrilla" /></SelectTrigger><SelectContent>{opt(cats.cuadrilla).filter(o => o.value !== "MIXTO").map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent></Select></Field>
+                <Field label={`BINs cuadrilla ${index + 1} *`}><Input type="number" min="1" step="1" value={item.bins_count} onChange={e => updateMixed(index, "bins_count", e.target.value)} /></Field>
+              </React.Fragment>
+            ))}
             <Field label="Transporte"><Input value={form.transport} onChange={e => update("transport", e.target.value)} /></Field>
-            <Field label="Fecha de cosecha"><Input type="date" value={form.harvest_date} onChange={e => update("harvest_date", e.target.value)} /></Field>
+            <Field label="Fecha de cosecha"><Input type="date" required value={form.harvest_date} onChange={e => update("harvest_date", e.target.value)} /></Field>
             <Field label="Cantidad de BINs *"><Input type="number" min="1" step="1" value={form.bins_count} onChange={e => update("bins_count", e.target.value)} /></Field>
-            <Field label="Peso bruto (kg)"><Input type="number" step="0.1" value={form.gross_weight} onChange={e => update("gross_weight", e.target.value)} /></Field>
-            <Field label="Tara (kg)"><Input type="number" step="0.1" value={form.tare_weight} onChange={e => update("tare_weight", e.target.value)} /></Field>
-            <Field label="Peso neto (kg) *"><Input type="number" step="0.1" value={form.net_weight} onChange={e => update("net_weight", e.target.value)} /></Field>
+            <Field label="Peso bruto (kg) *"><Input type="number" min="0.1" step="0.1" required value={form.gross_weight} onChange={e => update("gross_weight", e.target.value)} /></Field>
+            <Field label="Tara (kg) *"><Input type="number" min="0" step="0.1" required value={form.tare_weight} onChange={e => update("tare_weight", e.target.value)} /></Field>
+            <div className="col-span-2 space-y-3">
+              <Field label="Peso neto (kg)"><Input readOnly value={net !== null && net > 0 ? net.toFixed(1) : ""} placeholder="Bruto − tara" /></Field>
+              <Field label="Peso teórico por BIN (kg)"><Input readOnly value={binWeight !== null ? binWeight.toFixed(1) : ""} placeholder="Neto ÷ cantidad de BINs" /></Field>
+            </div>
           </div>
           <Field label="Notas de calidad"><Textarea rows={2} value={form.quality_notes} onChange={e => update("quality_notes", e.target.value)} /></Field>
           <div className="flex gap-2 justify-end pt-2">
@@ -225,10 +258,12 @@ function LotDetail({ lot, onClose }) {
             <Info label="Finca" value={lot.farm || "—"} />
             <Info label="Procedencia" value={lot.origin || "—"} />
             <Info label="Cuadrilla" value={lot.crew || "—"} />
+            {lot.crew === "MIXTO" && Array.isArray(lot.crew_breakdown) && lot.crew_breakdown.map((item, index) => <Info key={index} label={item.crew || `Cuadrilla ${index + 1}`} value={`${item.bins_count || 0} BINs`} />)}
             <Info label="Turno" value={lot.shift || "—"} />
             <Info label="Peso bruto" value={fmtKg(lot.gross_weight)} />
             <Info label="Tara" value={fmtKg(lot.tare_weight)} />
             <Info label="Peso neto" value={fmtKg(lot.net_weight)} />
+            <Info label="Peso teórico por BIN" value={lot.bins_count > 0 ? fmtKg(lot.net_weight / lot.bins_count) : "—"} />
             <Info label="Saldo sin volcar" value={fmtKg(lot.remaining_weight)} />
             <Info label="Volcado acumulado" value={fmtKg(lot.dumped_weight)} />
             <Info label="BINs declarados" value={String(lot.bins_count || 0)} />
