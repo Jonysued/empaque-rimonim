@@ -31,7 +31,24 @@ async function drain(ownerId) {
     if (await currentOwner() !== ownerId) return;
     let error;
     try {
-      ({ error } = await supabase.rpc(command.rpc, command.params));
+      if (command.rpc === "create_receipt_lot") {
+        const { p_record: record } = command.params;
+        ({ error } = await supabase.from("records").insert({
+          entity: "ReceiptLot", id: command.id,
+          data: { ...record, id: command.id, operation_id: command.id },
+        }));
+        if (error?.code === "23505") {
+          // The first request may have committed before the connection dropped.
+          // Never upsert: a later dump could already have changed this lot.
+          const lookup = await supabase.from("records").select("data")
+            .eq("entity", "ReceiptLot").eq("id", command.id).single();
+          if (lookup.error) error = lookup.error;
+          else if (lookup.data?.data?.operation_id === command.id &&
+                   lookup.data.data.lot_code === record.lot_code) error = null;
+        }
+      } else {
+        ({ error } = await supabase.rpc(command.rpc, command.params));
+      }
     } catch (unexpected) {
       if (isConnectionError(unexpected)) return;
       error = unexpected;
