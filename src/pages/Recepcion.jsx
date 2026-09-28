@@ -111,16 +111,19 @@ function LotForm({ cats, onClose, onSaved }) {
     e.preventDefault();
     setError("");
     const net = Number(form.net_weight);
+    const binCount = Number(form.bins_count);
     if (!form.producer) return setError("Productor es obligatorio");
     if (form.origin && !CUADROS_POR_PRODUCTOR[form.producer]?.includes(form.origin)) return setError("Seleccioná un cuadro del productor indicado");
     if (!form.variety) return setError("Variedad es obligatoria");
+    if (!Number.isInteger(binCount) || binCount <= 0) return setError("La cantidad de BINs debe ser un número entero mayor a cero");
     if (!net || net <= 0) return setError("Peso neto debe ser mayor a 0");
     setSaving(true);
     try {
       const code = generateCode("LOT");
       await base44.entities.ReceiptLot.create({
         ...form,
-        bins_count: Number(form.bins_count) || 0,
+        bins_count: binCount,
+        bins_dumped: 0,
         gross_weight: Number(form.gross_weight) || 0,
         tare_weight: Number(form.tare_weight) || 0,
         net_weight: net,
@@ -176,7 +179,7 @@ function LotForm({ cats, onClose, onSaved }) {
             <Field label="Cuadrilla"><Input value={form.crew} onChange={e => update("crew", e.target.value)} /></Field>
             <Field label="Transporte"><Input value={form.transport} onChange={e => update("transport", e.target.value)} /></Field>
             <Field label="Fecha de cosecha"><Input type="date" value={form.harvest_date} onChange={e => update("harvest_date", e.target.value)} /></Field>
-            <Field label="Cantidad de BINs"><Input type="number" value={form.bins_count} onChange={e => update("bins_count", e.target.value)} /></Field>
+            <Field label="Cantidad de BINs *"><Input type="number" min="1" step="1" value={form.bins_count} onChange={e => update("bins_count", e.target.value)} /></Field>
             <Field label="Peso bruto (kg)"><Input type="number" step="0.1" value={form.gross_weight} onChange={e => update("gross_weight", e.target.value)} /></Field>
             <Field label="Tara (kg)"><Input type="number" step="0.1" value={form.tare_weight} onChange={e => update("tare_weight", e.target.value)} /></Field>
             <Field label="Peso neto (kg) *"><Input type="number" step="0.1" value={form.net_weight} onChange={e => update("net_weight", e.target.value)} /></Field>
@@ -233,6 +236,8 @@ function LotDetail({ lot, onClose }) {
             <Info label="Saldo sin volcar" value={fmtKg(lot.remaining_weight)} />
             <Info label="Volcado acumulado" value={fmtKg(lot.dumped_weight)} />
             <Info label="BINs declarados" value={String(lot.bins_count || 0)} />
+            <Info label="BINs volcados" value={String(lot.bins_dumped ?? (lot.status === "volcado" ? lot.bins_count || 0 : 0))} />
+            <Info label="BINs pendientes" value={String(Math.max(0, (Number(lot.bins_count) || 0) - (Number(lot.bins_dumped ?? (lot.status === "volcado" ? lot.bins_count : 0)) || 0)))} />
           </div>
           <div className="flex items-center gap-2">
             <StatusBadge status={lot.status} />

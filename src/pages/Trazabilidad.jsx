@@ -97,11 +97,12 @@ function TraceResult({ result, allData }) {
             <EntityBlock icon={Layers} title="Lote de recepción" code={entity.lot_code} data={[
               ["Productor", entity.producer], ["Variedad", entity.variety],
               ["Neto", fmtKg(entity.net_weight)], ["Saldo sin volcar", fmtKg(entity.remaining_weight)],
+              ["BINs volcados", `${entity.bins_dumped ?? (entity.status === "volcado" ? entity.bins_count || 0 : 0)} / ${entity.bins_count || 0}`],
               ["Estado", entity.status], ["Recibido", fmtDate(entity.receipt_date)],
             ]} />
             <TraceSection icon={Repeat} title="Vuelcos" items={dumps} render={d => ({
               code: d.dump_code, rows: [
-                ["Kilos", fmtKg(d.net_weight)], ["Turno", d.shift], ["Línea", d.line || "—"], ["Fecha", fmtDate(d.dump_date)]
+                ["BINs", d.bins_dumped ?? "—"], ["Kilos", fmtKg(d.net_weight)], ["Turno", d.shift], ["Línea", d.line || "—"], ["Fecha", fmtDate(d.dump_date)]
               ]
             })} />
             <TraceSection icon={Package} title="Corridas" items={runs} render={r => ({
@@ -152,7 +153,7 @@ function TraceResult({ result, allData }) {
           <MovementTimeline movements={allData.movements.filter(m => m.unit_type === "pallet" && m.unit_id === entity.id)} />
           <TraceSection icon={Repeat} title="Vuelcos (lotes que alimentaron la corrida)" items={dumps} render={d => ({
             code: d.dump_code, rows: [
-              ["Kilos", fmtKg(d.net_weight)], ["Lote", d.receipt_lot_code], ["Fecha", fmtDate(d.dump_date)]
+              ["BINs", d.bins_dumped ?? "—"], ["Kilos", fmtKg(d.net_weight)], ["Lote", d.receipt_lot_code], ["Fecha", fmtDate(d.dump_date)]
             ]
           })} />
           <TraceSection icon={Layers} title="Lotes de recepción de origen" items={lots} render={l => ({

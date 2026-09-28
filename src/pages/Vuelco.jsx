@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { base44, supabase } from "@/api/base44Client";
 import { generateCode, fmtKg, fmtDate } from "@/lib/qr";
 import QRScanner from "@/components/QRScanner";
 import StatusBadge from "@/components/StatusBadge";
@@ -94,7 +94,7 @@ export default function Vuelco() {
                         <span className="font-mono text-xs">{d.dump_code}</span>
                         <span className="text-xs text-muted-foreground">{fmtDate(d.dump_date)}</span>
                       </div>
-                      <p>{fmtKg(d.net_weight)} · Lote {d.receipt_lot_code}</p>
+                      <p>{d.bins_dumped ? `${d.bins_dumped} BINs · ` : ""}{fmtKg(d.net_weight)} · Lote {d.receipt_lot_code}</p>
                     </div>
                   ))}
                 </div>
@@ -108,48 +108,40 @@ export default function Vuelco() {
 }
 
 function DumpForm({ lot, onCancel, onSaved }) {
-  const [weight, setWeight] = useState("");
+  const [bins, setBins] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [operationId, setOperationId] = useState(() => crypto.randomUUID());
+  const [dumpCode, setDumpCode] = useState(() => generateCode("VOL"));
 
-  const saldo = lot.remaining_weight || 0;
+  const totalBins = Number(lot.bins_count) || 0;
+  const dumpedBins = Number(lot.bins_dumped ?? (lot.status === "volcado" ? totalBins : 0));
+  const pendingBins = totalBins - dumpedBins;
+  const saldo = Number(lot.remaining_weight) || 0;
+  const selectedBins = Number(bins);
+  const estimatedKg = selectedBins === pendingBins ? saldo : Math.round((Number(lot.net_weight) || 0) * selectedBins / totalBins * 10) / 10;
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
-    const kg = Number(weight);
-    if (!kg || kg <= 0) return setError("Ingrese kilos válidos");
-    if (kg > saldo) return setError(`No puede volcar más del saldo disponible (${fmtKg(saldo)})`);
+    if (!Number.isInteger(selectedBins) || selectedBins <= 0) return setError("Ingresá una cantidad entera de BINs");
+    if (!totalBins || pendingBins <= 0) return setError("El lote no tiene BINs pendientes para volcar");
+    if (selectedBins > pendingBins) return setError(`Sólo quedan ${pendingBins} BINs pendientes`);
+    if (lot.dumped_weight > 0 && lot.bins_dumped == null && lot.status !== "volcado") return setError("Este lote tiene vuelcos anteriores sin BINs; requiere conciliación");
     setSaving(true);
     try {
-      const code = generateCode("VOL");
-      const now = new Date().toISOString();
-      await base44.entities.DumpingEvent.create({
-        dump_code: code,
-        receipt_lot_id: lot.id,
-        receipt_lot_code: lot.lot_code,
-        dump_date: now,
-        net_weight: kg,
-        producer: lot.producer,
-        variety: lot.variety,
+      const { error: rpcError } = await supabase.rpc("dump_lot_by_bins", {
+        p_operation_id: operationId,
+        p_lot_id: lot.id,
+        p_bins: selectedBins,
+        p_dump_code: dumpCode,
       });
-      // Actualizar saldo del lote
-      const newRemaining = saldo - kg;
-      const newDumped = (lot.dumped_weight || 0) + kg;
-      await base44.entities.ReceiptLot.update(lot.id, {
-        remaining_weight: newRemaining,
-        dumped_weight: newDumped,
-        status: newRemaining <= 0.01 ? "volcado" : "parcialmente_volcado",
-      });
+      if (rpcError) throw rpcError;
       onSaved();
     } catch (e) {
       setError(e.message || "Error al registrar vuelco");
       setSaving(false);
     }
-  }
-
-  function volcarTodo() {
-    setWeight(String(saldo));
   }
 
   return (
@@ -161,14 +153,17 @@ function DumpForm({ lot, onCancel, onSaved }) {
           <span>Recibido: <b>{fmtKg(lot.net_weight)}</b></span>
           <span>Volcado: <b>{fmtKg(lot.dumped_weight)}</b></span>
         </div>
+        <p className="text-sm">BINs: <b>{totalBins} recibidos · {dumpedBins} volcados · {pendingBins} pendientes</b></p>
+        {totalBins > 0 && <p className="text-sm">Promedio por BIN: <b>{fmtKg(Number(lot.net_weight) / totalBins)}</b></p>}
         <p className="text-sm">Saldo disponible: <b className="text-blue-700">{fmtKg(saldo)}</b></p>
       </div>
       <form onSubmit={handleSubmit} className="space-y-3">
         {error && <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{error}</p>}
         <div className="space-y-1">
-          <Label className="text-xs">Kilos a volcar (kg) *</Label>
-          <Input type="number" step="0.1" value={weight} onChange={e => setWeight(e.target.value)} autoFocus />
-          <Button type="button" variant="outline" size="sm" onClick={volcarTodo}>Volcar saldo completo ({fmtKg(saldo)})</Button>
+          <Label className="text-xs">BINs a volcar *</Label>
+          <Input type="number" min="1" max={Math.max(0, pendingBins)} step="1" value={bins} onChange={e => { setBins(e.target.value); setOperationId(crypto.randomUUID()); setDumpCode(generateCode("VOL")); }} autoFocus />
+          <Button type="button" variant="outline" size="sm" disabled={pendingBins <= 0} onClick={() => { setBins(String(pendingBins)); setOperationId(crypto.randomUUID()); setDumpCode(generateCode("VOL")); }}>Volcar todos los BINs pendientes ({pendingBins})</Button>
+          {Number.isInteger(selectedBins) && selectedBins > 0 && selectedBins <= pendingBins && <p className="text-sm">Kilos a descontar: <b>{fmtKg(estimatedKg)}</b></p>}
         </div>
         <div className="flex gap-2 pt-2">
           <Button type="button" variant="outline" className="flex-1" onClick={onCancel}>Cancelar</Button>
