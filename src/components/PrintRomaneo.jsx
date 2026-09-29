@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
 import { qrImageUrl } from "@/lib/qr";
 import { printHtml } from "@/lib/catalogs";
-import ChangePrinter from "@/components/ChangePrinter";
 import { fmtDay } from "@/lib/qr";
 
 export default function PrintRomaneo({ pallet }) {
@@ -41,11 +40,8 @@ export default function PrintRomaneo({ pallet }) {
   }
 
   return (
-    <div className="w-full flex flex-col items-center gap-1">
-      <Button type="button" onClick={print} className="w-full">
-        <Printer className="w-4 h-4 mr-2" /> Imprimir romaneo
-      </Button>
-      <ChangePrinter />
-    </div>
+    <Button type="button" onClick={print} className="w-full">
+      <Printer className="w-4 h-4 mr-2" /> Imprimir romaneo
+    </Button>
   );
 }
