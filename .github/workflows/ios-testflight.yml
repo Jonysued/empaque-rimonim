@@ -66,11 +66,7 @@ jobs:
             -project ios/App/App.xcodeproj \
             -scheme App -configuration Release \
             -destination 'generic/platform=iOS' \
-            -archivePath "$RUNNER_TEMP/RimonimEmpaque.xcarchive" \
-            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGN_STYLE=Manual \
-            PROVISIONING_PROFILE_SPECIFIER="$IOS_PROFILE_NAME" \
-            CODE_SIGN_IDENTITY='Apple Distribution'
+            -archivePath "$RUNNER_TEMP/RimonimEmpaque.xcarchive"
       - name: Export signed IPA
         run: |
           cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
