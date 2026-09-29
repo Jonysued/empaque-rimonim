@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
 import { qrImageUrl } from "@/lib/qr";
 import { printHtml } from "@/lib/catalogs";
+import ChangePrinter from "@/components/ChangePrinter";
 
 export default function QRLabel({ code, title, subtitle, size = 160 }) {
   function print() {
@@ -14,7 +15,7 @@ export default function QRLabel({ code, title, subtitle, size = 160 }) {
         <div class="big">${code}</div>
       </div>
     `;
-    printHtml(html);
+    printHtml(html, `Etiqueta ${code}`);
   }
 
   return (
@@ -27,6 +28,7 @@ export default function QRLabel({ code, title, subtitle, size = 160 }) {
       <Button type="button" variant="outline" size="sm" onClick={print}>
         <Printer className="w-4 h-4 mr-1" /> Imprimir etiqueta
       </Button>
+      <ChangePrinter />
     </div>
   );
 }
