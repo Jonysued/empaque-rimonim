@@ -39,7 +39,7 @@ export default function Layout() {
   return (
     <div className="min-h-screen bg-muted/30">
       {/* Sidebar desktop */}
-      <aside className="hidden lg:flex fixed inset-y-0 left-0 w-60 flex-col bg-sidebar border-r border-sidebar-border">
+      <aside className="app-desktop-sidebar hidden lg:flex fixed inset-y-0 left-0 w-60 flex-col bg-sidebar border-r border-sidebar-border">
         <div className="h-16 flex items-center px-6 border-b border-sidebar-border">
           <div className="flex w-36 flex-col items-center gap-1">
             <img src={rimonimLogo} alt="Rimonim" className="w-full h-auto rounded" />
@@ -74,7 +74,7 @@ export default function Layout() {
       </aside>
 
       {/* Topbar mobile */}
-      <header className="lg:hidden sticky top-0 z-30 h-14 bg-background border-b flex items-center justify-between px-4">
+      <header className="app-mobile-header lg:hidden sticky top-0 z-30 h-14 bg-background border-b flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
           <img src={rimonimLogo} alt="Rimonim" className="w-32 h-auto rounded" />
         </div>
@@ -87,7 +87,7 @@ export default function Layout() {
       {sidebarOpen && (
         <div className="lg:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/40" onClick={() => setSidebarOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 w-72 max-w-[80%] bg-background shadow-xl flex flex-col">
+          <aside className="app-mobile-drawer absolute inset-y-0 left-0 w-72 max-w-[80%] bg-background shadow-xl flex flex-col">
             <div className="h-14 flex items-center justify-between px-4 border-b">
               <span className="font-bold">Menú</span>
               <button onClick={() => setSidebarOpen(false)} className="p-2 -mr-2"><X className="w-5 h-5" /></button>
