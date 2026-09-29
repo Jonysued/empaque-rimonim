@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
 import { qrImageUrl, fmtDate } from "@/lib/qr";
 import { printHtml } from "@/lib/catalogs";
+import ChangePrinter from "@/components/ChangePrinter";
 
 const escapeHtml = value => String(value ?? "—").replace(/[&<>"']/g, char => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
@@ -85,12 +86,15 @@ export default function PrintPackingList({ shipment, pallets }) {
         </table>
       </div>
     `;
-    printHtml(html);
+    printHtml(html, `Packing list ${shipment.load_number}`);
   }
 
   return (
-    <Button type="button" size="lg" onClick={print} className="w-full">
-      <Printer className="w-4 h-4 mr-2" /> Imprimir packing list
-    </Button>
+    <div className="w-full flex flex-col items-center gap-1">
+      <Button type="button" size="lg" onClick={print} className="w-full">
+        <Printer className="w-4 h-4 mr-2" /> Imprimir packing list
+      </Button>
+      <ChangePrinter />
+    </div>
   );
 }
