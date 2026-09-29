@@ -90,3 +90,21 @@
     @apply bg-background text-foreground font-body;
   }
 }
+
+/* The iOS WebView draws beneath the system status bar. Reserve that space
+   for every screen and keep sticky/fixed navigation inside the safe area. */
+html.capacitor-ios #root {
+  min-height: 100vh;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html.capacitor-ios .app-mobile-header,
+html.capacitor-ios .app-desktop-sidebar {
+  top: env(safe-area-inset-top, 0px);
+}
+
+html.capacitor-ios .app-mobile-drawer {
+  top: env(safe-area-inset-top, 0px);
+  bottom: env(safe-area-inset-bottom, 0px);
+}
