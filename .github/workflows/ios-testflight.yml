@@ -41,6 +41,13 @@ jobs:
           set -euo pipefail
           printf '%s' "$IOS_CERTIFICATE_P12_BASE64" | base64 -D > "$RUNNER_TEMP/rimonim.p12"
           printf '%s' "$IOS_PROVISIONING_PROFILE_BASE64" | base64 -D > "$RUNNER_TEMP/rimonim.mobileprovision"
+          # Apple's keychain cannot import the newer PBES2 encryption used by
+          # OpenSSL 3 when the PKCS#12 file is exported with its defaults.
+          brew_openssl="$(brew --prefix openssl@3)/bin/openssl"
+          "$brew_openssl" pkcs12 -in "$RUNNER_TEMP/rimonim.p12" \
+            -passin env:IOS_CERTIFICATE_PASSWORD -nodes -out "$RUNNER_TEMP/signing.pem"
+          "$brew_openssl" pkcs12 -export -legacy -in "$RUNNER_TEMP/signing.pem" \
+            -out "$RUNNER_TEMP/rimonim-legacy.p12" -passout env:IOS_CERTIFICATE_PASSWORD
           mkdir -p "$HOME/Library/MobileDevice/Provisioning Profiles" "$HOME/.appstoreconnect/private_keys"
           profile_uuid=$(/usr/libexec/PlistBuddy -c 'Print UUID' /dev/stdin <<< "$(security cms -D -i "$RUNNER_TEMP/rimonim.mobileprovision")")
           cp "$RUNNER_TEMP/rimonim.mobileprovision" "$HOME/Library/MobileDevice/Provisioning Profiles/$profile_uuid.mobileprovision"
@@ -49,7 +56,7 @@ jobs:
           security create-keychain -p "$IOS_CERTIFICATE_PASSWORD" "$RUNNER_TEMP_KEYCHAIN"
           security set-keychain-settings -lut 21600 "$RUNNER_TEMP_KEYCHAIN"
           security unlock-keychain -p "$IOS_CERTIFICATE_PASSWORD" "$RUNNER_TEMP_KEYCHAIN"
-          security import "$RUNNER_TEMP/rimonim.p12" -k "$RUNNER_TEMP_KEYCHAIN" -P "$IOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security import "$RUNNER_TEMP/rimonim-legacy.p12" -k "$RUNNER_TEMP_KEYCHAIN" -P "$IOS_CERTIFICATE_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
           security list-keychains -d user -s "$RUNNER_TEMP_KEYCHAIN"
           security default-keychain -d user -s "$RUNNER_TEMP_KEYCHAIN"
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$IOS_CERTIFICATE_PASSWORD" "$RUNNER_TEMP_KEYCHAIN"
