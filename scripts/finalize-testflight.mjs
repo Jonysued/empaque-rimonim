@@ -34,10 +34,6 @@ for (let attempt = 0; attempt < 40; attempt++) {
 }
 if (build?.attributes.processingState !== 'VALID') throw new Error(`El build ${BUILD_NUMBER} aún no está procesado`);
 
-await api(`/v1/builds/${build.id}`, 'PATCH', {
-  data: { type: 'builds', id: build.id, attributes: { usesNonExemptEncryption: false } },
-});
-
 const groupPath = `/v1/betaGroups/${groupId}/relationships/builds`;
 const current = await api(groupPath);
 if (!current.data.some(item => item.id === build.id)) {
