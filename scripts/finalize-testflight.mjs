@@ -37,7 +37,16 @@ if (build?.attributes.processingState !== 'VALID') throw new Error(`El build ${B
 const groupPath = `/v1/betaGroups/${groupId}/relationships/builds`;
 const current = await api(groupPath);
 if (!current.data.some(item => item.id === build.id)) {
-  await api(groupPath, 'POST', { data: [{ type: 'builds', id: build.id }] });
+  for (let attempt = 0; attempt < 20; attempt++) {
+    try {
+      await api(groupPath, 'POST', { data: [{ type: 'builds', id: build.id }] });
+      break;
+    } catch (error) {
+      if (!String(error).includes('422') || attempt === 19) throw error;
+      console.log('Esperando que Apple habilite la prueba interna');
+      await new Promise(resolve => setTimeout(resolve, 15000));
+    }
+  }
 }
 const updated = await api(groupPath);
 if (!updated.data.some(item => item.id === build.id)) throw new Error('El build no quedó asignado al grupo');
