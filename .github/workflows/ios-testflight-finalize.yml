@@ -1,0 +1,26 @@
+name: Enable iOS TestFlight build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: iOS build number
+        required: true
+        default: '2'
+
+jobs:
+  enable:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+      APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
+      APPSTORE_API_KEY_P8_BASE64: ${{ secrets.APPSTORE_API_KEY_P8_BASE64 }}
+      BUILD_NUMBER: ${{ inputs.build_number }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node scripts/finalize-testflight.mjs
