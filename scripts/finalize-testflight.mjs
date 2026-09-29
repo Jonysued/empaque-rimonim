@@ -25,7 +25,7 @@ async function api(path, method = 'GET', body) {
 
 let build;
 for (let attempt = 0; attempt < 40; attempt++) {
-  const builds = await api(`/v1/apps/${appId}/builds?limit=50&sort=-uploadedDate`);
+  const builds = await api(`/v1/apps/${appId}/builds?limit=50`);
   build = builds.data.find(item => item.attributes.version === BUILD_NUMBER);
   if (build?.attributes.processingState === 'VALID') break;
   if (build?.attributes.processingState === 'INVALID') throw new Error(`El build ${BUILD_NUMBER} fue rechazado por Apple`);
