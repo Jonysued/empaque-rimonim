@@ -91,3 +91,7 @@ jobs:
           xcrun altool --upload-app --type ios \
             --file "$RUNNER_TEMP/ios-export/App.ipa" \
             --apiKey "$APPSTORE_KEY_ID" --apiIssuer "$APPSTORE_ISSUER_ID"
+      - name: Enable internal TestFlight testing
+        run: |
+          build_number=$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$RUNNER_TEMP/RimonimEmpaque.xcarchive/Products/Applications/App.app/Info.plist")
+          BUILD_NUMBER="$build_number" node scripts/finalize-testflight.mjs
