@@ -23,7 +23,9 @@ export function durationLabel(ms) {
   const hours = Math.floor(mins / 60); if (hours < 24) return `${hours} h${mins % 60 ? ` ${mins % 60} min` : ''}`;
   return `${Math.floor(hours / 24)} d${hours % 24 ? ` ${hours % 24} h` : ''}`;
 }
-const identityMatch = (item, f) => (!f.producer || String(item.producer || '').split(' / ').includes(f.producer)) && (!f.variety || item.variety === f.variety) && (!f.origin || item.origin === f.origin);
+export const normalizeFilter = value => String(value||'').trim().toLocaleUpperCase('es-AR');
+const fieldMatch=(value,filter)=>!filter || String(value||'').split(' / ').some(v=>normalizeFilter(v)===normalizeFilter(filter));
+const identityMatch = (item, f) => fieldMatch(item.producer,f.producer) && fieldMatch(item.variety,f.variety) && fieldMatch(item.origin,f.origin);
 const sample = (key, id, start, end, extra = {}) => {
   const a = timestamp(start), b = timestamp(end);
   return a !== null && b !== null && b >= a ? {key, id, start:a, end:b, ms:b-a, ...extra} : null;
