@@ -30,15 +30,15 @@ export default function PesadoLote() {
     <div><h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Scale className="w-6 h-6" /> Pesado de Lote</h1><p className="text-muted-foreground">Ingresar bruto y tara; distribuir el neto entre los bines del lote cerrado</p></div>
     {(loadError || error) && <p role="alert" className="text-sm text-destructive">{loadError || error}</p>}
     <Card><CardHeader><CardTitle className="text-base">{selected ? `Pesar ${selected.lot_code}` : 'Escanear el QR del lote cerrado'}</CardTitle></CardHeader>
-      <CardContent>{selected ? <WeightForm key={selected.id} lot={selected} onCancel={() => setSelectedId(null)} onSaved={async pending => {
+      <CardContent>{selected && <Button type="button" variant="outline" className="mb-4" onClick={() => setDetailId(selected.id)}>Ver ficha completa e imprimir A4</Button>}{selected ? <WeightForm key={selected.id} lot={selected} onCancel={() => setSelectedId(null)} onSaved={async pending => {
         setSelectedId(null); toast[pending ? 'warning' : 'success'](pending ? 'Pesado guardado en este dispositivo; pendiente de sincronizar' : 'Lote pesado. Ya puede recibirse en Playa Empaque.'); await refresh();
       }} /> : <QRScanner label="Escanear QR del lote" onScan={scan} />}</CardContent></Card>
     <div className="space-y-3"><h2 className="font-semibold">Pendientes de pesado ({available.length})</h2>
       {loading ? <p>Cargando…</p> : !available.length ? <p className="text-sm text-muted-foreground">No hay lotes cerrados pendientes de pesado.</p> : available.map(lot =>
         <button type="button" key={lot.id} className="block w-full text-left" onClick={() => { setSelectedId(lot.id); setError(''); }}><LotSummary lot={lot} /></button>)}</div>
-    <div className="space-y-3"><h2 className="font-semibold">Últimos lotes pesados</h2>{lots.filter(lot => isFieldLot(lot) && lot.weighed_at).slice(0,20).map(lot =>
+    <div className="space-y-3"><h2 className="font-semibold">Últimos lotes pesados</h2>{lots.filter(lot => lot.weighed_at || (!isFieldLot(lot) && lot.net_weight != null)).slice(0,20).map(lot =>
       <button type="button" key={lot.id} className="block w-full text-left" onClick={() => setDetailId(lot.id)}><LotSummary lot={lot} /></button>)}</div>
-    {detail && <LotDetail lot={detail} bins={bins.filter(bin => bin.receipt_lot_id === detail.id)} onClose={() => setDetailId(null)} onUpdated={refresh} />}
+    {detail && <LotDetail printFullSheet lot={detail} bins={bins.filter(bin => bin.receipt_lot_id === detail.id)} onClose={() => setDetailId(null)} onUpdated={refresh} />}
   </div>;
 }
 
