@@ -2,6 +2,9 @@ import React from "react";
 import { cn } from "@/lib/utils";
 
 const STATUS_COLORS = {
+  en_campo: "bg-lime-100 text-lime-800",
+  cerrado_campo: "bg-slate-200 text-slate-800",
+  pesado: "bg-purple-100 text-purple-800",
   recibido: "bg-blue-100 text-blue-800",
   parcialmente_volcado: "bg-amber-100 text-amber-800",
   volcado: "bg-green-100 text-green-800",
@@ -27,6 +30,9 @@ const STATUS_COLORS = {
 };
 
 const LABELS = {
+  en_campo: "En campo",
+  cerrado_campo: "Cerrado en campo",
+  pesado: "Pesado · pendiente de playa",
   recibido: "Recibido",
   parcialmente_volcado: "Parcialmente volcado",
   volcado: "Volcado",

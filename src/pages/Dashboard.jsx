@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { Link } from "react-router-dom";
+import { canDumpLot } from "@/lib/fieldWorkflow.mjs";
 import { fmtKg, fmtNum } from "@/lib/qr";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PackageOpen, Repeat, Factory, Snowflake, Warehouse, Truck, AlertTriangle, ScanLine } from "lucide-react";
@@ -28,7 +29,7 @@ export default function Dashboard() {
         ]);
 
         const today = new Date().toDateString();
-        const saldoSinVolcar = (lots || []).reduce((s, l) => s + (l.remaining_weight || 0), 0);
+        const saldoSinVolcar = (lots || []).filter(canDumpLot).reduce((s, l) => s + (l.remaining_weight || 0), 0);
         const volcadoHoy = (dumps || []).filter(d => new Date(d.dump_date).toDateString() === today).reduce((s, d) => s + (d.net_weight || 0), 0);
         const pendienteClasificar = (runs || []).filter(r => r.status === "abierta").reduce((s, r) => s + (r.dumped_pending || 0), 0);
         const fresco = (runs || []).reduce((s, r) => s + (r.fresh_weight || 0), 0);
@@ -72,7 +73,7 @@ export default function Dashboard() {
   }
 
   const cards = [
-    { label: "Saldo sin volcar", value: fmtKg(stats.saldoSinVolcar), icon: PackageOpen, color: "text-blue-600", to: "/recepcion" },
+    { label: "Saldo sin volcar", value: fmtKg(stats.saldoSinVolcar), icon: PackageOpen, color: "text-blue-600", to: "/recepcion-playa" },
     { label: "Volcado hoy", value: fmtKg(stats.volcadoHoy), icon: Repeat, color: "text-amber-600", to: "/vuelco" },
     { label: "Pendiente de clasificar", value: fmtKg(stats.pendienteClasificar), icon: Factory, color: "text-orange-600", to: "/produccion" },
     { label: "Fresco producido", value: fmtKg(stats.fresco), icon: Factory, color: "text-green-600", to: "/produccion" },

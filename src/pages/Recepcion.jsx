@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
-import { getOperations, submitOperation } from "@/lib/operationQueue";
-import { Capacitor } from "@capacitor/core";
 import { toast } from "sonner";
-import { generateCode, fmtKg, fmtDate } from "@/lib/qr";
+import { generateCode } from "@/lib/qr";
 import { loadCatalog } from "@/lib/catalogs";
-import StatusBadge from "@/components/StatusBadge";
-import QRLabel from "@/components/QRLabel";
+import { useFieldLots, fieldOperation } from "@/lib/fieldLots";
+import LotDetail, { LotSummary } from "@/components/LotDetail";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,98 +11,41 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PackageOpen, Plus, Layers } from "lucide-react";
+import { PackageOpen, Plus } from "lucide-react";
 
 export default function Recepcion() {
-  const [lots, setLots] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { lots, bins, loading, error, refresh } = useFieldLots();
   const [showForm, setShowForm] = useState(false);
-  const [selectedLot, setSelectedLot] = useState(null);
-  const [cats, setCats] = useState({});
-  const [pendingLots, setPendingLots] = useState([]);
-
-  async function refresh() {
-    setLoading(true);
-    try {
-      const operations = await getOperations().catch(() => []);
-      setPendingLots(operations.filter(op => op.rpc === "create_receipt_lot")
-        .map(op => ({ ...op.params.p_record, id: op.id, pendingStatus: op.status, created_date: op.createdAt })));
-      const [data, producers, origins, vars, crews, htypes, species] = await Promise.all([
-        base44.entities.ReceiptLot.list("-created_date", 50),
-        loadCatalog("productor"), loadCatalog("cuadro"),
-        loadCatalog("variedad"), loadCatalog("cuadrilla"), loadCatalog("tipo_cosecha"), loadCatalog("especie"),
-      ]);
-      setLots(data || []);
-      setCats({ productor: producers, cuadro: origins, variedad: vars, cuadrilla: crews, tipo_cosecha: htypes, especie: species });
-    } catch (e) { console.error(e); } finally { setLoading(false); }
-  }
-
-  useEffect(() => { refresh(); }, []);
+  const [selectedId, setSelectedId] = useState(null);
+  const [cats, setCats] = useState(null);
+  const [catalogError, setCatalogError] = useState("");
   useEffect(() => {
-    const onChange = () => { refresh(); };
-    window.addEventListener("rimonim-queue-change", onChange);
-    return () => window.removeEventListener("rimonim-queue-change", onChange);
+    const names = ["productor", "cuadro", "variedad", "cuadrilla", "tipo_cosecha", "especie"];
+    Promise.all(names.map(name => loadCatalog(name))).then(values => setCats(Object.fromEntries(names.map((name, i) => [name, values[i]]))))
+      .catch(e => setCatalogError(e.message));
   }, []);
-
-  const visibleLots = [...pendingLots, ...lots.filter(lot => !pendingLots.some(item => item.id === lot.id))];
-
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-heading font-bold flex items-center gap-2"><PackageOpen className="w-6 h-6" /> Recepción</h1>
-          <p className="text-muted-foreground">Lotes de ingreso y BINs</p>
-        </div>
-        <Button size="lg" onClick={() => setShowForm(true)}>
-          <Plus className="w-5 h-5 mr-1" /> Nuevo lote de ingreso
-        </Button>
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-slate-200 border-t-red-600 rounded-full animate-spin" /></div>
-      ) : visibleLots.length === 0 ? (
-        <Card><CardContent className="py-16 text-center text-muted-foreground">
-          <PackageOpen className="w-12 h-12 mx-auto mb-3 opacity-40" />
-          <p>No hay lotes de ingreso registrados.</p>
-          <p className="text-sm mt-1">Cree el primer lote con el botón «Nuevo lote de ingreso».</p>
-        </CardContent></Card>
-      ) : (
-        <div className="grid gap-3">
-          {visibleLots.map(lot => (
-            <Card key={lot.id} className={`hover:shadow-md transition-shadow ${lot.pendingStatus ? "border-amber-300" : "cursor-pointer"}`} onClick={() => { if (!lot.pendingStatus) setSelectedLot(lot); }}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-mono font-bold">{lot.lot_code}</span>
-                      {!lot.pendingStatus && <StatusBadge status={lot.status} />}
-                      {lot.pendingStatus && <span className="text-xs text-amber-700">{lot.pendingStatus === "conflict" ? "Requiere revisión" : "Pendiente de sincronizar"}</span>}
-                      {lot.held && <StatusBadge status="retenido" />}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {lot.producer} · {lot.variety} · {lot.bins_count || 0} BINs
-                    </p>
-                    <p className="text-xs text-muted-foreground">Recibido: {fmtDate(lot.receipt_date)}</p>
-                  </div>
-                  <div className="text-right space-y-1">
-                    <p className="text-sm"><span className="text-muted-foreground">Neto:</span> <b>{fmtKg(lot.net_weight)}</b></p>
-                    <p className="text-sm"><span className="text-muted-foreground">Sin volcar:</span> <b className="text-blue-600">{fmtKg(lot.remaining_weight)}</b></p>
-                    <p className="text-sm"><span className="text-muted-foreground">Volcado:</span> <b className="text-amber-600">{fmtKg(lot.dumped_weight)}</b></p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {showForm && <LotForm cats={cats} onClose={() => setShowForm(false)} onSaved={pending => { setShowForm(false); if (pending) toast.warning("Lote guardado en este dispositivo; pendiente de sincronizar"); refresh(); }} />}
-      {selectedLot && <LotDetail lot={selectedLot} onClose={() => setSelectedLot(null)} />}
+  const selectedLot = lots.find(lot => lot.id === selectedId);
+  return <div className="space-y-6">
+    <div className="flex items-center justify-between flex-wrap gap-3">
+      <div><h1 className="text-2xl font-heading font-bold flex items-center gap-2"><PackageOpen className="w-6 h-6" /> Recepción Campo</h1>
+        <p className="text-muted-foreground">Crear el lote, escanear sus bines y cerrar la carga en campo</p></div>
+      <Button size="lg" disabled={!cats} onClick={() => setShowForm(true)}><Plus className="w-5 h-5 mr-1" /> Nuevo lote de ingreso</Button>
     </div>
-  );
+    {(error || catalogError) && <p role="alert" className="text-sm text-destructive">{error || catalogError}</p>}
+    {loading ? <p className="text-muted-foreground">Cargando lotes…</p> : !lots.length ?
+      <Card><CardContent className="py-12 text-center text-muted-foreground">No hay lotes registrados. Creá el primero con «Nuevo lote de ingreso».</CardContent></Card> :
+      <div className="grid gap-3">{lots.map(lot => <button key={lot.id} type="button" className="text-left" onClick={() => setSelectedId(lot.id)}><LotSummary lot={lot} /></button>)}</div>}
+    {showForm && <LotForm cats={cats} onClose={() => setShowForm(false)} onSaved={async (id, pending) => {
+      setShowForm(false); setSelectedId(id);
+      if (pending) toast.warning("Lote guardado en este dispositivo; pendiente de sincronizar");
+      await refresh();
+    }} />}
+    {selectedLot && <LotDetail lot={selectedLot} bins={bins.filter(bin => bin.receipt_lot_id === selectedLot.id)}
+      onClose={() => setSelectedId(null)} onUpdated={refresh} />}
+  </div>;
 }
 
-function LotForm({ cats, onClose, onSaved }) {
+export function LotForm({ cats, onClose, onSaved }) {
   const today = () => {
     const date = new Date();
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -113,7 +53,7 @@ function LotForm({ cats, onClose, onSaved }) {
   const [form, setForm] = useState({
     producer: "", variety: "", origin: "", species: "Granada",
     harvest_type: "", crew: "", transport: "",
-    bins_count: "", gross_weight: "", tare_weight: "",
+    bins_count: "",
     harvest_date: today(),
     quality_notes: ""
   });
@@ -125,12 +65,10 @@ function LotForm({ cats, onClose, onSaved }) {
   function updateMixed(index, key, value) {
     setMixedCrews(items => items.map((item, i) => i === index ? { ...item, [key]: value } : item));
   }
-  const gross = Number(form.gross_weight);
-  const tare = Number(form.tare_weight);
-  const net = form.gross_weight !== "" && form.tare_weight !== "" && Number.isFinite(gross) && Number.isFinite(tare)
-    ? Math.round((gross - tare) * 10) / 10 : null;
   const binCount = Number(form.bins_count);
-  const binWeight = net > 0 && Number.isInteger(binCount) && binCount > 0 ? net / binCount : null;
+  const [lotId] = useState(() => crypto.randomUUID());
+  const [operationId] = useState(() => crypto.randomUUID());
+  const [lotCode] = useState(() => generateCode("LOT"));
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -139,8 +77,6 @@ function LotForm({ cats, onClose, onSaved }) {
     if (form.origin && !cats.cuadro?.some(item => item.producer === form.producer && item.label === form.origin)) return setError("Seleccioná un cuadro del productor indicado");
     if (!form.variety) return setError("Variedad es obligatoria");
     if (!Number.isInteger(binCount) || binCount <= 0) return setError("La cantidad de BINs debe ser un número entero mayor a cero");
-    if (form.gross_weight === "" || !Number.isFinite(gross) || gross <= 0) return setError("Ingresá un peso bruto mayor a cero");
-    if (form.tare_weight === "" || !Number.isFinite(tare) || tare < 0 || tare >= gross) return setError("La tara debe ser menor que el peso bruto y no puede ser negativa");
     if (!form.harvest_date) return setError("Ingresá la fecha de cosecha");
     let crewBreakdown = [];
     if (form.crew === "MIXTO") {
@@ -153,31 +89,11 @@ function LotForm({ cats, onClose, onSaved }) {
     }
     setSaving(true);
     try {
-      const code = generateCode("LOT");
-      const record = {
-        ...form,
-        crew_breakdown: crewBreakdown,
-        bins_count: binCount,
-        bins_dumped: 0,
-        gross_weight: gross,
-        tare_weight: tare,
-        net_weight: net,
-        remaining_weight: net,
-        dumped_weight: 0,
-        lot_code: code,
-        receipt_date: new Date().toISOString(),
-        harvest_date: form.harvest_date,
-        status: "recibido",
-        held: false,
-      };
-      if (Capacitor.isNativePlatform()) {
-        const operationId = crypto.randomUUID();
-        const result = await submitOperation("create_receipt_lot", { p_record: record }, `receipt:${operationId}`, operationId);
-        onSaved(result.pending);
-      } else {
-        await base44.entities.ReceiptLot.create(record);
-        onSaved(false);
-      }
+      const record = { ...form, bins_count: undefined, expected_bins_count: binCount,
+        crew_breakdown: crewBreakdown, lot_code: lotCode };
+      delete record.bins_count;
+      const result = await fieldOperation(lotId, "create", { p_record: record }, operationId);
+      await onSaved(lotId, result.pending);
     } catch (e) {
       setError(e.message || "Error al guardar");
       setSaving(false);
@@ -189,10 +105,10 @@ function LotForm({ cats, onClose, onSaved }) {
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Nuevo lote de ingreso</DialogTitle></DialogHeader>
+        <DialogHeader><DialogTitle>Nuevo lote de Recepción Campo</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{error}</p>}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Field label="Productor *">
               <Select value={form.producer} onValueChange={v => setForm(f => ({ ...f, producer: v, origin: "" }))}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
@@ -227,18 +143,13 @@ function LotForm({ cats, onClose, onSaved }) {
             ))}
             <Field label="Transporte"><Input value={form.transport} onChange={e => update("transport", e.target.value)} /></Field>
             <Field label="Fecha de cosecha"><Input type="date" required value={form.harvest_date} onChange={e => update("harvest_date", e.target.value)} /></Field>
-            <Field label="Cantidad de BINs *"><Input type="number" min="1" step="1" value={form.bins_count} onChange={e => update("bins_count", e.target.value)} /></Field>
-            <Field label="Peso bruto (kg) *"><Input type="number" min="0.1" step="0.1" required value={form.gross_weight} onChange={e => update("gross_weight", e.target.value)} /></Field>
-            <Field label="Tara (kg) *"><Input type="number" min="0" step="0.1" required value={form.tare_weight} onChange={e => update("tare_weight", e.target.value)} /></Field>
-            <div className="col-span-2 space-y-3">
-              <Field label="Peso neto (kg)"><Input readOnly value={net !== null && net > 0 ? net.toFixed(1) : ""} placeholder="Bruto − tara" /></Field>
-              <Field label="Peso teórico por BIN (kg)"><Input readOnly value={binWeight !== null ? binWeight.toFixed(1) : ""} placeholder="Neto ÷ cantidad de BINs" /></Field>
-            </div>
+            <Field label="Cantidad de BINs a escanear *"><Input type="number" min="1" step="1" value={form.bins_count} onChange={e => update("bins_count", e.target.value)} /></Field>
+
           </div>
           <Field label="Notas de calidad"><Textarea rows={2} value={form.quality_notes} onChange={e => update("quality_notes", e.target.value)} /></Field>
           <div className="flex gap-2 justify-end pt-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button type="submit" disabled={saving}>{saving ? "Guardando…" : "Guardar lote"}</Button>
+            <Button type="submit" disabled={saving}>{saving ? "Guardando…" : "Crear lote y cargar bines"}</Button>
           </div>
         </form>
       </DialogContent>
@@ -247,82 +158,5 @@ function LotForm({ cats, onClose, onSaved }) {
 }
 
 function Field({ label, children }) {
-  return (
-    <div className="space-y-1">
-      <Label className="text-xs">{label}</Label>
-      {children}
-    </div>
-  );
-}
-
-function LotDetail({ lot, onClose }) {
-  const [bins, setBins] = useState([]);
-
-  async function loadBins() {
-    try {
-      const data = await base44.entities.Bin.filter({ receipt_lot_id: lot.id });
-      setBins(data || []);
-    } catch (e) { console.error(e); }
-  }
-
-  useEffect(() => { loadBins(); }, []);
-
-  return (
-    <Dialog open onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader><DialogTitle>Ficha del lote {lot.lot_code}</DialogTitle></DialogHeader>
-        <div className="space-y-4">
-          <div className="flex justify-center"><QRLabel code={lot.lot_code} title="Lote de recepción" subtitle={`${lot.producer} · ${lot.variety}`} /></div>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <Info label="Productor" value={lot.producer} />
-            <Info label="Variedad" value={lot.variety} />
-            <Info label="Finca" value={lot.farm || "—"} />
-            <Info label="Procedencia" value={lot.origin || "—"} />
-            <Info label="Cuadrilla" value={lot.crew || "—"} />
-            {lot.crew === "MIXTO" && Array.isArray(lot.crew_breakdown) && lot.crew_breakdown.map((item, index) => <Info key={index} label={item.crew || `Cuadrilla ${index + 1}`} value={`${item.bins_count || 0} BINs`} />)}
-            <Info label="Turno" value={lot.shift || "—"} />
-            <Info label="Peso bruto" value={fmtKg(lot.gross_weight)} />
-            <Info label="Tara" value={fmtKg(lot.tare_weight)} />
-            <Info label="Peso neto" value={fmtKg(lot.net_weight)} />
-            <Info label="Peso teórico por BIN" value={lot.bins_count > 0 ? fmtKg(lot.net_weight / lot.bins_count) : "—"} />
-            <Info label="Saldo sin volcar" value={fmtKg(lot.remaining_weight)} />
-            <Info label="Volcado acumulado" value={fmtKg(lot.dumped_weight)} />
-            <Info label="BINs declarados" value={String(lot.bins_count || 0)} />
-            <Info label="BINs volcados" value={String(lot.bins_dumped ?? (lot.status === "volcado" ? lot.bins_count || 0 : 0))} />
-            <Info label="BINs pendientes" value={String(Math.max(0, (Number(lot.bins_count) || 0) - (Number(lot.bins_dumped ?? (lot.status === "volcado" ? lot.bins_count : 0)) || 0)))} />
-          </div>
-          <div className="flex items-center gap-2">
-            <StatusBadge status={lot.status} />
-            {lot.held && <StatusBadge status="retenido" />}
-          </div>
-
-          <div className="border-t pt-3">
-            <h4 className="font-medium flex items-center gap-2 mb-2"><Layers className="w-4 h-4" /> BINs del lote ({bins.length})</h4>
-            {bins.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Sin BINs individualizados. El lote opera como unidad.</p>
-            ) : (
-              <div className="space-y-2">
-                {bins.map(b => (
-                  <div key={b.id} className="flex items-center justify-between border rounded-lg p-2 text-sm">
-                    <span className="font-mono">{b.bin_code}</span>
-                    <span>N° {b.visible_number || "—"} · {fmtKg(b.net_weight)} {b.measured ? "" : "(est.)"}</span>
-                    <StatusBadge status={b.status} />
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function Info({ label, value }) {
-  return (
-    <div className="flex justify-between border-b pb-1">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-medium text-right">{value}</span>
-    </div>
-  );
+  return <div className="space-y-1"><Label className="text-xs">{label}</Label>{children}</div>;
 }
