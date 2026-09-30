@@ -14,6 +14,7 @@ const names = {
   load_pallet_into_shipment: "Carga de pallet",
   unload_pallet_from_shipment: "Retiro de pallet",
   dump_lot_by_bins: "Vuelco de BINs",
+  dump_bin_by_qr: "Vuelco por QR de BIN",
   reopen_shipment_for_correction: "Corrección de carga",
   harvest_bin_operation: "Cosecha de BIN",
   field_lot_operation: "Recepción de lote y BINs",
