@@ -12,6 +12,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Layers, LockKeyhole, Trash2 } from 'lucide-react';
+import { lotSheetHtml } from '@/lib/lotSheet';
+import { printHtml } from '@/lib/catalogs';
 import { toast } from 'sonner';
 
 export function PendingLotNotice({ lot }) {
@@ -39,7 +41,7 @@ export function LotSummary({ lot }) {
   </Card>;
 }
 
-export default function LotDetail({ lot, bins, availableBins = undefined, onClose, onUpdated }) {
+export default function LotDetail({ lot, bins, availableBins = undefined, printFullSheet = false, onClose, onUpdated }) {
   const { user } = useAuth();
   const [busy, setBusy] = useState(false);
   const busyRef = useRef(false);
@@ -69,7 +71,7 @@ export default function LotDetail({ lot, bins, availableBins = undefined, onClos
     <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
       <DialogHeader><DialogTitle>Ficha del lote {lot.lot_code}</DialogTitle></DialogHeader>
       <div className="space-y-4">
-        <div className="flex justify-center"><QRLabel code={lot.lot_code} title="Lote" subtitle={`${lot.producer} · ${lot.variety}`} /></div>
+        <div className="flex justify-center"><QRLabel code={lot.lot_code} title="Lote" onPrint={printFullSheet ? () => printHtml(lotSheetHtml(lot, bins), `Ficha de lote ${lot.lot_code}`) : undefined} printButtonText={printFullSheet ? "Imprimir ficha completa · A4" : "Imprimir etiqueta"} subtitle={`${lot.producer} · ${lot.variety}`} /></div>
         <div className="flex items-center gap-2 flex-wrap"><StatusBadge status={lot.status} label={Number(lot.workflow_version) === 3 && lot.status === "en_campo" ? "En consolidado" : undefined} />{lot.held && <StatusBadge status="retenido" />}<PendingLotNotice lot={lot} /></div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
           <Info label="Productor" value={lot.producer} /><Info label="Variedad" value={lot.variety} />

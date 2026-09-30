@@ -5,7 +5,7 @@ import { qrImageUrl } from "@/lib/qr";
 import { printHtml } from "@/lib/catalogs";
 import ChangePrinter from "@/components/ChangePrinter";
 
-export default function QRLabel({ code, title, subtitle, size = 160 }) {
+export default function QRLabel({ code, title, subtitle, size = 160, onPrint = undefined, printButtonText = "Imprimir etiqueta" }) {
   function print() {
     const html = `
       <div class="label center">
@@ -25,8 +25,8 @@ export default function QRLabel({ code, title, subtitle, size = 160 }) {
         <p className="font-mono text-sm font-bold">{code}</p>
         {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
       </div>
-      <Button type="button" variant="outline" size="sm" onClick={print}>
-        <Printer className="w-4 h-4 mr-1" /> Imprimir etiqueta
+      <Button type="button" variant="outline" size="sm" onClick={onPrint || print}>
+        <Printer className="w-4 h-4 mr-1" /> {printButtonText}
       </Button>
       <ChangePrinter />
     </div>
