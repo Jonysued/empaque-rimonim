@@ -287,6 +287,7 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
   const [palletToRemove, setPalletToRemove] = useState(null);
   const [removing, setRemoving] = useState(false);
   const [confirmReopen, setConfirmReopen] = useState(false);
+  const [sending, setSending] = useState(false);
   const [reopening, setReopening] = useState(false);
   const [reopenOperationId] = useState(() => crypto.randomUUID());
   const [extra, setExtra] = useState({ container_number: "", remito: "", thermograph: "", seal: "" });
@@ -334,10 +335,13 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
   }
 
   async function closeShipment() {
+    if (sending) return;
+    setSending(true); setError("");
     try {
       await base44.entities.Shipment.update(shipment.id, { status: "enviado", ...extra });
       onChanged();
     } catch (e) { setError(e.message); }
+    finally { setSending(false); }
   }
 
   const loadedPallets = (shipment.loaded_pallet_ids || []).map(id => pallets.find(p => p.id === id)).filter(Boolean);
@@ -356,6 +360,7 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
             <Info label="Destino" value={shipment.destination || "—"} />
             <Info label="Producto" value={shipment.product_type === "fresco" ? "Fresco" : "Arilos"} />
             <Info label="Estado" value={shipment.status} />
+            <Info label="Salida confirmada" value={shipment.dispatched_at ? fmtDate(shipment.dispatched_at) : "—"} />
             <Info label="Pallets cargados" value={`${loadedPallets.length}/${shipment.target_capacity || 21}`} />
             <Info label="Peso total" value={fmtKg(shipment.total_weight)} />
           </div>
@@ -412,7 +417,7 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
           </div>
 
           {canChangePallets && loadedPallets.length > 0 && (
-            <Button onClick={closeShipment} className="w-full"><CheckCircle2 className="w-4 h-4 mr-2" /> Cerrar y enviar despacho</Button>
+            <Button disabled={sending} onClick={closeShipment} className="w-full"><CheckCircle2 className="w-4 h-4 mr-2" /> {sending ? "Confirmando salida…" : "Confirmar salida del transporte"}</Button>
           )}
         </div>
       </DialogContent>

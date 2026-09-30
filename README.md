@@ -30,17 +30,14 @@ The standalone app uses one `records` JSONB table and a `profiles` table. Row-le
 - Test receipt → bins → dumping → production → pallet → tunnel → cold room → shipment and traceability with realistic data.
 - Compare counts and IDs from the Base44 export to Supabase. Back up Supabase and keep Base44 available until the new system is verified.
 
-## Field lot workflow
+## QR workflow and operational dashboard
 
-New lots use workflow version 2:
+New records use workflow version 3: Cosecha registers individual BINs; Consolidado de Lote associates them and captures transport; Pesado records gross/tare and prorates net weight; Recepción Playa Empaque confirms arrival; Vuelco scans each BIN and atomically deducts its weight. Legacy lots preserve their existing balances and compatible workflows.
 
-1. **Recepción Campo** (`/recepcion`): enter the harvest details and expected BIN count, then scan each BIN QR. Only a complete lot can be closed. Scanned BINs can be removed while the lot is open.
-2. **Pesado de Lote** (`/pesado-lote`): enter gross and tare. The database computes the net and assigns the same theoretical weight to each associated BIN.
-3. **Recepción Playa Empaque** (`/recepcion-playa`): scan the weighed lot QR and confirm arrival. Only then may the lot be dumped.
-4. **Vuelco** keeps the existing partial-BIN calculation, including exact reconciliation of the last dump.
+The dashboard shows activity for the selected dates in Argentina time and all current backlog, regardless of receipt date. Producer and variety apply throughout; origin/cuadro applies to BINs because pallets do not carry that field. Stage averages use completed intervals ending within the period, weighted per BIN or pallet. Multiple completed stays in the same cold station are summed per pallet within the selected period. Pending waits are separate from completed averages. Missing or backward dates do not become estimated durations.
 
-Apply `supabase/migrations/20260930153205_field_lot_workflow.sql` before publishing the frontend. Existing lots retain their previous balances and remain usable without repeating the new stages. A physical BIN QR can be reused after its previous lot has been fully dumped; earlier associations remain available in traceability.
+Shipment loading and departure are distinct. Apply `20260930191411_dashboard_pallet_dispatch_timing.sql` before publishing: it stamps the transition to enviado on the server and records one departure event per loaded pallet in the same transaction. Retrying or editing metadata preserves the timestamp. Reopening clears the current departure but retains the event history; reconfirming records the corrected shipment. Previously sent shipments have no invented departure dates.
 
-Each field operation uses a persistent UUID and server-side replay checks. Pending device operations are shown explicitly and are confirmed on the shared database after synchronization. Installed native apps require a new build to display the new stations.
+Dashboard delay limits are optional hours saved in a Catalog record of type dashboard_limits, shared across users. Only administrators and supervisors can edit them. The dashboard refreshes automatically every minute while visible, on focus and after queue changes. Pending local commands are explicitly identified and do not contribute to confirmed totals or averages.
 
-Validation: `npm run lint`, `npm run typecheck`, `npm run build`, `node scripts/check-field-workflow.mjs`, `node scripts/check-offline-queue.mjs`. Execute `scripts/check-field-lot-workflow.sql` on Supabase to validate the complete transaction; all synthetic records are rolled back.
+Validation: `npm run lint`, `npm run typecheck`, `npm run build`, `node scripts/check-dashboard-metrics.mjs`, and existing workflow/queue checks. Execute `scripts/check-dashboard-departure.sql` to validate departure timestamps, replay behavior, corrections and permissions; synthetic data is rolled back. Installed native apps require a separate new build.

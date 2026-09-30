@@ -1,3 +1,4 @@
+import PalletJourney from '@/components/PalletJourney';
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { generateCode, nextRomaneoNumber, fmtKg } from "@/lib/qr";
@@ -292,6 +293,7 @@ function PalletDetail({ pallet, onClose, onEdit, onDelete }) {
             <Info label="Bruto" value={fmtKg(pallet.gross_weight)} />
             <Info label="Estado" value={pallet.status} />
           </div>
+          <PalletJourney pallet={pallet} />
           <div className="flex gap-2">
             <PrintRomaneo pallet={pallet} />
             <Button variant="outline" className="flex-1" onClick={onEdit}>Editar</Button>
