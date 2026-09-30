@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { base44 } from '@/api/base44Client';
 import { getOperations } from '@/lib/operationQueue';
 import { useAuth } from '@/lib/AuthContext';
-import { dashboardMetrics, operationDay, operationDate, durationLabel, STAGE_LABELS } from '@/lib/dashboardMetrics.mjs';
+import { dashboardMetrics, operationDay, operationDate, durationLabel, normalizeFilter, STAGE_LABELS } from '@/lib/dashboardMetrics.mjs';
 import { fmtKg } from '@/lib/qr';
 import LotDetail from '@/components/LotDetail';
 import PalletJourney from '@/components/PalletJourney';
@@ -42,8 +42,8 @@ export default function Dashboard() {
   const config=data.catalogs.find(c=>c.type==='dashboard_limits' && c.name==='Tiempos por estación');
   const limits=config?.limits || {};
   const options=useMemo(()=>{
-    const unique=key=>[...new Set([...data.bins,...data.pallets,...data.lots].flatMap(row=>String(row[key]||'').split(' / ')).filter(Boolean))].sort();
-    return {producer:unique('producer'),variety:unique('variety'),origin:[...new Set([...data.bins,...data.lots].flatMap(b=>String(b.origin||'').split(' / ')).filter(Boolean))].sort()};
+    const unique=key=>[...new Map([...data.bins,...data.pallets,...data.lots].flatMap(row=>String(row[key]||'').split(' / ')).filter(Boolean).map(value=>[normalizeFilter(value),normalizeFilter(value)])).values()].sort();
+    return {producer:unique('producer'),variety:unique('variety'),origin:unique('origin')};
   },[data.bins,data.pallets,data.lots]);
   const binAlerts=metrics.lotRows.filter(row=>overLimit(row.maxWait, row.lot?.yard_received_at?'dump':row.lot?.weighed_at?'yard':row.lot?.field_closed_at?'weigh':'consolidate',limits)||overLimit(row.maxTotalWait??null,'binTotal',limits));
   const palletAlerts=metrics.pRows.filter(row=>overLimit(row.wait.age,row.wait.key,limits)||overLimit(row.journey.waiting.find(w=>w.key==='palletTotal')?.age??null,'palletTotal',limits));
