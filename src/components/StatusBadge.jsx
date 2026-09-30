@@ -2,6 +2,8 @@ import React from "react";
 import { cn } from "@/lib/utils";
 
 const STATUS_COLORS = {
+  cosechado: "bg-lime-100 text-lime-800",
+  consolidado: "bg-sky-100 text-sky-800",
   en_campo: "bg-lime-100 text-lime-800",
   cerrado_campo: "bg-slate-200 text-slate-800",
   pesado: "bg-purple-100 text-purple-800",
@@ -30,6 +32,8 @@ const STATUS_COLORS = {
 };
 
 const LABELS = {
+  cosechado: "Pendiente de consolidar",
+  consolidado: "En lote",
   en_campo: "En campo",
   cerrado_campo: "Cerrado en campo",
   pesado: "Pesado · pendiente de playa",

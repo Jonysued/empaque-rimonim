@@ -6,13 +6,14 @@ import SyncStatus from "@/components/SyncStatus";
 import { cn } from "@/lib/utils";
 import { canAccess, roleLabel } from "@/lib/permissions";
 import {
-  LayoutDashboard, PackageOpen, Repeat, Factory, Snowflake,
-  Warehouse, Truck, Search, Settings, Menu, X, Users, Scale
+  LayoutDashboard, Repeat, Factory, Snowflake,
+  Warehouse, Truck, Search, Settings, Menu, X, Users, Scale, Layers, Sprout
 } from "lucide-react";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/recepcion", label: "Recepción Campo", icon: PackageOpen },
+  { to: "/recepcion", label: "Cosecha", icon: Sprout },
+  { to: "/consolidado-lote", label: "Consolidado de Lote", icon: Layers },
   { to: "/pesado-lote", label: "Pesado de Lote", icon: Scale },
   { to: "/recepcion-playa", label: "Recepción Playa Empaque", icon: Warehouse },
   { to: "/vuelco", label: "Vuelco", icon: Repeat },

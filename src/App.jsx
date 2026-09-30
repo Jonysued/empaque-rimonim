@@ -10,6 +10,7 @@ import Layout from '@/components/Layout';
 import { lazy, Suspense } from 'react';
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const Recepcion = lazy(() => import('@/pages/Recepcion'));
+const ConsolidadoLote = lazy(() => import('@/pages/ConsolidadoLote'));
 const PesadoLote = lazy(() => import('@/pages/PesadoLote'));
 const RecepcionPlaya = lazy(() => import('@/pages/RecepcionPlaya'));
 const Vuelco = lazy(() => import('@/pages/Vuelco'));
@@ -56,6 +57,7 @@ const AuthenticatedApp = () => {
         <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="/recepcion" element={<RouteGuard><Recepcion /></RouteGuard>} />
+        <Route path="/consolidado-lote" element={<RouteGuard><ConsolidadoLote /></RouteGuard>} />
         <Route path="/pesado-lote" element={<RouteGuard><PesadoLote /></RouteGuard>} />
         <Route path="/recepcion-playa" element={<RouteGuard><RecepcionPlaya /></RouteGuard>} />
         <Route path="/vuelco" element={<RouteGuard><Vuelco /></RouteGuard>} />
