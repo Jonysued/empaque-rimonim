@@ -112,10 +112,10 @@ export function dashboardMetrics(data, filters={}, now=Date.now()) {
     const legacyLot=lot && !(Number(lot.workflow_version)>=2);
     const key=legacyLot?'dump':!closed?'consolidate':!weighed?'weigh':!received?'yard':'dump';
     const start={consolidate:harvest,weigh:closed,yard:weighed,dump:received}[key];
-    const wait=pending(key,bin.id,start,now,{code:bin.bin_code}); waiting.push(wait,pending('binTotal',bin.id,harvest,now));
+    const wait=pending(key,bin.id,start,now,{code:bin.bin_code}),totalWait=pending('binTotal',bin.id,harvest,now); waiting.push(wait,totalWait);
     const group=lot?.id || 'unconsolidated';
     if(!lotRows.has(group)) lotRows.set(group,{id:group,lot,code:lot?.lot_code || 'Bines sin consolidar',stage:key,station:STAGE_LABELS[key].split('→').at(-1).trim(),count:0,kg:weighed || legacyLot && lot.net_weight!=null ? 0 : null,maxWait:null,unknown:0,producers:new Set(),origins:new Set()});
-    const row=lotRows.get(group); row.count++; if(row.kg!==null) row.kg+=Number(bin.net_weight)||0;
+    const row=lotRows.get(group); row.count++; if(totalWait.age!==null)row.maxTotalWait=Math.max(row.maxTotalWait||0,totalWait.age); if(row.kg!==null) row.kg+=Number(bin.net_weight)||0;
     if(wait.age!==null) row.maxWait=Math.max(row.maxWait||0,wait.age); else row.unknown++;
     row.producers.add(bin.producer || lot?.producer || '—'); row.origins.add(bin.origin || lot?.origin || '—');
   }
@@ -132,7 +132,8 @@ export function dashboardMetrics(data, filters={}, now=Date.now()) {
   const journeys=ps.map(p=>({pallet:p,...palletJourney(p,movementsByPallet.get(p.id)||[],shipments,now)}));
   const pIntervals=journeys.flatMap(j=>j.intervals),pWaiting=journeys.flatMap(j=>j.waiting);
   const pRows=journeys.filter(j=>j.active).map(j=>({pallet:j.pallet,journey:j,wait:j.waiting[0]})).sort((a,b)=>(b.wait.age??-1)-(a.wait.age??-1));
-  const acceptedDumps=dumps.filter(d=>inPeriod(d.dump_date,filters) && identityMatch({...byLot.get(d.receipt_lot_id),...d},filters));
+  const byBin=new Map(bins.map(b=>[b.id,b]));
+  const acceptedDumps=dumps.filter(d=>inPeriod(d.dump_date,filters) && identityMatch({...byLot.get(d.receipt_lot_id),...d,...byBin.get(d.bin_id)},filters));
   const applicableLots=lots.filter(l=>identityMatch(l,filters) || relevantBins.some(b=>b.receipt_lot_id===l.id));
   const binStats={harvested:relevantBins.filter(b=>Number(b.harvest_workflow)===3 && inPeriod(b.scanned_at||b.created_date,filters)).length,
     unconsolidated:relevantBins.filter(b=>!b.receipt_lot_id && b.status!=='volcado').length,
