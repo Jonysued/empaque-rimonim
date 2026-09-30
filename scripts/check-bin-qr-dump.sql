@@ -1,0 +1,54 @@
+begin;
+select set_config('request.jwt.claim.sub',(select id::text from public.profiles where role='admin' order by id limit 1),true);
+set local role authenticated;
+do $$
+declare
+  lot text:=gen_random_uuid()::text;
+  code text:='BIN-TEST-'||lot;
+  op uuid:=gen_random_uuid();
+  a text; b text; c text;
+  state jsonb; result jsonb; failed boolean;
+begin
+  perform public.field_lot_operation(gen_random_uuid(),lot,'create',jsonb_build_object('lot_code','LOT-TEST-'||lot,
+    'producer','LAS 500','variety','Wonderful','harvest_date','2026-09-30','expected_bins_count',3));
+  perform public.field_lot_operation(gen_random_uuid(),lot,'add_bin','{}',code||'-A');
+  perform public.field_lot_operation(gen_random_uuid(),lot,'add_bin','{}',code||'-B');
+  perform public.field_lot_operation(gen_random_uuid(),lot,'add_bin','{}',code||'-C');
+  perform public.field_lot_operation(gen_random_uuid(),lot,'close');
+  perform public.field_lot_operation(gen_random_uuid(),lot,'weigh','{}',null,1300.1,300);
+  perform public.field_lot_operation(gen_random_uuid(),lot,'receive');
+  select id into a from public.records where entity='Bin' and data->>'bin_code'=upper(code||'-A');
+  select id into b from public.records where entity='Bin' and data->>'bin_code'=upper(code||'-B');
+  select id into c from public.records where entity='Bin' and data->>'bin_code'=upper(code||'-C');
+  perform public.patch_record('ReceiptLot',lot,'{"held":true}');
+  failed:=false;
+  begin perform public.dump_bin_by_qr(op,a,lot,code||'-A','VOL-TEST');
+  exception when others then failed:=true; end;
+  if not failed then raise exception 'Quality hold bypassed'; end if;
+  perform public.patch_record('ReceiptLot',lot,'{"held":false}');
+  perform public.dump_bin_by_qr(op,a,lot,code||'-A','VOL-TEST','2026-09-30T18:30:00Z');
+  result:=public.dump_bin_by_qr(op,a,lot,code||'-A','VOL-TEST','2026-09-30T18:30:00Z');
+  if result->>'already_applied'<>'true' then raise exception 'Retry counted twice'; end if;
+  select data into state from public.records where entity='ReceiptLot' and id=lot;
+  if state->>'status'<>'parcialmente_volcado' or (state->>'bins_dumped')::integer<>1 then raise exception 'Partial state incorrect'; end if;
+  perform public.dump_bin_by_qr(gen_random_uuid(),b,lot,code||'-B','VOL-TEST-B');
+  perform public.dump_bin_by_qr(gen_random_uuid(),c,lot,code||'-C','VOL-TEST-C');
+  select data into state from public.records where entity='ReceiptLot' and id=lot;
+  if state->>'status'<>'volcado' or (state->>'remaining_weight')::numeric<>0 or (state->>'dumped_weight')::numeric<>1000.1 then raise exception 'Fractional weight reconciliation failed'; end if;
+  select data into state from public.records where entity='Bin' and id=a;
+  if (state->>'dumped_at')::timestamptz<>'2026-09-30T18:30:00Z'::timestamptz then raise exception 'Offline scan time was lost'; end if;
+  result:=public.dump_bin_by_qr(op,a,lot,code||'-A','VOL-TEST');
+  if result->>'already_applied'<>'true' then raise exception 'Late retry failed'; end if;
+  failed:=false;
+  begin perform public.patch_record('Bin',a,'{"status":"recibido"}');
+  exception when others then failed:=true; end;
+  if not failed then raise exception 'Direct patch reverted consumed BIN'; end if;
+  perform set_config('request.jwt.claim.sub','',true);
+  failed:=false;
+  begin perform public.dump_bin_by_qr(gen_random_uuid(),a,lot,code||'-A','VOL-NOAUTH');
+  exception when insufficient_privilege then failed:=true; end;
+  if not failed then raise exception 'Unauthenticated RPC allowed'; end if;
+end;
+$$;
+rollback;
+select 'PASS: QR, retención, 3 BINs con peso fraccionario, fecha offline, reintentos y permisos; sin datos persistidos' as verification;
