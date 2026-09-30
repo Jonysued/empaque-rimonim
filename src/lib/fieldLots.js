@@ -34,3 +34,8 @@ export function fieldOperation(lotId, action, params = {}, operationId = crypto.
   return submitOperation('field_lot_operation', { p_lot_id: lotId, p_action: action, ...params },
     `field:${lotId}:${action}:${params.p_bin_code || 'stage'}`, operationId);
 }
+
+export function harvestOperation(binId, record, operationId = crypto.randomUUID()) {
+  return submitOperation('harvest_bin_operation', { p_bin_id: binId, p_record: record },
+    `harvest:${record.bin_code}`, operationId);
+}

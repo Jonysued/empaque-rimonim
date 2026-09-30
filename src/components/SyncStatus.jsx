@@ -15,6 +15,7 @@ const names = {
   unload_pallet_from_shipment: "Retiro de pallet",
   dump_lot_by_bins: "Vuelco de BINs",
   reopen_shipment_for_correction: "Corrección de carga",
+  harvest_bin_operation: "Cosecha de BIN",
   field_lot_operation: "Recepción de lote y BINs",
   create_receipt_lot: "Nuevo lote de ingreso",
 };

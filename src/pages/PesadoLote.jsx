@@ -23,7 +23,7 @@ export default function PesadoLote() {
     setError('');
     const lot = lots.find(item => item.lot_code === code.trim());
     if (!lot) return setError(`No se encontró el lote ${code}`);
-    if (!available.some(item => item.id === lot.id)) return setError('El lote debe estar cerrado en campo y pendiente de pesado.');
+    if (!available.some(item => item.id === lot.id)) return setError('El lote debe estar cerrado en Consolidado de Lote y pendiente de pesado.');
     setSelectedId(lot.id);
   }
   return <div className="space-y-6">

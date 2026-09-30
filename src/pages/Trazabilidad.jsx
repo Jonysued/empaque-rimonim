@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { fmtKg, fmtDate } from "@/lib/qr";
+import BinInfo from "@/components/BinInfo";
 import QRScanner from "@/components/QRScanner";
 import MovementTimeline from "@/components/MovementTimeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -206,6 +207,7 @@ function TraceResult({ result, allData }) {
             ["N° visible", entity.visible_number || "—"], ["Neto", entity.net_weight != null ? fmtKg(entity.net_weight) : "Sin pesar"],
             ["Medido", entity.measured ? "Sí" : "Estimado"], ["Estado", entity.status],
           ]} />
+          {Number(entity.harvest_workflow) === 3 && <BinInfo bin={entity} />}
           {lot && <EntityBlock icon={Layers} title="Lote de recepción" code={lot.lot_code} data={[
             ["Productor", lot.producer], ["Variedad", lot.variety], ["Neto total", fmtKg(lot.net_weight)]
           ]} />}
