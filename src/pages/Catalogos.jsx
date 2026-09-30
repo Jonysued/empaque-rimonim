@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Settings, Plus, Trash2, Edit2 } from "lucide-react";
+import HarvestQRGenerator from "@/components/HarvestQRGenerator";
 import LocationConfig from "@/components/LocationConfig";
 
 const CATALOG_TYPES = [
@@ -23,6 +24,7 @@ const CATALOG_TYPES = [
 ];
 
 const CONFIG_TABS = [
+  { value: "qr_cosecha", label: "QR bines de cosecha" },
   ...CATALOG_TYPES,
   { value: "loc_tunel", label: "Túneles de prefrío" },
   { value: "loc_camara", label: "Cámaras de frío" },
@@ -37,7 +39,7 @@ export default function Catalogos() {
   const [producers, setProducers] = useState([]);
 
   async function refresh() {
-    if (activeType.startsWith("loc_")) { setLoading(false); return; }
+    if (activeType === "qr_cosecha" || activeType.startsWith("loc_")) { setLoading(false); return; }
     setLoading(true);
     try {
       const [data, producerItems] = await Promise.all([
@@ -78,7 +80,7 @@ export default function Catalogos() {
         ))}
       </div>
 
-      {activeType.startsWith("loc_") ? (
+      {activeType === "qr_cosecha" ? <HarvestQRGenerator /> : activeType.startsWith("loc_") ? (
         <LocationConfig type={activeType === "loc_tunel" ? "tunel" : "camara"} />
       ) : (
       <Card>
