@@ -1,9 +1,9 @@
+import PalletJourney from '@/components/PalletJourney';
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { fmtKg, fmtDate } from "@/lib/qr";
 import BinInfo from "@/components/BinInfo";
 import QRScanner from "@/components/QRScanner";
-import MovementTimeline from "@/components/MovementTimeline";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -156,7 +156,7 @@ function TraceResult({ result, allData }) {
           {run && <EntityBlock icon={Package} title="Corrida de producción" code={run.run_code} data={[
             ["Línea", run.line], ["Turno", run.shift], ["Fecha", fmtDate(run.date)]
           ]} />}
-          <MovementTimeline movements={allData.movements.filter(m => m.unit_type === "pallet" && m.unit_id === entity.id)} />
+          <PalletJourney pallet={entity} movements={allData.movements} shipments={allData.shipments} />
           <TraceSection icon={Repeat} title="Vuelcos (lotes que alimentaron la corrida)" items={dumps} render={d => ({
             code: d.dump_code, rows: [
               ["BINs", d.bins_dumped ?? "—"], ["Kilos", fmtKg(d.net_weight)], ["Lote", d.receipt_lot_code], ["Fecha", fmtDate(d.dump_date)]
