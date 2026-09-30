@@ -1,7 +1,7 @@
 export const ROLES = [
   { value: "admin", label: "Administrador", description: "Acceso total" },
   { value: "supervisor", label: "Supervisor", description: "Acceso operativo total" },
-  { value: "recepcion", label: "Recepción", description: "Ingreso de lotes y BINs" },
+  { value: "recepcion", label: "Recepción", description: "Campo, pesado y recepción en playa" },
   { value: "produccion", label: "Producción", description: "Vuelco, corridas y pallets" },
   { value: "frio", label: "Frío", description: "Túneles y cámaras" },
   { value: "despacho", label: "Despacho", description: "Cargas y envíos" },
@@ -13,6 +13,8 @@ export const ROLES = [
 export const PAGE_ACCESS = {
   "/": null,
   "/recepcion": ["admin", "supervisor", "recepcion", "calidad"],
+  "/pesado-lote": ["admin", "supervisor", "recepcion", "calidad"],
+  "/recepcion-playa": ["admin", "supervisor", "recepcion", "calidad"],
   "/vuelco": ["admin", "supervisor", "produccion"],
   "/produccion": ["admin", "supervisor", "produccion"],
   "/prefrio": ["admin", "supervisor", "frio"],

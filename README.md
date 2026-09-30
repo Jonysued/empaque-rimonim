@@ -29,3 +29,18 @@ The standalone app uses one `records` JSONB table and a `profiles` table. Row-le
 - Test login, invitation, password reset, Google OAuth if enabled, and permissions for every role.
 - Test receipt → bins → dumping → production → pallet → tunnel → cold room → shipment and traceability with realistic data.
 - Compare counts and IDs from the Base44 export to Supabase. Back up Supabase and keep Base44 available until the new system is verified.
+
+## Field lot workflow
+
+New lots use workflow version 2:
+
+1. **Recepción Campo** (`/recepcion`): enter the harvest details and expected BIN count, then scan each BIN QR. Only a complete lot can be closed. Scanned BINs can be removed while the lot is open.
+2. **Pesado de Lote** (`/pesado-lote`): enter gross and tare. The database computes the net and assigns the same theoretical weight to each associated BIN.
+3. **Recepción Playa Empaque** (`/recepcion-playa`): scan the weighed lot QR and confirm arrival. Only then may the lot be dumped.
+4. **Vuelco** keeps the existing partial-BIN calculation, including exact reconciliation of the last dump.
+
+Apply `supabase/migrations/20260930153205_field_lot_workflow.sql` before publishing the frontend. Existing lots retain their previous balances and remain usable without repeating the new stages. A physical BIN QR can be reused after its previous lot has been fully dumped; earlier associations remain available in traceability.
+
+Each field operation uses a persistent UUID and server-side replay checks. Pending device operations are shown explicitly and are confirmed on the shared database after synchronization. Installed native apps require a new build to display the new stations.
+
+Validation: `npm run lint`, `npm run typecheck`, `npm run build`, `node scripts/check-field-workflow.mjs`, `node scripts/check-offline-queue.mjs`. Execute `scripts/check-field-lot-workflow.sql` on Supabase to validate the complete transaction; all synthetic records are rolled back.

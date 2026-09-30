@@ -38,3 +38,5 @@ android/
 base44/.app.jsonc
 
 /data
+
+supabase/.temp/

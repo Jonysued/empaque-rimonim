@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { base44 } from "@/api/base44Client";
 import { getOperations, submitOperation } from "@/lib/operationQueue";
+import { canDumpLot } from "@/lib/fieldWorkflow.mjs";
 import { generateCode, fmtKg, fmtDate } from "@/lib/qr";
 import QRScanner from "@/components/QRScanner";
 import StatusBadge from "@/components/StatusBadge";
@@ -34,7 +35,7 @@ export default function Vuelco() {
     setLoading(true);
     try {
       const [l, d] = await Promise.all([
-        base44.entities.ReceiptLot.list("-created_date", 50),
+        base44.entities.ReceiptLot.list("-created_date"),
         base44.entities.DumpingEvent.list("-created_date", 20),
       ]);
       setLots(l || []);
@@ -51,12 +52,13 @@ export default function Vuelco() {
       setError(`No se encontró un lote con código ${code}`);
       return;
     }
+    if (!canDumpLot(lot)) { setError("Este lote debe pasar por Pesado de Lote y Recepción Playa Empaque antes de volcarse"); return; }
     if (lot.held) { setError(`El lote ${code} está retenido por calidad`); return; }
     if (pendingLots.has(lot.id)) { setError(`El lote ${code} tiene un vuelco pendiente de sincronizar`); return; }
     setScannedLot(lot);
   }
 
-  const availableLots = lots.filter(l => !l.held && !pendingLots.has(l.id) && (l.remaining_weight || 0) > 0);
+  const availableLots = lots.filter(l => canDumpLot(l) && !l.held && !pendingLots.has(l.id) && (l.remaining_weight || 0) > 0);
 
   return (
     <div className="space-y-6">

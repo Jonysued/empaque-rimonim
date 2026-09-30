@@ -7,12 +7,14 @@ import { cn } from "@/lib/utils";
 import { canAccess, roleLabel } from "@/lib/permissions";
 import {
   LayoutDashboard, PackageOpen, Repeat, Factory, Snowflake,
-  Warehouse, Truck, Search, Settings, Menu, X, Users
+  Warehouse, Truck, Search, Settings, Menu, X, Users, Scale
 } from "lucide-react";
 
 const NAV = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/recepcion", label: "Recepción", icon: PackageOpen },
+  { to: "/recepcion", label: "Recepción Campo", icon: PackageOpen },
+  { to: "/pesado-lote", label: "Pesado de Lote", icon: Scale },
+  { to: "/recepcion-playa", label: "Recepción Playa Empaque", icon: Warehouse },
   { to: "/vuelco", label: "Vuelco", icon: Repeat },
   { to: "/produccion", label: "Producción", icon: Factory },
   { to: "/prefrio", label: "Prefrío", icon: Snowflake },

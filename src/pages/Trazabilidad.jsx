@@ -40,7 +40,7 @@ export default function Trazabilidad() {
       // Buscar en todas las entidades
       const lot = allData.lots.find(l => l.lot_code === code);
       if (lot) { setResult({ type: "lote", entity: lot }); setLoading(false); return; }
-      const bin = allData.bins.find(b => b.bin_code === code);
+      const bin = allData.bins.find(b => b.bin_code === code.trim().toUpperCase());
       if (bin) { setResult({ type: "bin", entity: bin }); setLoading(false); return; }
       const pallet = allData.pallets.find(p => p.pallet_code === code || p.romaneo_number === code);
       if (pallet) { setResult({ type: "pallet", entity: pallet }); setLoading(false); return; }
@@ -98,8 +98,13 @@ function TraceResult({ result, allData }) {
               ["Productor", entity.producer], ["Variedad", entity.variety],
               ["Neto", fmtKg(entity.net_weight)], ["Saldo sin volcar", fmtKg(entity.remaining_weight)],
               ["BINs volcados", `${entity.bins_dumped ?? (entity.status === "volcado" ? entity.bins_count || 0 : 0)} / ${entity.bins_count || 0}`],
-              ["Estado", entity.status], ["Recibido", fmtDate(entity.receipt_date)],
+              ["Estado", entity.status], ["Creado en campo", fmtDate(entity.field_created_at)],
+              ["Cerrado en campo", fmtDate(entity.field_closed_at)], ["Pesado", fmtDate(entity.weighed_at)],
+              ["Recepción Playa Empaque", fmtDate(entity.yard_received_at || entity.receipt_date)],
             ]} />
+            <TraceSection icon={Layers} title="BINs del lote" items={allData.bins.filter(bin => bin.receipt_lot_id === entity.id)} render={bin => ({
+              code: bin.bin_code, rows: [["Peso prorrateado", bin.net_weight != null ? fmtKg(bin.net_weight) : "Sin pesar"], ["Escaneado", fmtDate(bin.scanned_at)]]
+            })} />
             <TraceSection icon={Repeat} title="Vuelcos" items={dumps} render={d => ({
               code: d.dump_code, rows: [
                 ["BINs", d.bins_dumped ?? "—"], ["Kilos", fmtKg(d.net_weight)], ["Turno", d.shift], ["Línea", d.line || "—"], ["Fecha", fmtDate(d.dump_date)]
@@ -198,12 +203,16 @@ function TraceResult({ result, allData }) {
         <CardHeader><CardTitle className="text-base">BIN {entity.bin_code}</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <EntityBlock icon={Layers} title="BIN" code={entity.bin_code} data={[
-            ["N° visible", entity.visible_number || "—"], ["Neto", fmtKg(entity.net_weight)],
+            ["N° visible", entity.visible_number || "—"], ["Neto", entity.net_weight != null ? fmtKg(entity.net_weight) : "Sin pesar"],
             ["Medido", entity.measured ? "Sí" : "Estimado"], ["Estado", entity.status],
           ]} />
           {lot && <EntityBlock icon={Layers} title="Lote de recepción" code={lot.lot_code} data={[
             ["Productor", lot.producer], ["Variedad", lot.variety], ["Neto total", fmtKg(lot.net_weight)]
           ]} />}
+          <TraceSection icon={Layers} title="Historial de lotes de este BIN" items={allData.bins.filter(bin => bin.bin_code === entity.bin_code && bin.id !== entity.id)} render={bin => ({
+            code: allData.lots.find(item => item.id === bin.receipt_lot_id)?.lot_code || bin.receipt_lot_code,
+            rows: [["Escaneado", fmtDate(bin.scanned_at || bin.created_date)], ["Peso", fmtKg(bin.net_weight)]]
+          })} />
         </CardContent>
       </Card>
     );
