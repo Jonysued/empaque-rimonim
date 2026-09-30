@@ -12,6 +12,7 @@ for (const label of labels) {
 for (const format of Object.values(LABEL_FORMATS)) {
   const pages = labelPages(labels,format);
   assert.equal(pages.flat().length,17);
+  assert.equal(format.width,60); assert.equal(format.height,40);
   const pdf = await harvestLabelsPdf(labels,format);
   assert.equal(pdf.getNumberOfPages(),pages.length);
   assert.ok(Math.abs(pdf.internal.pageSize.getWidth()-format.pageWidth)<0.00001);

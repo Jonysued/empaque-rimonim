@@ -1,9 +1,8 @@
 import QRCode from 'qrcode';
 
 export const LABEL_FORMATS = {
-  a4_8: { label: 'A4 · 8 etiquetas por hoja (90 × 64 mm)', columns: 2, rows: 4, width: 90, height: 64, gapX: 10, gapY: 6, qr: 42, pageWidth: 210, pageHeight: 297 },
-  a4_12: { label: 'A4 · 12 etiquetas por hoja (90 × 42 mm)', columns: 2, rows: 6, width: 90, height: 42, gapX: 10, gapY: 4, qr: 26, pageWidth: 210, pageHeight: 297 },
-  single: { label: 'Etiqueta individual · 100 × 100 mm', columns: 1, rows: 1, width: 100, height: 100, gapX: 0, gapY: 0, qr: 66, pageWidth: 100, pageHeight: 100 },
+  a4_18: { label: 'A4 · 18 etiquetas de 60 × 40 mm', columns: 3, rows: 6, width: 60, height: 40, gapX: 5, gapY: 5, qr: 24, pageWidth: 210, pageHeight: 297 },
+  single: { label: 'Etiqueta individual · 60 × 40 mm', columns: 1, rows: 1, width: 60, height: 40, gapX: 0, gapY: 0, qr: 24, pageWidth: 60, pageHeight: 40 },
 };
 
 export async function generateHarvestLabels(quantity) {
@@ -20,7 +19,7 @@ export function labelPages(labels, format) {
 
 export async function harvestLabelsPdf(labels, format) {
   const { jsPDF } = await import('jspdf');
-  const pdf = new jsPDF({ unit: 'mm', format: [format.pageWidth, format.pageHeight], orientation: 'portrait' });
+  const pdf = new jsPDF({ unit: 'mm', format: [format.pageWidth, format.pageHeight], orientation: format.pageWidth > format.pageHeight ? 'landscape' : 'portrait' });
   const margin = format.columns === 1 ? 0 : 10;
   labelPages(labels, format).forEach((page, pageIndex) => {
     if (pageIndex) pdf.addPage();
