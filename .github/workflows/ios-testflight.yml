@@ -2,6 +2,10 @@ name: iOS TestFlight
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'ios/App/App/Assets.xcassets/AppIcon.appiconset/**'
 
 jobs:
   upload:

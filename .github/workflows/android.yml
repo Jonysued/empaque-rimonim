@@ -6,6 +6,8 @@ on:
     branches: [main]
     paths:
       - 'android/**'
+      - 'resources/**'
+      - 'scripts/configure-android.mjs'
       - 'src/**'
       - 'scripts/check-offline-queue.mjs'
       - 'capacitor.config.ts'
