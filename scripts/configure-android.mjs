@@ -1,4 +1,4 @@
-import { readFile, writeFile, copyFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, copyFile, mkdir, readdir } from 'node:fs/promises';
 
 const variables = 'android/variables.gradle';
 const manifest = 'android/app/src/main/AndroidManifest.xml';
@@ -30,7 +30,7 @@ for (const name of ['ic_launcher', 'ic_launcher_round']) {
 }
 const appGradle = 'android/app/build.gradle';
 const gradle = await readFile(appGradle, 'utf8');
-await writeFile(appGradle, gradle.replace(/versionCode \d+/, 'versionCode 12'));
+await writeFile(appGradle, gradle.replace(/versionCode \d+/, 'versionCode 13'));
 
 const valuesDirectory = 'android/app/src/main/res/values';
 await mkdir(valuesDirectory, { recursive: true });
@@ -38,3 +38,18 @@ await writeFile(`${valuesDirectory}/empaco_launcher.xml`, '<resources><color nam
 const stringsFile = `${valuesDirectory}/strings.xml`;
 const strings = await readFile(stringsFile, 'utf8');
 await writeFile(stringsFile, strings.replace(/(<string name="(?:app_name|title_activity_main)">)[^<]*(<\/string>)/g, '$1Empaco$2'));
+
+// Replace generated launch images, including orientation and density variants.
+const resourceDirectory = 'android/app/src/main/res';
+for (const entry of await readdir(resourceDirectory, { withFileTypes: true })) {
+  if (entry.isDirectory() && entry.name.startsWith('drawable')) {
+    const files = await readdir(`${resourceDirectory}/${entry.name}`);
+    if (files.includes('splash.png')) await copyFile('resources/empaco-splash.png', `${resourceDirectory}/${entry.name}/splash.png`);
+  }
+}
+const stylesFile = `${valuesDirectory}/styles.xml`;
+const styles = await readFile(stylesFile, 'utf8');
+const launchTheme = '<style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">';
+if (!styles.includes(launchTheme)) throw new Error('No se encontró el tema de inicio de Android');
+const brandedLaunch = launchTheme + '\n        <item name="windowSplashScreenBackground">@color/empaco_launcher_background</item>\n        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>';
+await writeFile(stylesFile, styles.includes('windowSplashScreenAnimatedIcon') ? styles : styles.replace(launchTheme, brandedLaunch));
