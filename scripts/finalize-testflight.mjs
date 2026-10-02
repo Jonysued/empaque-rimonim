@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { createPrivateKey, sign } from 'node:crypto';
+import { createPrivateKey, sign, createHash } from 'node:crypto';
 
 const { APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_API_KEY_P8_BASE64 } = process.env;
 const release = process.env.RELEASE_CONFIG ? JSON.parse(await readFile(process.env.RELEASE_CONFIG, 'utf8')) : {};
@@ -62,11 +62,13 @@ if (externalRelease) {
     api(`/v1/betaGroups/${externalGroupId}`), api(`/v1/betaGroups/${externalGroupId}/app`),
     api(`/v1/betaGroups/${externalGroupId}/betaTesters?limit=200`),
   ]);
-  const normalized = value => String(value || '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim().split(/\s+/)[0];
-  const names = testers.data.map(t => normalized(t.attributes.firstName)).sort();
+  // Apple can omit tester names. Match the previously resolved accounts by
+  // fingerprint without putting contact addresses in source code or logs.
+  const expectedFingerprints = new Set(["affde18ebb2f1cfa1f2bcc69884362f883e9229fe7104366a6c453e6a27e003e", "0ff4c77d067ddc7f8bf04d9d2a5c95145a95e41cbcb91e409d51c416875c46d1"]);
+  const fingerprints = testers.data.map(t => createHash('sha256').update(String(t.attributes.email || '').trim().toLowerCase()).digest('hex'));
   if (group.data.attributes.isInternalGroup || groupApp.data.id !== appId || testers.links?.next ||
-      names.length !== 2 || names[0] !== 'joaquin' || names[1] !== 'reynaldo') {
-    throw new Error(`El grupo externo no coincide con Reynaldo y Joaquín; no se distribuyó la actualización. Diagnóstico: ${JSON.stringify({ internal: group.data.attributes.isInternalGroup, app: groupApp.data.id, count: names.length, names, pagination: Boolean(testers.links?.next) })}`);
+      fingerprints.length !== 2 || new Set(fingerprints).size !== 2 || fingerprints.some(f => !expectedFingerprints.has(f))) {
+    throw new Error('El grupo externo no coincide con las dos cuentas confirmadas de Reynaldo y Joaquín; no se distribuyó la actualización');
   }
   console.log('Grupo externo verificado: Reynaldo y Joaquín (2 testers existentes)');
   if (release.what_to_test) {
