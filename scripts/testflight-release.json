@@ -1,6 +1,6 @@
 {
-  "build_number": "12",
+  "build_number": "13",
   "external": true,
-  "what_to_test": "Empaco: nueva identidad visual con logo, ícono y colores de la marca. Mensaje de tecnología y trazabilidad en el acceso y los menús. Nombre actualizado en iPhone, etiquetas QR y documentos. Revisar acceso, navegación en celular y lectura de QR. Se conservan usuarios, datos, sesiones y posiciones de cámaras y túneles.",
+  "what_to_test": "Empaco: nueva identidad visual con logo, ícono y colores de la marca. Mensaje de tecnología y trazabilidad en el acceso y los menús. Pantalla de inicio e ícono actualizados en iPhone y Android. Nombre actualizado en iPhone, etiquetas QR y documentos. Revisar acceso, navegación en celular y lectura de QR. Se conservan usuarios, datos, sesiones y posiciones de cámaras y túneles.",
   "verification_attempt": 1
 }
