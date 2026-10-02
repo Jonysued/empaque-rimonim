@@ -1,6 +1,10 @@
+import { readFile } from 'node:fs/promises';
 import { createPrivateKey, sign } from 'node:crypto';
 
-const { APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_API_KEY_P8_BASE64, BUILD_NUMBER } = process.env;
+const { APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_API_KEY_P8_BASE64 } = process.env;
+const release = process.env.RELEASE_CONFIG ? JSON.parse(await readFile(process.env.RELEASE_CONFIG, 'utf8')) : {};
+const BUILD_NUMBER = process.env.BUILD_NUMBER || release.build_number;
+const externalRelease = process.env.RELEASE_EXTERNAL === 'true' || release.external === true;
 const appId = '6817152283';
 const groupId = '7bf1644d-654f-4b28-b62b-fc7f375f68d3';
 if (![APPSTORE_KEY_ID, APPSTORE_ISSUER_ID, APPSTORE_API_KEY_P8_BASE64, BUILD_NUMBER].every(Boolean)) {
@@ -51,3 +55,55 @@ if (!current.data.some(item => item.id === build.id)) {
 const updated = await api(groupPath);
 if (!updated.data.some(item => item.id === build.id)) throw new Error('El build no quedó asignado al grupo');
 console.log(`Build ${BUILD_NUMBER} habilitado en Equipo Rimonim (${build.id})`);
+
+if (externalRelease) {
+  const externalGroupId = '10a97d53-d7aa-45a4-b59b-c34eb20cc56e';
+  const [group, groupApp, testers] = await Promise.all([
+    api(`/v1/betaGroups/${externalGroupId}`), api(`/v1/betaGroups/${externalGroupId}/app`),
+    api(`/v1/betaGroups/${externalGroupId}/betaTesters?limit=200`),
+  ]);
+  const normalized = value => String(value || '').normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim().split(/\s+/)[0];
+  const names = testers.data.map(t => normalized(t.attributes.firstName)).sort();
+  if (group.data.attributes.isInternalGroup || groupApp.data.id !== appId || testers.links?.next ||
+      names.length !== 2 || names[0] !== 'joaquin' || names[1] !== 'reynaldo') {
+    throw new Error('El grupo externo no coincide con Reynaldo y Joaquín; no se distribuyó la actualización');
+  }
+  console.log('Grupo externo verificado: Reynaldo y Joaquín (2 testers existentes)');
+  if (release.what_to_test) {
+    const localizations = await api(`/v1/builds/${build.id}/betaBuildLocalizations`);
+    const localization = localizations.data.find(l => l.attributes.locale === 'es-ES');
+    if (localization) {
+      if (localization.attributes.whatsNew !== release.what_to_test) await api(`/v1/betaBuildLocalizations/${localization.id}`, 'PATCH', {
+        data: { type: 'betaBuildLocalizations', id: localization.id, attributes: { whatsNew: release.what_to_test } },
+      });
+    } else await api('/v1/betaBuildLocalizations', 'POST', {
+      data: { type: 'betaBuildLocalizations', attributes: { locale: 'es-ES', whatsNew: release.what_to_test }, relationships: { build: { data: { type: 'builds', id: build.id } } } },
+    });
+  }
+  // Enable Apple's notification before assigning the new build. Retries do not
+  // send an extra manual notification or create/invite any tester.
+  let detail = (await api(`/v1/builds/${build.id}/buildBetaDetail`)).data;
+  if (!detail.attributes.autoNotifyEnabled) await api(`/v1/buildBetaDetails/${detail.id}`, 'PATCH', {
+    data: { type: 'buildBetaDetails', id: detail.id, attributes: { autoNotifyEnabled: true } },
+  });
+  const externalPath = `/v1/betaGroups/${externalGroupId}/relationships/builds`;
+  const assigned = await api(externalPath);
+  if (!assigned.data.some(b => b.id === build.id)) await api(externalPath, 'POST', { data: [{ type: 'builds', id: build.id }] });
+  detail = (await api(`/v1/builds/${build.id}/buildBetaDetail`)).data;
+  if (detail.attributes.externalBuildState === 'READY_FOR_BETA_SUBMISSION') {
+    const submissions = await api(`/v1/betaAppReviewSubmissions?filter[build]=${build.id}`);
+    if (!submissions.data.length) await api('/v1/betaAppReviewSubmissions', 'POST', {
+      data: { type: 'betaAppReviewSubmissions', relationships: { build: { data: { type: 'builds', id: build.id } } } },
+    });
+    detail = (await api(`/v1/builds/${build.id}/buildBetaDetail`)).data;
+  }
+  for (let attempt = 0; attempt < 12 && detail.attributes.externalBuildState === 'READY_FOR_BETA_TESTING'; attempt++) {
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    detail = (await api(`/v1/builds/${build.id}/buildBetaDetail`)).data;
+  }
+  const verified = await api(externalPath);
+  if (!verified.data.some(b => b.id === build.id) || !detail.attributes.autoNotifyEnabled) throw new Error('No quedó confirmada la distribución externa');
+  console.log(`Build ${BUILD_NUMBER} asignado a Reynaldo y Joaquín; estado externo: ${detail.attributes.externalBuildState}; notificación automática activada`);
+  if (process.env.GITHUB_STEP_SUMMARY) await import('node:fs/promises').then(({appendFile}) => appendFile(process.env.GITHUB_STEP_SUMMARY,
+    `### Rimonim 1.0 (${BUILD_NUMBER})\n- Grupo verificado: Reynaldo y Joaquín (2 testers existentes).\n- Estado de Apple: ${detail.attributes.externalBuildState}.\n- Aviso automático de la actualización: activado.\n- No se agregaron testers ni permisos.\n`));
+}
