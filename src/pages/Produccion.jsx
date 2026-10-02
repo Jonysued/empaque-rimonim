@@ -1,7 +1,8 @@
 import PalletJourney from '@/components/PalletJourney';
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
-import { generateCode, nextRomaneoNumber, fmtKg } from "@/lib/qr";
+import { generateCode, fmtKg } from "@/lib/qr";
+import QRImage from "@/components/QRImage";
 import { loadAllCatalogs } from "@/lib/catalogs";
 import StatusBadge from "@/components/StatusBadge";
 import PrintRomaneo from "@/components/PrintRomaneo";
@@ -40,6 +41,8 @@ const STATION_ABBREV = {
 export default function Produccion() {
   const [pallets, setPallets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const request = useRef(0);
   const [formPallet, setFormPallet] = useState(null); // null | "new" | pallet a editar
   const [selectedPallet, setSelectedPallet] = useState(null);
   const [cats, setCats] = useState({});
@@ -47,18 +50,28 @@ export default function Produccion() {
   const filteredPallets = statusFilter === "todos" ? pallets : pallets.filter(p => p.status === statusFilter);
 
   async function refresh() {
+    const sequence = ++request.current;
     setLoading(true);
     try {
       const [p, allCats] = await Promise.all([
-        base44.entities.Pallet.list("-created_date", 50),
+        base44.entities.Pallet.list("-created_date"),
         loadAllCatalogs(),
       ]);
+      if (sequence !== request.current) return;
       setPallets(p || []);
+      setSelectedPallet(previous => previous ? (p || []).find(item => item.id === previous.id) || null : null);
       setCats(allCats);
-    } catch (e) { console.error(e); } finally { setLoading(false); }
+      setLoadError('');
+    } catch (e) { if (sequence === request.current) setLoadError(e.message || 'No se pudieron cargar los pallets'); }
+    finally { if (sequence === request.current) setLoading(false); }
   }
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    refresh();
+    window.addEventListener('rimonim-queue-change', refresh);
+    window.addEventListener('focus', refresh);
+    return () => { request.current++; window.removeEventListener('rimonim-queue-change', refresh); window.removeEventListener('focus', refresh); };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -72,6 +85,7 @@ export default function Produccion() {
         </div>
       </div>
 
+      {loadError && <p role="alert" className="text-sm text-destructive">{loadError}</p>}
       {loading ? (
         <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-slate-200 border-t-red-600 rounded-full animate-spin" /></div>
       ) : (
@@ -165,6 +179,7 @@ function PalletForm({ cats, onClose, onSaved, pallet }) {
     e.preventDefault();
     setError("");
     if (!form.net_weight || Number(form.net_weight) <= 0) return setError("Ingrese peso neto");
+    if (!Number.isFinite(Number(form.net_weight)) || !Number.isInteger(Number(form.package_count || 0)) || Number(form.package_count || 0) < 0 || Number(form.gross_weight || 0) < 0 || Number(form.tare_weight || 0) < 0) return setError('Ingresá pesos válidos y una cantidad entera de bultos sin valores negativos');
     setSaving(true);
     try {
       const net = Number(form.net_weight);
@@ -180,13 +195,10 @@ function PalletForm({ cats, onClose, onSaved, pallet }) {
         await base44.entities.Pallet.update(pallet.id, payload);
       } else {
         const code = generateCode("PAL");
-        // El siguiente número debe superar al mayor existente, incluso si se borró otro pallet.
-        const existing = await base44.entities.Pallet.list();
-        const romaneo = nextRomaneoNumber(existing || []);
+        // Postgres assigns the number atomically across operators.
         await base44.entities.Pallet.create({
           ...payload,
           pallet_code: code,
-          romaneo_number: romaneo,
           pallet_type: "Euro",
           status: "armado",
           composition_estimated: true,
@@ -278,7 +290,7 @@ function PalletDetail({ pallet, onClose, onEdit, onDelete }) {
         <DialogHeader><DialogTitle>Pallet {pallet.romaneo_number}</DialogTitle></DialogHeader>
         <div className="space-y-4">
           <div className="flex justify-center">
-            <img src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(pallet.pallet_code)}&size=180x180`} width={180} height={180} alt="QR" />
+            <QRImage code={pallet.pallet_code} size={180} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
             <Info label="Código" value={pallet.pallet_code} />

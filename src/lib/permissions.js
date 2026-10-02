@@ -6,7 +6,7 @@ export const ROLES = [
   { value: "frio", label: "Frío", description: "Túneles y cámaras" },
   { value: "despacho", label: "Despacho", description: "Cargas y envíos" },
   { value: "calidad", label: "Calidad", description: "Retenciones y trazabilidad" },
-  { value: "user", label: "Consulta", description: "Solo dashboard y trazabilidad" },
+  { value: "user", label: "Sin acceso", description: "Pendiente de autorización" },
 ];
 
 // null = acceso para todos los usuarios autenticados

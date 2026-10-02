@@ -1,3 +1,6 @@
+-- Also supports a fresh installation without prior dashboard-only setup.
+create schema if not exists empaque_private;
+grant usage on schema empaque_private to authenticated;
 -- Physical positions are independent of shipments. Existing occupants remain
 -- unassigned until an operator confirms their real position; no invented moves.
 alter table public.records drop constraint records_entity_check;

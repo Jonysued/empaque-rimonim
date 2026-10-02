@@ -16,6 +16,7 @@ grant select on public.profiles to authenticated;
 grant select,insert,update,delete on public.records to authenticated;
 `);
 await db.exec(await readFile('supabase/migrations/20261002131318_cold_storage_positions.sql', 'utf8'));
+await db.exec(await readFile('supabase/migrations/20261002143214_app_integrity_review.sql', 'utf8'));
 await db.exec(`alter table public.records enable row level security;
 create policy read_records on public.records for select to authenticated using(true);
 create policy write_records on public.records for all to authenticated using(empaque_private.allowed_write(entity)) with check(empaque_private.allowed_write(entity));

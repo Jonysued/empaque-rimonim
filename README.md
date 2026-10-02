@@ -4,7 +4,7 @@ React/Vite frontend on Vercel; Supabase Auth and Postgres for users and operatio
 
 ## Setup
 
-1. Create a Supabase project. Run `supabase/migrations/001_empaque.sql` in its SQL editor.
+1. Create a Supabase project. Apply every file in `supabase/migrations/` in filename order. Later migrations add the atomic operational functions and current permissions.
 2. In Supabase Auth, configure the Site URL to the production Vercel URL and the redirect URLs used by invitations and password recovery. Keep public email signups disabled and configure an email sender for invitations and password recovery.
 3. Create the first administrator through the Supabase Auth dashboard, then set `role='admin'` on their row in `public.profiles`. After that, administrators invite users from **Usuarios y roles** inside the app and assign their roles there. Public self-registration is unavailable.
 4. In Vercel, import this GitHub repo as a Vite project. Configure `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and server-only `SUPABASE_SERVICE_ROLE_KEY`. Set `APP_URL` to the production origin for invitation links. Redeploy after adding variables.
@@ -55,3 +55,13 @@ Se muestran por separado la espera antes del prefrío y el prefrío efectivo. En
 Sin conexión, los movimientos se guardan con un UUID y se muestran pendientes; no reservan una posición confirmada. Al reconectar, el servidor valida la asignación original y la versión del plano, asigna una posición libre y evita duplicados. Los cambios de distribución y de ciclo requieren conexión. Los conflictos permanecen en revisión en el indicador de sincronización. El inicio de un ciclo se deshabilita si este dispositivo tiene movimientos pendientes en ese túnel.
 
 Verificaciones de regresión: `npm run check:cold-storage`, `node scripts/check-offline-queue.mjs` y `node scripts/check-dashboard-metrics.mjs`. La primera ejecuta la migración en PostgreSQL aislado (PGlite) con políticas de acceso y comprueba además el almacenamiento IndexedDB real, sin utilizar registros productivos.
+
+### Revisión funcional del 2 de octubre de 2026
+
+Se verificaron cosecha → consolidado → pesado → playa → vuelco, pallets → prefrío → cámaras → despachos, trazabilidad, roles, sincronización y pantallas de celular. `npm run check:app` ejecuta los casos de regresión y una instalación completa desde cero; `npm run check:cold-storage` comprueba las posiciones y bloqueos con todas las protecciones actuales.
+
+Correcciones: avisos operativos visibles; invitaciones compatibles con el origen de iOS y Android; QR de consulta generados sin conexión; búsquedas normalizadas y con datos actualizados; trazabilidad que no une registros sin una corrida explícita; listas de pallets y cargas completas; errores de consulta y catálogos visibles; perfiles en caché conservados ante una pérdida de señal sin ocultar sesiones realmente rechazadas. El precargado sin conexión incluye las cargas físicas (`StorageBatch`).
+
+Postgres asigna los romaneos mediante un contador anual privado y bloquea números/QR repetidos. Conserva los números históricos. Al editar el peso o los bultos de un pallet cargado, actualiza los totales de la carga en la misma transacción, también con el rol Producción. Para corregir un pallet enviado se reabre primero el despacho. Los pallets con movimientos o asociados a despachos no se pueden borrar; tampoco se permite reducir capacidad ni cambiar producto de una carga con pallets.
+
+La trazabilidad de origen de los pallets creados manualmente sigue sin estar confirmada cuando no tienen una corrida vinculada: la pantalla lo indica y no inventa lotes. La revisión de permisos no habilita cuentas pendientes; el rol `user` se identifica como «Sin acceso» para reflejar la autorización que realmente aplica el servidor.

@@ -1,4 +1,7 @@
 // Generación de QR (imagen) y códigos únicos
+export const escapeHtml = value => String(value ?? '—').replace(/[&<>"']/g, char => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+}[char]));
 
 // Genera una URL de imagen QR usando api.qrserver.com (sin instalar dependencias)
 export function qrImageUrl(data, size = 200) {

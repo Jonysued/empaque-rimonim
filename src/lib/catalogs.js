@@ -3,6 +3,7 @@ import { Capacitor } from "@capacitor/core";
 import { Printer } from "@dimer47/capacitor-plugin-printer";
 import QRCode from "qrcode";
 import { toast } from "sonner";
+import { escapeHtml } from "@/lib/qr";
 
 const printerKey = "rimonim.selectedPrinter.ios";
 
@@ -15,8 +16,9 @@ export async function loadAllCatalogs() {
   const types = [
     "productor", "variedad", "categoria", "calibre", "envase"
   ];
-  const entries = await Promise.all(types.map(t => loadCatalog(t).then(v => [t, v])));
-  return Object.fromEntries(entries);
+  const items = await base44.entities.Catalog.list();
+  return Object.fromEntries(types.map(type => [type, items.filter(item => item.type === type && item.active === true)
+    .sort((a, b) => (a.label || '').localeCompare(b.label || ''))]));
 }
 
 export function catalogLabels(items) {
@@ -56,7 +58,7 @@ export async function printHtml(htmlContent, name = "Rimonim") {
   try {
     const content = await embedQrImages(htmlContent);
     const html = `
-    <html><head><meta charset="utf-8"><title>${name}</title>
+    <html><head><meta charset="utf-8"><title>${escapeHtml(name)}</title>
     <style>
       body { font-family: -apple-system, system-ui, sans-serif; margin: 0; padding: 16px; }
       .label { width: 380px; padding: 16px; border: 2px solid #000; box-sizing: border-box; }

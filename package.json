@@ -14,7 +14,8 @@
     "mobile:sync": "npm run build && node scripts/configure-android.mjs && npx cap sync android",
     "mobile:ios:sync": "npm run build && npx cap sync ios",
     "import-data": "node scripts/import-base44.mjs",
-    "check:cold-storage": "node scripts/check-cold-storage.mjs && node scripts/check-atomic-outbox.mjs"
+    "check:cold-storage": "node scripts/check-cold-storage.mjs && node scripts/check-atomic-outbox.mjs",
+    "check:app": "node scripts/check-app-integrity.mjs && node scripts/check-fresh-schema.mjs && node scripts/check-client-session.mjs && node scripts/check-dashboard-metrics.mjs && node scripts/check-field-workflow.mjs && node scripts/check-bin-dump-workflow.mjs && node scripts/check-harvest-labels.mjs && node scripts/check-lot-sheet.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

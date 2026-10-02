@@ -46,7 +46,7 @@ export default function Usuarios() {
         setInviteEmail("");
         load();
       })
-      .catch(() => setInviteMsg("No se pudo enviar la invitación. Verificá el email."))
+      .catch(e => setInviteMsg(e.message || "No se pudo enviar la invitación."))
       .finally(() => setInviting(false));
   };
 

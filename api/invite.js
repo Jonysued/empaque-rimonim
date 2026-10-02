@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 export default async function handler(req,res) {
-  if(req.headers.origin==='https://localhost') {
-    res.setHeader('Access-Control-Allow-Origin','https://localhost');
+  if(['https://localhost','capacitor://localhost'].includes(req.headers.origin)) {
+    res.setHeader('Access-Control-Allow-Origin',req.headers.origin);
     res.setHeader('Access-Control-Allow-Methods','POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers','Authorization, Content-Type');
     res.setHeader('Vary','Origin');

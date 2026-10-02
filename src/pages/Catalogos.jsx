@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,8 +37,12 @@ export default function Catalogos() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [producers, setProducers] = useState([]);
+  const [error, setError] = useState('');
+  const sequence = useRef(0);
 
   async function refresh() {
+    const request = ++sequence.current;
+    setError('');
     if (activeType === "qr_cosecha" || activeType.startsWith("loc_")) { setLoading(false); return; }
     setLoading(true);
     try {
@@ -46,19 +50,21 @@ export default function Catalogos() {
         base44.entities.Catalog.filter({ type: activeType }),
         activeType === "cuadro" ? base44.entities.Catalog.filter({ type: "productor", active: true }) : Promise.resolve([]),
       ]);
+      if (request !== sequence.current) return;
       setProducers(producerItems);
       setItems((data || []).sort((a, b) => (a.label || "").localeCompare(b.label || "")));
-    } catch (e) { console.error(e); } finally { setLoading(false); }
+    } catch (e) { if (request === sequence.current) setError(e.message || 'No se pudo cargar el catálogo'); }
+    finally { if (request === sequence.current) setLoading(false); }
   }
 
-  useEffect(() => { refresh(); }, [activeType]);
+  useEffect(() => { refresh(); return () => { sequence.current++; }; }, [activeType]);
 
   async function handleDelete(id) {
     if (!confirm("¿Eliminar este valor del catálogo?")) return;
     try {
       await base44.entities.Catalog.update(id, { active: false });
       refresh();
-    } catch (e) { console.error(e); }
+    } catch (e) { setError(e.message || 'No se pudo eliminar el valor'); }
   }
 
   return (
@@ -67,7 +73,7 @@ export default function Catalogos() {
         <h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Settings className="w-6 h-6" /> Catálogos</h1>
         <p className="text-muted-foreground">Configuración de valores operativos</p>
       </div>
-
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
       <div className="flex flex-wrap gap-2">
         {CONFIG_TABS.map(t => (
           <button

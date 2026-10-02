@@ -4,15 +4,17 @@ import { Printer } from "lucide-react";
 import { qrImageUrl } from "@/lib/qr";
 import { printHtml } from "@/lib/catalogs";
 import ChangePrinter from "@/components/ChangePrinter";
+import QRImage from "@/components/QRImage";
+import { escapeHtml } from "@/lib/qr";
 
 export default function QRLabel({ code, title, subtitle, size = 160, onPrint = undefined, printButtonText = "Imprimir etiqueta" }) {
   function print() {
     const html = `
       <div class="label center">
-        <div style="font-weight:bold;font-size:16px;">${title || "Empaque Rimonim"}</div>
-        ${subtitle ? `<div style="font-size:13px;margin-bottom:6px;">${subtitle}</div>` : ""}
+        <div style="font-weight:bold;font-size:16px;">${escapeHtml(title || "Empaque Rimonim")}</div>
+        ${subtitle ? `<div style="font-size:13px;margin-bottom:6px;">${escapeHtml(subtitle)}</div>` : ""}
         <img src="${qrImageUrl(code, 240)}" width="220" height="220" />
-        <div class="big">${code}</div>
+        <div class="big">${escapeHtml(code)}</div>
       </div>
     `;
     printHtml(html, `Etiqueta ${code}`);
@@ -20,7 +22,7 @@ export default function QRLabel({ code, title, subtitle, size = 160, onPrint = u
 
   return (
     <div className="flex flex-col items-center gap-2 p-3 border rounded-lg bg-white">
-      <img src={qrImageUrl(code, size)} width={size} height={size} className="max-w-full h-auto" alt={`QR ${code}`} />
+      <QRImage code={code} size={size} />
       <div className="text-center">
         <p className="break-all font-mono text-sm font-bold">{code}</p>
         {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}

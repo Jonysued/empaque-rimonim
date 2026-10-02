@@ -6,11 +6,13 @@ import { Capacitor } from "@capacitor/core";
 
 // Prepare operational lists while connected so opening another screen without
 // signal still has the last confirmed records available on this device.
-const OFFLINE_ENTITIES = ["ReceiptLot", "DumpingEvent", "Pallet", "Location", "CoolingCycle", "Shipment", "Catalog", "Bin", "ProductionRun", "MovementEvent"];
+const OFFLINE_ENTITIES = ["ReceiptLot", "DumpingEvent", "Pallet", "Location", "CoolingCycle", "StorageBatch", "Shipment", "Catalog", "Bin", "ProductionRun", "MovementEvent"];
 
 const names = {
   move_pallet_location: "Movimiento de pallet",
   change_cooling_cycle: "Ciclo de prefrío",
+  cooling_cycle_command: "Ciclo de prefrío",
+  cold_storage_command: "Plano o movimiento de frío",
   load_pallet_into_shipment: "Carga de pallet",
   unload_pallet_from_shipment: "Retiro de pallet",
   dump_lot_by_bins: "Vuelco de BINs",

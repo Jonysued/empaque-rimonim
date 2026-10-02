@@ -32,7 +32,7 @@ jobs:
       - run: npm ci
       - name: Verify configuration
         run: test -n "$VITE_SUPABASE_URL" && test -n "$VITE_SUPABASE_ANON_KEY"
-      - run: npm run lint && npm run typecheck && node scripts/check-offline-queue.mjs && npm run check:cold-storage && npm run mobile:android
+      - run: npm run lint && npm run typecheck && node scripts/check-offline-queue.mjs && npm run check:cold-storage && npm run check:app && npm run mobile:android
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

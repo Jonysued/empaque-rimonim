@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { generateCode, fmtKg, fmtDate, fmtNum } from "@/lib/qr";
 import { loadCatalog } from "@/lib/catalogs";
@@ -20,28 +20,39 @@ export default function Despachos() {
   const [shipments, setShipments] = useState([]);
   const [pallets, setPallets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const request = useRef(0);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [selected, setSelected] = useState(null);
   const [cats, setCats] = useState({});
 
   async function refresh() {
+    const sequence = ++request.current;
     setLoading(true);
     try {
       const [s, p, clients, destinations] = await Promise.all([
-        base44.entities.Shipment.list("-created_date", 50),
+        base44.entities.Shipment.list("-created_date"),
         base44.entities.Pallet.list(),
         loadCatalog("cliente"),
         loadCatalog("destino"),
       ]);
+      if (sequence !== request.current) return;
       setShipments(s || []);
       setPallets(p || []);
       setSelected(previous => previous ? (s || []).find(item => item.id === previous.id) || null : null);
       setCats({ cliente: clients, destino: destinations });
-    } catch (e) { console.error(e); } finally { setLoading(false); }
+      setLoadError('');
+    } catch (e) { if (sequence === request.current) setLoadError(e.message || 'No se pudieron cargar los despachos'); }
+    finally { if (sequence === request.current) setLoading(false); }
   }
 
-  useEffect(() => { refresh(); }, []);
+  useEffect(() => {
+    refresh();
+    window.addEventListener('rimonim-queue-change', refresh);
+    window.addEventListener('focus', refresh);
+    return () => { request.current++; window.removeEventListener('rimonim-queue-change', refresh); window.removeEventListener('focus', refresh); };
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -53,6 +64,7 @@ export default function Despachos() {
         <Button size="lg" onClick={() => setShowForm(true)}><Plus className="w-5 h-5 mr-1" /> Nueva carga</Button>
       </div>
 
+      {loadError && <p role="alert" className="text-sm text-destructive">{loadError}</p>}
       {loading ? (
         <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-slate-200 border-t-red-600 rounded-full animate-spin" /></div>
       ) : shipments.length === 0 ? (
@@ -106,7 +118,7 @@ function ShipmentForm({ shipment = null, cats, pallets, onClose, onSaved }) {
 
   const capacity = Number(form.target_capacity);
   const loadedCount = shipment?.loaded_pallet_ids?.length || 0;
-  const available = (pallets || []).filter(p => AVAILABLE_FOR_SHIPMENT.includes(p.status) && p.product_type === form.product_type);
+  const available = (pallets || []).filter(p => AVAILABLE_FOR_SHIPMENT.includes(p.status) && p.product_type === form.product_type && !p.location_id && !p.shipment_id && !p.held);
 
   function togglePallet(id, checked) {
     setSelectedIds(prev => {
@@ -233,7 +245,7 @@ function ShipmentPalletEditor({ shipment, pallets, onSaved }) {
   const [error, setError] = useState("");
   const loadedIds = shipment.loaded_pallet_ids || [];
   const loaded = loadedIds.map(id => pallets.find(p => p.id === id) || { id, romaneo_number: "Pallet sin datos locales" });
-  const available = pallets.filter(p => AVAILABLE_FOR_SHIPMENT.includes(p.status) && p.product_type === shipment.product_type);
+  const available = pallets.filter(p => AVAILABLE_FOR_SHIPMENT.includes(p.status) && p.product_type === shipment.product_type && !p.location_id && !p.shipment_id && !p.held);
 
   async function changePallet(pallet, remove = false) {
     if (busy) return;

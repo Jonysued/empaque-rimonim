@@ -99,14 +99,15 @@ const profile = async () => {
   try {
     if (!navigator.onLine) throw new TypeError('Sin conexión');
     const {data:{user},error} = await supabase.auth.getUser();
-    if(error || !user) throw Object.assign(new Error('Iniciá sesión'),{status:401});
+    if(error) throw error;
+    if(!user) throw Object.assign(new Error('Iniciá sesión'),{status:401});
     const p=unwrap(await supabase.from('profiles').select('*').eq('id',user.id).single());
     const value={...p, name:p.full_name};
     await saveSnapshot(user.id, 'profile', value).catch(() => {});
     if (Capacitor.isNativePlatform()) await saveLastOwner(user.id).catch(() => {});
     return value;
   } catch (error) {
-    if (!navigator.onLine || error instanceof TypeError || error?.status === 0) {
+    if (!navigator.onLine || error instanceof TypeError || error?.status === 0 || error?.name === 'AuthRetryableFetchError') {
       const cached = await readSnapshot(session.user.id, 'profile');
       if (cached) return cached;
     }

@@ -1,5 +1,5 @@
 import PalletJourney from '@/components/PalletJourney';
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { fmtKg, fmtDate } from "@/lib/qr";
 import BinInfo from "@/components/BinInfo";
@@ -8,17 +8,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, ArrowDownRight, ArrowUpRight, Package, Layers, Repeat, Truck } from "lucide-react";
+import { findTrace, lotTrace, palletTrace } from "@/lib/traceability.mjs";
 
 export default function Trazabilidad() {
   const [query, setQuery] = useState("");
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const request = useRef(0);
   const [allData, setAllData] = useState({ lots: [], bins: [], dumps: [], runs: [], pallets: [], shipments: [], movements: [] });
 
-  useEffect(() => {
-    (async () => {
-      try {
+  async function loadData() {
         const [lots, bins, dumps, runs, pallets, shipments, movements] = await Promise.all([
           base44.entities.ReceiptLot.list(),
           base44.entities.Bin.list(),
@@ -28,28 +28,25 @@ export default function Trazabilidad() {
           base44.entities.Shipment.list(),
           base44.entities.MovementEvent.list(),
         ]);
-        setAllData({ lots, bins, dumps, runs, pallets, shipments, movements });
-      } catch (e) { console.error(e); }
-    })();
-  }, []);
+    return { lots, bins, dumps, runs, pallets, shipments, movements };
+  }
 
   async function search(code) {
     setError(""); setResult(null);
-    if (!code) return;
+    if (!String(code || '').trim()) return;
+    const sequence = ++request.current;
     setLoading(true);
     try {
-      // Buscar en todas las entidades
-      const lot = allData.lots.find(l => l.lot_code === code);
-      if (lot) { setResult({ type: "lote", entity: lot }); setLoading(false); return; }
-      const bin = allData.bins.find(b => b.bin_code === code.trim().toUpperCase());
-      if (bin) { setResult({ type: "bin", entity: bin }); setLoading(false); return; }
-      const pallet = allData.pallets.find(p => p.pallet_code === code || p.romaneo_number === code);
-      if (pallet) { setResult({ type: "pallet", entity: pallet }); setLoading(false); return; }
-      const shipment = allData.shipments.find(s => s.shipment_code === code || s.load_number === code);
-      if (shipment) { setResult({ type: "despacho", entity: shipment }); setLoading(false); return; }
-      setError(`No se encontró ningún registro con código: ${code}`);
-    } catch (e) { setError(e.message); } finally { setLoading(false); }
+      const data = await loadData();
+      if (sequence !== request.current) return;
+      setAllData(data);
+      const found = findTrace(data, code);
+      setResult(found);
+      if (!found) setError(`No se encontró ningún registro con código: ${code.trim()}`);
+    } catch (e) { if (sequence === request.current) setError(e.message || 'No se pudo consultar la trazabilidad'); }
+    finally { if (sequence === request.current) setLoading(false); }
   }
+  useEffect(() => () => { request.current++; }, []);
 
   function handleScan(code) { setQuery(code); search(code); }
 
@@ -65,7 +62,7 @@ export default function Trazabilidad() {
           <QRScanner label="Escanear QR a consultar" onScan={handleScan} />
           <div className="flex gap-2">
             <Input placeholder="O ingrese el código…" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === "Enter" && search(query)} />
-            <Button onClick={() => search(query)}><Search className="w-4 h-4 mr-1" /> Buscar</Button>
+            <Button disabled={loading} onClick={() => search(query)}><Search className="w-4 h-4 mr-1" /> Buscar</Button>
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
         </CardContent>
@@ -83,12 +80,7 @@ function TraceResult({ result, allData }) {
 
   if (type === "lote") {
     // Hacia adelante: vuelcos → corridas → pallets → despachos
-    const dumps = allData.dumps.filter(d => d.receipt_lot_id === entity.id);
-    const runIds = [...new Set(dumps.map(d => d.production_run_id))];
-    const runs = allData.runs.filter(r => runIds.includes(r.id));
-    const pallets = allData.pallets.filter(p => runIds.includes(p.production_run_id));
-    const shipmentIds = [...new Set(pallets.map(p => p.shipment_id).filter(Boolean))];
-    const shipments = allData.shipments.filter(s => shipmentIds.includes(s.id));
+    const { dumps, runs, pallets, shipments } = lotTrace(allData, entity);
 
     return (
       <div className="space-y-4">
@@ -137,11 +129,7 @@ function TraceResult({ result, allData }) {
 
   if (type === "pallet") {
     // Hacia atrás: corrida → vuelcos → lotes
-    const run = allData.runs.find(r => r.id === entity.production_run_id);
-    const dumps = allData.dumps.filter(d => d.production_run_id === entity.production_run_id);
-    const lotIds = [...new Set(dumps.map(d => d.receipt_lot_id))];
-    const lots = allData.lots.filter(l => lotIds.includes(l.id));
-    const shipment = allData.shipments.find(s => s.id === entity.shipment_id);
+    const { run, dumps, lots, shipment } = palletTrace(allData, entity);
 
     return (
       <Card className="border-purple-300">
@@ -157,6 +145,7 @@ function TraceResult({ result, allData }) {
             ["Línea", run.line], ["Turno", run.shift], ["Fecha", fmtDate(run.date)]
           ]} />}
           <PalletJourney pallet={entity} movements={allData.movements} shipments={allData.shipments} />
+          {!run && <p className="text-xs text-muted-foreground">Este pallet no tiene una corrida de producción vinculada. No hay un origen de lote confirmado.</p>}
           <TraceSection icon={Repeat} title="Vuelcos (lotes que alimentaron la corrida)" items={dumps} render={d => ({
             code: d.dump_code, rows: [
               ["BINs", d.bins_dumped ?? "—"], ["Kilos", fmtKg(d.net_weight)], ["Lote", d.receipt_lot_code], ["Fecha", fmtDate(d.dump_date)]

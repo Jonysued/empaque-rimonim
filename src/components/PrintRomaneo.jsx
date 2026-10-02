@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
-import { qrImageUrl } from "@/lib/qr";
+import { qrImageUrl, escapeHtml } from "@/lib/qr";
 import { printHtml } from "@/lib/catalogs";
 import { fmtDay } from "@/lib/qr";
 
@@ -24,15 +24,15 @@ export default function PrintRomaneo({ pallet }) {
       ["Estado", pallet.status || "—"],
       ["Fecha", fmtDay(new Date().toISOString())],
     ];
-    const rows = fields.map(([k, v]) => `<div class="row"><span><b>${k}</b></span><span>${v}</span></div>`).join("");
+    const rows = fields.map(([k, v]) => `<div class="row"><span><b>${escapeHtml(k)}</b></span><span>${escapeHtml(v)}</span></div>`).join("");
     const html = `
       <div class="romaneo">
         <div class="center" style="border-bottom:2px solid #000;padding-bottom:8px;margin-bottom:10px;">
           <div style="font-size:20px;font-weight:bold;">ROMANEO DE EMPAQUE</div>
-          <div class="big">${pallet.romaneo_number}</div>
+          <div class="big">${escapeHtml(pallet.romaneo_number)}</div>
         </div>
         <div class="center"><img src="${qrImageUrl(pallet.pallet_code, 200)}" width="180" height="180" /></div>
-        <div class="center" style="font-size:12px;margin:6px 0;">${pallet.pallet_code}</div>
+        <div class="center" style="font-size:12px;margin:6px 0;">${escapeHtml(pallet.pallet_code)}</div>
         <div style="border-top:1px solid #ccc;padding-top:8px;">${rows}</div>
       </div>
     `;
