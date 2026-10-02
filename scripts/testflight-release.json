@@ -1,5 +1,6 @@
 {
   "build_number": "9",
   "external": true,
-  "what_to_test": "Planos de frío: cinco cargas con 101 posiciones (carga central con posición 21) o cuatro cargas de 21. Posiciones automáticas y editables. Túnel bloqueado durante el prefrío; al finalizar, los pallets conservan su posición hasta confirmar el traslado. Tiempos separados y protección contra escaneos duplicados. Revisar el flujo en celular."
+  "what_to_test": "Planos de frío: cinco cargas con 101 posiciones (carga central con posición 21) o cuatro cargas de 21. Posiciones automáticas y editables. Túnel bloqueado durante el prefrío; al finalizar, los pallets conservan su posición hasta confirmar el traslado. Tiempos separados y protección contra escaneos duplicados. Revisar el flujo en celular.",
+  "verification_attempt": 2
 }

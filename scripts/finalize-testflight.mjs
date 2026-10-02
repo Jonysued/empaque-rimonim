@@ -66,7 +66,7 @@ if (externalRelease) {
   const names = testers.data.map(t => normalized(t.attributes.firstName)).sort();
   if (group.data.attributes.isInternalGroup || groupApp.data.id !== appId || testers.links?.next ||
       names.length !== 2 || names[0] !== 'joaquin' || names[1] !== 'reynaldo') {
-    throw new Error('El grupo externo no coincide con Reynaldo y Joaquín; no se distribuyó la actualización');
+    throw new Error(`El grupo externo no coincide con Reynaldo y Joaquín; no se distribuyó la actualización. Diagnóstico: ${JSON.stringify({ internal: group.data.attributes.isInternalGroup, app: groupApp.data.id, count: names.length, names, pagination: Boolean(testers.links?.next) })}`);
   }
   console.log('Grupo externo verificado: Reynaldo y Joaquín (2 testers existentes)');
   if (release.what_to_test) {
