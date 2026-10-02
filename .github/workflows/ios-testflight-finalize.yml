@@ -9,9 +9,9 @@ on:
       build_number:
         description: iOS build number
         required: true
-        default: '11'
+        default: '12'
       release_external:
-        description: Enable the existing Reynaldo and Joaquin group
+        description: Enable the existing confirmed external group
         type: boolean
         default: false
 

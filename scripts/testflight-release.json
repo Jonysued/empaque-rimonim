@@ -1,6 +1,6 @@
 {
-  "build_number": "11",
+  "build_number": "12",
   "external": true,
-  "what_to_test": "Cámaras flexibles: las primeras cuatro cargas admiten 20 o 21 pallets. Quinta carga opcional con capacidad variable hasta 101 pallets en total: 4×20 deja 21; 20+20+21+21 deja 19; 4×21 deja 17. Marcar completa con la cantidad real y reabrir para continuar. Se conservan las posiciones y tiempos existentes. Revisar ingreso por QR, planos en celular, cierre, reapertura y sincronización.",
+  "what_to_test": "Empaco: nueva identidad visual con logo, ícono y colores de la marca. Mensaje de tecnología y trazabilidad en el acceso y los menús. Nombre actualizado en iPhone, etiquetas QR y documentos. Revisar acceso, navegación en celular y lectura de QR. Se conservan usuarios, datos, sesiones y posiciones de cámaras y túneles.",
   "verification_attempt": 1
 }
