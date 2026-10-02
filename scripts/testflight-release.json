@@ -1,6 +1,6 @@
 {
-  "build_number": "13",
+  "build_number": "14",
   "external": true,
-  "what_to_test": "Empaco: nueva identidad visual con logo, ícono y colores de la marca. Mensaje de tecnología y trazabilidad en el acceso y los menús. Pantalla de inicio e ícono actualizados en iPhone y Android. Nombre actualizado en iPhone, etiquetas QR y documentos. Revisar acceso, navegación en celular y lectura de QR. Se conservan usuarios, datos, sesiones y posiciones de cámaras y túneles.",
+  "what_to_test": "Empaco: ícono del teléfono corregido, con fondo blanco y la e verde centrada dentro del círculo, igual a la identidad de la web. Revisar el ícono al actualizar la app. Las funciones operativas y los datos se conservan.",
   "verification_attempt": 1
 }

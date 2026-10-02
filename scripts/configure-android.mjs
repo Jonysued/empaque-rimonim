@@ -30,11 +30,11 @@ for (const name of ['ic_launcher', 'ic_launcher_round']) {
 }
 const appGradle = 'android/app/build.gradle';
 const gradle = await readFile(appGradle, 'utf8');
-await writeFile(appGradle, gradle.replace(/versionCode \d+/, 'versionCode 13'));
+await writeFile(appGradle, gradle.replace(/versionCode \d+/, 'versionCode 14'));
 
 const valuesDirectory = 'android/app/src/main/res/values';
 await mkdir(valuesDirectory, { recursive: true });
-await writeFile(`${valuesDirectory}/empaco_launcher.xml`, '<resources><color name="empaco_launcher_background">#143e2d</color></resources>\n');
+await writeFile(`${valuesDirectory}/empaco_launcher.xml`, '<resources><color name="empaco_launcher_background">#ffffff</color></resources>\n');
 const stringsFile = `${valuesDirectory}/strings.xml`;
 const strings = await readFile(stringsFile, 'utf8');
 await writeFile(stringsFile, strings.replace(/(<string name="(?:app_name|title_activity_main)">)[^<]*(<\/string>)/g, '$1Empaco$2'));
