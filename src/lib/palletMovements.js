@@ -19,7 +19,7 @@ export async function changeCoolingCycle(action, tunnelId, operationId = crypto.
 }
 
 export async function storageCommand(action, payload, operationId = crypto.randomUUID()) {
-  if (["distribucion", "iniciar_carga"].includes(action) && !navigator.onLine) {
+  if (["distribucion", "iniciar_carga", "habilitar_quinta", "completar_carga", "reabrir_carga"].includes(action) && !navigator.onLine) {
     throw new Error("Conectate para confirmar la distribución o el inicio de la carga");
   }
   return submitOperation("cold_storage_command", {
