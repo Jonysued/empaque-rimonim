@@ -53,7 +53,7 @@ export default function Login() {
               type="email"
               autoComplete="email"
               autoFocus
-              placeholder="vos@rimonim.com"
+              placeholder="nombre@empresa.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="pl-10 h-12"

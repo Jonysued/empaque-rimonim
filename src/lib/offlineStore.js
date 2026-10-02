@@ -13,7 +13,7 @@ function openDb() {
       };
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
-      request.onblocked = () => reject(new Error("Cerrá las otras pestañas de Rimonim y volvé a intentar"));
+      request.onblocked = () => reject(new Error("Cerrá las otras pestañas de Empaco y volvé a intentar"));
     });
   }
   return dbPromise;

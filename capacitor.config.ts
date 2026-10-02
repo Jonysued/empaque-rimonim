@@ -2,7 +2,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 
 const config: CapacitorConfig = {
   appId: "app.rimonim.empaque",
-  appName: "Rimonim Empaque",
+  appName: "Empaco",
   webDir: "dist",
   server: { androidScheme: "https" },
 };

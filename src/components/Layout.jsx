@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import rimonimLogo from "@/rimonim-logo.svg";
+import empacoLogo from "@/empaco-logo.svg";
 import { Link, useLocation, Outlet } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import SyncStatus from "@/components/SyncStatus";
@@ -45,8 +45,8 @@ export default function Layout() {
       <aside className="app-desktop-sidebar hidden lg:flex fixed inset-y-0 left-0 w-60 flex-col bg-sidebar border-r border-sidebar-border">
         <div className="h-16 flex items-center px-6 border-b border-sidebar-border">
           <div className="flex w-36 flex-col items-center gap-1">
-            <img src={rimonimLogo} alt="Rimonim" className="w-full h-auto rounded" />
-            <p className="w-full text-center text-[11px] text-muted-foreground">Operación de empaque</p>
+            <img src={empacoLogo} alt="Empaco" className="w-full h-auto rounded" />
+            <p className="w-full text-center text-[11px] text-muted-foreground">Tecnología y trazabilidad</p>
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
@@ -79,7 +79,7 @@ export default function Layout() {
       {/* Topbar mobile */}
       <header className="app-mobile-header lg:hidden sticky top-0 z-30 h-14 bg-background border-b flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
-          <img src={rimonimLogo} alt="Rimonim" className="w-32 h-auto rounded" />
+          <img src={empacoLogo} alt="Empaco" className="w-32 h-auto rounded" />
         </div>
         <button aria-label="Abrir menú" onClick={() => setSidebarOpen(true)} className="p-3 -mr-2 shrink-0">
           <Menu className="w-5 h-5" />

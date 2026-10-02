@@ -12,7 +12,7 @@ if (!xml.includes('android.permission.CAMERA')) {
   await writeFile(manifest, xml.replace('</manifest>', '    <uses-permission android:name="android.permission.CAMERA" />\n</manifest>'));
 }
 
- // Apply the original Rimonim O and crown to every launcher density.
+// Apply the Empaco brand to every launcher density.
 const densities = ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi', 'xxxhdpi'];
 for (const density of densities) {
   const directory = `android/app/src/main/res/mipmap-${density}`;
@@ -24,10 +24,17 @@ for (const density of densities) {
 }
 const adaptiveDirectory = 'android/app/src/main/res/mipmap-anydpi-v26';
 await mkdir(adaptiveDirectory, { recursive: true });
-const adaptiveIcon = '<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"><background android:drawable="@android:color/white"/><foreground android:drawable="@mipmap/ic_launcher_foreground"/></adaptive-icon>\n';
+const adaptiveIcon = '<?xml version="1.0" encoding="utf-8"?>\n<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android"><background android:drawable="@color/empaco_launcher_background"/><foreground android:drawable="@mipmap/ic_launcher_foreground"/></adaptive-icon>\n';
 for (const name of ['ic_launcher', 'ic_launcher_round']) {
   await writeFile(`${adaptiveDirectory}/${name}.xml`, adaptiveIcon);
 }
 const appGradle = 'android/app/build.gradle';
 const gradle = await readFile(appGradle, 'utf8');
-await writeFile(appGradle, gradle.replace(/versionCode \d+/, 'versionCode 11'));
+await writeFile(appGradle, gradle.replace(/versionCode \d+/, 'versionCode 12'));
+
+const valuesDirectory = 'android/app/src/main/res/values';
+await mkdir(valuesDirectory, { recursive: true });
+await writeFile(`${valuesDirectory}/empaco_launcher.xml`, '<resources><color name="empaco_launcher_background">#143e2d</color></resources>\n');
+const stringsFile = `${valuesDirectory}/strings.xml`;
+const strings = await readFile(stringsFile, 'utf8');
+await writeFile(stringsFile, strings.replace(/(<string name="(?:app_name|title_activity_main)">)[^<]*(<\/string>)/g, '$1Empaco$2'));

@@ -80,7 +80,7 @@ export default function Usuarios() {
             <Input
               id="invite-email"
               type="email"
-              placeholder="usuario@rimonim.com"
+              placeholder="nombre@empresa.com"
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
             />

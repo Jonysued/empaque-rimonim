@@ -54,7 +54,7 @@ async function embedQrImages(html) {
   return Array.from(doc.head.querySelectorAll("style")).map(style => style.outerHTML).join("") + doc.body.innerHTML;
 }
 
-export async function printHtml(htmlContent, name = "Rimonim") {
+export async function printHtml(htmlContent, name = "Empaco") {
   try {
     const content = await embedQrImages(htmlContent);
     const html = `

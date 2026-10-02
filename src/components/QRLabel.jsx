@@ -11,7 +11,7 @@ export default function QRLabel({ code, title, subtitle, size = 160, onPrint = u
   function print() {
     const html = `
       <div class="label center">
-        <div style="font-weight:bold;font-size:16px;">${escapeHtml(title || "Empaque Rimonim")}</div>
+        <div style="font-weight:bold;font-size:16px;">${escapeHtml(title || "Empaco")}</div>
         ${subtitle ? `<div style="font-size:13px;margin-bottom:6px;">${escapeHtml(subtitle)}</div>` : ""}
         <img src="${qrImageUrl(code, 240)}" width="220" height="220" />
         <div class="big">${escapeHtml(code)}</div>

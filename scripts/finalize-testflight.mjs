@@ -64,13 +64,13 @@ if (externalRelease) {
   ]);
   // Apple can omit tester names. Match the previously resolved accounts by
   // fingerprint without putting contact addresses in source code or logs.
-  const expectedFingerprints = new Set(["affde18ebb2f1cfa1f2bcc69884362f883e9229fe7104366a6c453e6a27e003e", "0ff4c77d067ddc7f8bf04d9d2a5c95145a95e41cbcb91e409d51c416875c46d1"]);
+  const expectedFingerprints = new Set(["affde18ebb2f1cfa1f2bcc69884362f883e9229fe7104366a6c453e6a27e003e", "0ff4c77d067ddc7f8bf04d9d2a5c95145a95e41cbcb91e409d51c416875c46d1", "fff80e2a0e77d6799f97bbfacbed04ec813b837da408d4b5d7ecafc6a378a9a9"]);
   const fingerprints = testers.data.map(t => createHash('sha256').update(String(t.attributes.email || '').trim().toLowerCase()).digest('hex'));
   if (group.data.attributes.isInternalGroup || groupApp.data.id !== appId || testers.links?.next ||
-      fingerprints.length !== 2 || new Set(fingerprints).size !== 2 || fingerprints.some(f => !expectedFingerprints.has(f))) {
-    throw new Error('El grupo externo no coincide con las dos cuentas confirmadas de Reynaldo y Joaquín; no se distribuyó la actualización');
+      fingerprints.length !== expectedFingerprints.size || new Set(fingerprints).size !== expectedFingerprints.size || fingerprints.some(f => !expectedFingerprints.has(f))) {
+    throw new Error('El grupo externo no coincide con las tres cuentas confirmadas; no se distribuyó la actualización');
   }
-  console.log('Grupo externo verificado: Reynaldo y Joaquín (2 testers existentes)');
+  console.log('Grupo externo verificado: 3 testers existentes');
   if (release.what_to_test) {
     const localizations = await api(`/v1/builds/${build.id}/betaBuildLocalizations`);
     const localization = localizations.data.find(l => l.attributes.locale === 'es-ES');
@@ -105,7 +105,7 @@ if (externalRelease) {
   }
   const verified = await api(externalPath);
   if (!verified.data.some(b => b.id === build.id) || !detail.attributes.autoNotifyEnabled) throw new Error('No quedó confirmada la distribución externa');
-  console.log(`Build ${BUILD_NUMBER} asignado a Reynaldo y Joaquín; estado externo: ${detail.attributes.externalBuildState}; notificación automática activada`);
+  console.log(`Build ${BUILD_NUMBER} asignado al grupo externo existente; estado externo: ${detail.attributes.externalBuildState}; notificación automática activada`);
   if (process.env.GITHUB_STEP_SUMMARY) await import('node:fs/promises').then(({appendFile}) => appendFile(process.env.GITHUB_STEP_SUMMARY,
-    `### Rimonim 1.0 (${BUILD_NUMBER})\n- Grupo verificado: Reynaldo y Joaquín (2 testers existentes).\n- Estado de Apple: ${detail.attributes.externalBuildState}.\n- Aviso automático de la actualización: activado.\n- No se agregaron testers ni permisos.\n`));
+    `### Empaco 1.0 (${BUILD_NUMBER})\n- Grupo verificado: 3 testers existentes.\n- Estado de Apple: ${detail.attributes.externalBuildState}.\n- Aviso automático de la actualización: activado.\n- No se agregaron testers ni permisos.\n`));
 }

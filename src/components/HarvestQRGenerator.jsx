@@ -26,13 +26,13 @@ export default function HarvestQRGenerator() {
     setError(''); setBusy(true);
     try {
       const pdf = await harvestLabelsPdf(labels, format);
-      pdf.save(`Rimonim-QR-bines-${labels[0].code.slice(-8)}.pdf`);
+      pdf.save(`Empaco-QR-bines-${labels[0].code.slice(-8)}.pdf`);
     } catch (e) { setError(e.message || 'No se pudo descargar el PDF'); }
     finally { setBusy(false); }
   }
   async function print() {
     setBusy(true);
-    try { await printHtml(harvestLabelsHtml(labels, format), 'Rimonim · QR bines de cosecha'); }
+    try { await printHtml(harvestLabelsHtml(labels, format), 'Empaco · QR bines de cosecha'); }
     finally { setBusy(false); }
   }
   return <Card>
