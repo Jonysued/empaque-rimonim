@@ -109,7 +109,7 @@ export default function Prefrio() {
           <h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Snowflake className="w-6 h-6" /> Prefrío</h1>
           <p className="text-muted-foreground">Túneles de pre-enfriado</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setShowAdd(true)}><Plus className="w-4 h-4 mr-1" /> Nuevo túnel</Button>
           <Button onClick={() => setScanMode(!scanMode)}><Snowflake className="w-4 h-4 mr-1" /> {scanMode ? "Salir" : "Cargar pallet"}</Button>
         </div>
@@ -229,13 +229,13 @@ function TunnelForm({ onClose, onSaved }) {
       <h3 className="font-medium">Nuevo túnel</h3>
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="space-y-1"><Label className="text-xs">Nombre *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Túnel 1" /></div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1"><Label className="text-xs">Capacidad (pallets)</Label><Input type="number" value={form.capacity} onChange={e => setForm(f => ({ ...f, capacity: e.target.value }))} /></div>
           <div className="space-y-1"><Label className="text-xs">Posiciones</Label><Input type="number" value={form.positions} onChange={e => setForm(f => ({ ...f, positions: e.target.value }))} /></div>
           <div className="space-y-1"><Label className="text-xs">Setpoint (°C)</Label><Input type="number" step="0.1" value={form.setpoint_temp} onChange={e => setForm(f => ({ ...f, setpoint_temp: e.target.value }))} /></div>
           <div className="space-y-1"><Label className="text-xs">Temp. objetivo (°C)</Label><Input type="number" step="0.1" value={form.target_temp} onChange={e => setForm(f => ({ ...f, target_temp: e.target.value }))} /></div>
         </div>
-        <div className="flex gap-2 justify-end">
+        <div className="flex flex-wrap gap-2 justify-end">
           <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
           <Button type="submit" disabled={saving}>{saving ? "Creando…" : "Crear"}</Button>
         </div>

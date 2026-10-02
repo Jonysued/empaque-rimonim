@@ -160,7 +160,7 @@ export default function QRScanner({ onScan, label = "Escanear QR" }) {
         </div>
       )}
       {manual && (
-        <form onSubmit={submitManual} className="flex gap-2">
+        <form onSubmit={submitManual} className="flex flex-col sm:flex-row gap-2">
           <Input
             autoFocus
             placeholder="Ej: RIM-XXXXX o ROM-2026-00001"

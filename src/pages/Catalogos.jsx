@@ -84,7 +84,7 @@ export default function Catalogos() {
         <LocationConfig type={activeType === "loc_tunel" ? "tunel" : "camara"} />
       ) : (
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
+        <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center gap-3 justify-between">
           <CardTitle className="text-base">{CONFIG_TABS.find(t => t.value === activeType)?.label}</CardTitle>
           <Button size="sm" onClick={() => { setEditing(null); setShowForm(true); }}><Plus className="w-4 h-4 mr-1" /> Agregar</Button>
         </CardHeader>
@@ -155,7 +155,7 @@ function CatalogForm({ type, item, producers, onClose, onSaved }) {
           <div className="space-y-1"><Label className="text-xs">Etiqueta *</Label><Input value={label} onChange={e => setLabel(e.target.value)} autoFocus /></div>
           {type === "cuadro" && <div className="space-y-1"><Label className="text-xs">Productor *</Label><select className="flex h-10 w-full rounded-md border bg-background px-3 text-sm" value={producer} onChange={e => setProducer(e.target.value)} required><option value="">Seleccionar</option>{producers.map(p => <option key={p.id} value={p.label}>{p.label}</option>)}</select></div>}
           <div className="space-y-1"><Label className="text-xs">Valor interno (opcional)</Label><Input value={value} onChange={e => setValue(e.target.value)} placeholder="= etiqueta si vacío" /></div>
-          <div className="flex gap-2 justify-end pt-2">
+          <div className="flex flex-wrap gap-2 justify-end pt-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
             <Button type="submit" disabled={saving}>{saving ? "Guardando…" : "Guardar"}</Button>
           </div>

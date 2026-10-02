@@ -179,7 +179,7 @@ function ShipmentForm({ shipment = null, cats, pallets, onClose, onSaved }) {
             </Select>
           </div>
           <div className="space-y-1"><Label className="text-xs">Destino</Label><Select value={form.destination} onValueChange={v => setForm(f => ({ ...f, destination: v }))}><SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger><SelectContent>{form.destination && !(cats.destino || []).some(o => o.label === form.destination) && <SelectItem value={form.destination}>{form.destination}</SelectItem>}{(cats.destino || []).map(o => <SelectItem key={o.id} value={o.label}>{o.label}</SelectItem>)}</SelectContent></Select></div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Producto</Label>
               <Select value={form.product_type} disabled={loadedCount > 0} onValueChange={v => { setForm(f => ({ ...f, product_type: v })); setSelectedIds(new Set()); }}>
@@ -190,7 +190,7 @@ function ShipmentForm({ shipment = null, cats, pallets, onClose, onSaved }) {
             <div className="space-y-1"><Label className="text-xs">Capacidad objetivo</Label><Input type="number" min={Math.max(1, loadedCount)} step="1" value={form.target_capacity} onChange={e => setForm(f => ({ ...f, target_capacity: e.target.value }))} /></div>
           </div>
           <div className="space-y-1"><Label className="text-xs">Transportista</Label><Input value={form.carrier} onChange={e => setForm(f => ({ ...f, carrier: e.target.value }))} /></div>
-          {shipment && <div className="grid grid-cols-2 gap-3">
+          {shipment && <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1"><Label className="text-xs">Contenedor</Label><Input value={form.container_number} onChange={e => setForm(f => ({ ...f, container_number: e.target.value }))} /></div>
             <div className="space-y-1"><Label className="text-xs">Remito</Label><Input value={form.remito} onChange={e => setForm(f => ({ ...f, remito: e.target.value }))} /></div>
             <div className="space-y-1"><Label className="text-xs">Termógrafo</Label><Input value={form.thermograph} onChange={e => setForm(f => ({ ...f, thermograph: e.target.value }))} /></div>
@@ -217,7 +217,7 @@ function ShipmentForm({ shipment = null, cats, pallets, onClose, onSaved }) {
             )}
             <p className="text-xs text-muted-foreground">Selección: {selectedIds.size}/{capacity} pallets.</p>
           </div>}
-          <div className="flex gap-2 justify-end pt-2">
+          <div className="flex flex-wrap gap-2 justify-end pt-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
             <Button type="submit" disabled={saving}>{saving ? "Guardando…" : shipment ? "Guardar cambios" : "Crear carga"}</Button>
           </div>
@@ -266,7 +266,7 @@ function ShipmentPalletEditor({ shipment, pallets, onSaved }) {
     {palletToRemove && <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-2 text-sm">
       <p>¿Retirar el pallet {palletToRemove.romaneo_number} de la carga {shipment.load_number}?</p>
       <p>Volverá a estar disponible y se recalcularán el peso y los bultos.</p>
-      <div className="flex gap-2 justify-end">
+      <div className="flex flex-wrap gap-2 justify-end">
         <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => setPalletToRemove(null)}>Cancelar</Button>
         <Button type="button" size="sm" disabled={busy} onClick={() => changePallet(palletToRemove, true)}>{busy ? "Retirando…" : "Confirmar retiro"}</Button>
       </div>
@@ -355,7 +355,7 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
           <PrintPackingList shipment={{ ...shipment, ...Object.fromEntries(Object.entries(extra).filter(entry => entry[1])) }} pallets={loadedPallets} />
         <div className="space-y-4">
           <div className="flex justify-center"><QRLabel code={shipment.shipment_code} title="Despacho" subtitle={shipment.load_number} /></div>
-          <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
             <Info label="Cliente" value={shipment.client || "—"} />
             <Info label="Destino" value={shipment.destination || "—"} />
             <Info label="Producto" value={shipment.product_type === "fresco" ? "Fresco" : "Arilos"} />
@@ -368,7 +368,7 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
           {/* Datos de carga */}
           <div className="border-t pt-3 space-y-2">
             <h4 className="font-medium flex items-center gap-2"><ClipboardList className="w-4 h-4" /> Datos de carga</h4>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1"><Label className="text-xs">Contenedor</Label><Input value={extra.container_number} onChange={e => setExtra(f => ({ ...f, container_number: e.target.value }))} /></div>
               <div className="space-y-1"><Label className="text-xs">Remito</Label><Input value={extra.remito} onChange={e => setExtra(f => ({ ...f, remito: e.target.value }))} /></div>
               <div className="space-y-1"><Label className="text-xs">Termógrafo</Label><Input value={extra.thermograph} onChange={e => setExtra(f => ({ ...f, thermograph: e.target.value }))} /></div>
@@ -385,7 +385,7 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
                 <Button type="button" size="sm" variant="outline" onClick={() => setConfirmReopen(true)}>Reabrir para corregir pallets</Button>
               ) : <div className="space-y-2">
                 <p className="font-medium">¿Confirmás la reapertura de la carga {shipment.load_number}?</p>
-                <div className="flex gap-2 justify-end">
+                <div className="flex flex-wrap gap-2 justify-end">
                   <Button size="sm" variant="outline" disabled={reopening} onClick={() => setConfirmReopen(false)}>Cancelar</Button>
                   <Button size="sm" disabled={reopening} onClick={reopenShipment}>{reopening ? "Reabriendo…" : "Confirmar reapertura"}</Button>
                 </div>
@@ -398,7 +398,7 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
             ) : (
               <div className="space-y-1 max-h-48 overflow-y-auto">
                 {loadedPallets.map(p => (
-                  <div key={p.id} className="flex items-center justify-between gap-2 text-sm border rounded p-2">
+                  <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 text-sm border rounded p-2">
                     <span className="font-mono">{p.romaneo_number}</span>
                     <span className="ml-auto">{fmtKg(p.net_weight)} · {p.package_count || 0} bultos</span>
                     {canChangePallets && <Button type="button" size="sm" variant="outline" aria-label={`Retirar pallet ${p.romaneo_number}`} onClick={() => setPalletToRemove(p)}><Trash2 className="w-4 h-4 mr-1" /> Retirar</Button>}
@@ -409,7 +409,7 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
             {palletToRemove && <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-2 text-sm" role="group" aria-label="Confirmar retiro de pallet">
               <p className="font-medium">¿Retirar el pallet {palletToRemove.romaneo_number} de la carga {shipment.load_number}?</p>
               <p>Volverá a estar disponible para despacho. Se recalcularán el peso y los bultos, y el movimiento quedará registrado.</p>
-              <div className="flex gap-2 justify-end">
+              <div className="flex flex-wrap gap-2 justify-end">
                 <Button size="sm" variant="outline" disabled={removing} onClick={() => setPalletToRemove(null)}>Cancelar</Button>
                 <Button size="sm" disabled={removing} onClick={removePallet}>{removing ? "Retirando…" : "Confirmar retiro"}</Button>
               </div>
@@ -426,5 +426,5 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
 }
 
 function Info({ label, value }) {
-  return <div className="flex justify-between border-b pb-1"><span className="text-muted-foreground">{label}</span><span className="font-medium text-right">{value}</span></div>;
+  return <div className="min-w-0 flex justify-between gap-3 border-b pb-1"><span className="text-muted-foreground">{label}</span><span className="min-w-0 break-words font-medium text-right">{value}</span></div>;
 }

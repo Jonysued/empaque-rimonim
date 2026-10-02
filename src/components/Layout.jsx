@@ -81,7 +81,7 @@ export default function Layout() {
         <div className="flex items-center gap-2">
           <img src={rimonimLogo} alt="Rimonim" className="w-32 h-auto rounded" />
         </div>
-        <button onClick={() => setSidebarOpen(true)} className="p-2 -mr-2">
+        <button aria-label="Abrir menú" onClick={() => setSidebarOpen(true)} className="p-3 -mr-2 shrink-0">
           <Menu className="w-5 h-5" />
         </button>
       </header>
@@ -91,9 +91,9 @@ export default function Layout() {
         <div className="lg:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/40" onClick={() => setSidebarOpen(false)} />
           <aside className="app-mobile-drawer absolute inset-y-0 left-0 w-72 max-w-[80%] bg-background shadow-xl flex flex-col">
-            <div className="h-14 flex items-center justify-between px-4 border-b">
+            <div className="h-14 shrink-0 flex items-center justify-between px-4 border-b">
               <span className="font-bold">Menú</span>
-              <button onClick={() => setSidebarOpen(false)} className="p-2 -mr-2"><X className="w-5 h-5" /></button>
+              <button aria-label="Cerrar menú" onClick={() => setSidebarOpen(false)} className="p-3 -mr-2 shrink-0"><X className="w-5 h-5" /></button>
             </div>
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
               {NAV.filter(item => canAccess(user?.role || "user", item.to)).map(item => {
@@ -119,8 +119,8 @@ export default function Layout() {
       )}
 
       {/* Content */}
-      <main className="lg:pl-60">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="min-w-0 lg:pl-60">
+        <div className="app-content min-w-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <SyncStatus />
           <Outlet />
         </div>

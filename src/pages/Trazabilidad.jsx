@@ -226,13 +226,13 @@ function TraceResult({ result, allData }) {
 function EntityBlock({ icon: Icon, title, code, data }) {
   return (
     <div className="border rounded-lg p-3">
-      <div className="flex items-center gap-2 mb-2">
+      <div className="flex flex-wrap items-center gap-2 mb-2">
         <Icon className="w-4 h-4 text-muted-foreground" />
         <span className="font-medium text-sm">{title}</span>
         <span className="font-mono text-xs text-muted-foreground ml-auto">{code}</span>
       </div>
-      <div className="grid grid-cols-2 gap-1 text-sm">
-        {data.map(([k, v], i) => <div key={i} className="flex justify-between"><span className="text-muted-foreground">{k}</span><span className="font-medium text-right">{v}</span></div>)}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-sm">
+        {data.map(([k, v], i) => <div key={i} className="flex min-w-0 justify-between gap-3"><span className="text-muted-foreground">{k}</span><span className="min-w-0 break-words font-medium text-right">{v}</span></div>)}
       </div>
     </div>
   );
@@ -249,7 +249,7 @@ function TraceSection({ icon: Icon, title, items, render }) {
           return (
             <div key={item.id} className="border-l-2 border-muted pl-2 py-1 text-sm">
               <p className="font-mono text-xs">{r.code}</p>
-              <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-0.5">
                 {r.rows.map(([k, v], i) => <div key={i} className="text-xs"><span className="text-muted-foreground">{k}:</span> {v}</div>)}
               </div>
             </div>

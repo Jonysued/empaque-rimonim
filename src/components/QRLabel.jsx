@@ -20,9 +20,9 @@ export default function QRLabel({ code, title, subtitle, size = 160, onPrint = u
 
   return (
     <div className="flex flex-col items-center gap-2 p-3 border rounded-lg bg-white">
-      <img src={qrImageUrl(code, size)} width={size} height={size} alt={`QR ${code}`} />
+      <img src={qrImageUrl(code, size)} width={size} height={size} className="max-w-full h-auto" alt={`QR ${code}`} />
       <div className="text-center">
-        <p className="font-mono text-sm font-bold">{code}</p>
+        <p className="break-all font-mono text-sm font-bold">{code}</p>
         {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
       </div>
       <Button type="button" variant="outline" size="sm" onClick={onPrint || print}>

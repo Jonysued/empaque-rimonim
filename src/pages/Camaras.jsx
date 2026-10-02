@@ -76,7 +76,7 @@ export default function Camaras() {
           <h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Warehouse className="w-6 h-6" /> Cámaras</h1>
           <p className="text-muted-foreground">Cámaras frigoríficas</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setShowAdd(true)}><Plus className="w-4 h-4 mr-1" /> Nueva cámara</Button>
           <Button onClick={() => setScanMode(!scanMode)}><Warehouse className="w-4 h-4 mr-1" /> {scanMode ? "Salir" : "Ingresar pallet"}</Button>
         </div>
@@ -182,7 +182,7 @@ function ChamberForm({ onClose, onSaved }) {
       <h3 className="font-medium">Nueva cámara</h3>
       <form onSubmit={handleSubmit} className="space-y-3">
         <div className="space-y-1"><Label className="text-xs">Nombre *</Label><Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Cámara 1" /></div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div className="space-y-1"><Label className="text-xs">Capacidad</Label><Input type="number" value={form.capacity} onChange={e => setForm(f => ({ ...f, capacity: e.target.value }))} /></div>
           <div className="space-y-1"><Label className="text-xs">Setpoint (°C)</Label><Input type="number" step="0.1" value={form.setpoint_temp} onChange={e => setForm(f => ({ ...f, setpoint_temp: e.target.value }))} /></div>
           <div className="space-y-1"><Label className="text-xs">Humedad (%)</Label><Input type="number" value={form.humidity} onChange={e => setForm(f => ({ ...f, humidity: e.target.value }))} /></div>
@@ -191,7 +191,7 @@ function ChamberForm({ onClose, onSaved }) {
           <Label className="text-xs">Tipo de producto</Label>
           <Input value={form.product_type_filter} onChange={e => setForm(f => ({ ...f, product_type_filter: e.target.value }))} placeholder="fresco, arilos, sin_procesar (opcional)" />
         </div>
-        <div className="flex gap-2 justify-end">
+        <div className="flex flex-wrap gap-2 justify-end">
           <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
           <Button type="submit" disabled={saving}>{saving ? "Creando…" : "Crear"}</Button>
         </div>

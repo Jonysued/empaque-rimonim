@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - 'ios/App/App/Assets.xcassets/AppIcon.appiconset/**'
+      - 'ios/App/App.xcodeproj/project.pbxproj'
 
 jobs:
   upload:

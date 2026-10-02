@@ -108,3 +108,34 @@ html.capacitor-ios .app-mobile-drawer {
   top: env(safe-area-inset-top, 0px);
   bottom: env(safe-area-inset-bottom, 0px);
 }
+
+/* Constrain dialogs to the visible area, including keyboard and iOS safe areas. */
+.app-dialog-content {
+  width: calc(100% - 2rem);
+  top: calc(var(--app-viewport-top, 0px) + env(safe-area-inset-top, 0px) + (var(--app-viewport-height, 100dvh) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) / 2);
+  max-height: calc(var(--app-viewport-height, 100dvh) - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 2rem);
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  overflow-wrap: anywhere;
+}
+.app-dialog-content > * { min-width: 0; }
+.app-content { overflow-wrap: anywhere; }
+.app-content .grid > *, .app-dialog-content .grid > * { min-width: 0; }
+.app-content h1 > svg { flex-shrink: 0; }
+@media (max-width: 639px) {
+  .app-dialog-content { padding: 1rem; border-radius: 0.75rem; }
+  .app-content button, .app-dialog-content button {
+    max-width: 100%;
+    white-space: normal;
+    min-height: 2.75rem;
+    height: auto;
+  }
+  .app-content input, .app-content select, .app-dialog-content input,
+  .app-dialog-content select, .app-dialog-content textarea,
+  .app-dialog-content button[role="combobox"] { font-size: 16px; }
+}
+html.capacitor-ios .app-content {
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+}

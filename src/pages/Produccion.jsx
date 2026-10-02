@@ -67,7 +67,7 @@ export default function Produccion() {
           <h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Factory className="w-6 h-6" /> Producción</h1>
           <p className="text-muted-foreground">Clasificación y pallets</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button onClick={() => setFormPallet("new")}><Package className="w-4 h-4 mr-1" /> Nuevo pallet</Button>
         </div>
       </div>
@@ -78,10 +78,10 @@ export default function Produccion() {
         <div className="space-y-6">
           {/* Pallets */}
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+            <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center gap-3 justify-between space-y-0">
               <CardTitle className="text-base">Pallets / Romaneos</CardTitle>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos los estados</SelectItem>
                   {PALLET_STATUSES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
@@ -205,7 +205,7 @@ function PalletForm({ cats, onClose, onSaved, pallet }) {
         <DialogHeader><DialogTitle>{pallet ? `Editar pallet ${pallet.romaneo_number}` : "Nuevo pallet / romaneo"}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           {error && <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{error}</p>}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Producto *</Label>
               <Select value={form.product_type} onValueChange={v => update("product_type", v)}>
@@ -261,7 +261,7 @@ function PalletForm({ cats, onClose, onSaved, pallet }) {
             <div className="space-y-1"><Label className="text-xs">Tara (kg)</Label><Input type="number" step="0.1" value={form.tare_weight} onChange={e => update("tare_weight", e.target.value)} /></div>
             <div className="space-y-1"><Label className="text-xs">Peso neto (kg) *</Label><Input type="number" step="0.1" value={form.net_weight} onChange={e => update("net_weight", e.target.value)} /></div>
           </div>
-          <div className="flex gap-2 justify-end pt-2">
+          <div className="flex flex-wrap gap-2 justify-end pt-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
             <Button type="submit" disabled={saving}>{saving ? "Guardando…" : pallet ? "Guardar cambios" : "Crear pallet"}</Button>
           </div>
@@ -280,7 +280,7 @@ function PalletDetail({ pallet, onClose, onEdit, onDelete }) {
           <div className="flex justify-center">
             <img src={`https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(pallet.pallet_code)}&size=180x180`} width={180} height={180} alt="QR" />
           </div>
-          <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
             <Info label="Código" value={pallet.pallet_code} />
             <Info label="Producto" value={pallet.product_type === "fresco" ? "Fresco" : "Arilos"} />
             <Info label="Productor" value={pallet.producer || "—"} />
@@ -294,7 +294,7 @@ function PalletDetail({ pallet, onClose, onEdit, onDelete }) {
             <Info label="Estado" value={pallet.status} />
           </div>
           <PalletJourney pallet={pallet} />
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <PrintRomaneo pallet={pallet} />
             <Button variant="outline" className="flex-1" onClick={onEdit}>Editar</Button>
             <Button variant="destructive" onClick={onDelete}>Eliminar</Button>
@@ -306,5 +306,5 @@ function PalletDetail({ pallet, onClose, onEdit, onDelete }) {
 }
 
 function Info({ label, value }) {
-  return <div className="flex justify-between border-b pb-1"><span className="text-muted-foreground">{label}</span><span className="font-medium text-right">{value}</span></div>;
+  return <div className="min-w-0 flex justify-between gap-3 border-b pb-1"><span className="text-muted-foreground">{label}</span><span className="min-w-0 break-words font-medium text-right">{value}</span></div>;
 }

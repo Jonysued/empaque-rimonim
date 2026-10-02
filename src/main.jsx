@@ -12,6 +12,16 @@ if (Capacitor.getPlatform() === 'ios') {
   )
 }
 
+const updateViewport = () => {
+  const viewport = window.visualViewport;
+  document.documentElement.style.setProperty('--app-viewport-height', `${viewport?.height || window.innerHeight}px`);
+  document.documentElement.style.setProperty('--app-viewport-top', `${viewport?.offsetTop || 0}px`);
+};
+updateViewport();
+window.visualViewport?.addEventListener('resize', updateViewport);
+window.visualViewport?.addEventListener('scroll', updateViewport, { passive: true });
+window.addEventListener('resize', updateViewport);
+
 ReactDOM.createRoot(document.getElementById('root')).render(
   <App />
 )

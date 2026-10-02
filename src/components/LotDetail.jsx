@@ -110,5 +110,5 @@ export default function LotDetail({ lot, bins, availableBins = undefined, printF
 }
 
 function Info({ label, value }) {
-  return <div className="flex justify-between gap-3 border-b pb-1"><span className="text-muted-foreground">{label}</span><span className="font-medium text-right">{value || '—'}</span></div>;
+  return <div className="min-w-0 flex justify-between gap-3 border-b pb-1"><span className="text-muted-foreground">{label}</span><span className="min-w-0 break-words font-medium text-right">{value || '—'}</span></div>;
 }

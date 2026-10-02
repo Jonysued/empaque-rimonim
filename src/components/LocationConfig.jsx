@@ -27,7 +27,7 @@ export default function LocationConfig({ type }) {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center gap-3 justify-between">
         <CardTitle className="text-base">{isTunnel ? "Túneles de prefrío" : "Cámaras de frío"}</CardTitle>
         <Button size="sm" onClick={() => { setEditing(null); setShowForm(true); }}>
           <Plus className="w-4 h-4 mr-1" /> Agregar
@@ -41,15 +41,15 @@ export default function LocationConfig({ type }) {
         ) : (
           <div className="space-y-1">
             {items.map((loc) => (
-              <div key={loc.id} className="flex items-center justify-between border rounded-lg p-2">
-                <div>
+              <div key={loc.id} className="flex min-w-0 items-center justify-between gap-3 border rounded-lg p-2">
+                <div className="min-w-0">
                   <p className="font-medium text-sm">
                     {loc.name}{" "}
                     {!loc.active && <span className="text-xs text-destructive">(inactivo)</span>}
                   </p>
                   <p className="text-xs text-muted-foreground font-mono">{loc.location_code}</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex shrink-0 items-center gap-3">
                   <div className="hidden sm:flex gap-3 text-xs text-muted-foreground">
                     <span>Capacidad: {loc.capacity ?? "—"}</span>
                     <span>Ocupados: {loc.occupied ?? 0}</span>
@@ -144,7 +144,7 @@ function LocationForm({ type, item, onClose, onSaved }) {
             <Label className="text-xs">Nombre *</Label>
             <Input value={form.name} onChange={(e) => set("name", e.target.value)} autoFocus />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Capacidad (pallets)</Label>
               <Input type="number" value={form.capacity} onChange={(e) => set("capacity", e.target.value)} />
@@ -194,7 +194,7 @@ function LocationForm({ type, item, onClose, onSaved }) {
               </Select>
             </div>
           </div>
-          <div className="flex gap-2 justify-end pt-2">
+          <div className="flex flex-wrap gap-2 justify-end pt-2">
             <Button type="button" variant="outline" onClick={onClose}>Cancelar</Button>
             <Button type="submit" disabled={saving}>{saving ? "Guardando…" : "Guardar"}</Button>
           </div>

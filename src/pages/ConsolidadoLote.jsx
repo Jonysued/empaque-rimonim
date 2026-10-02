@@ -42,6 +42,6 @@ function ConsolidationForm({onClose,onSaved}) {
   return <Dialog open onOpenChange={()=>{if(!saving)onClose();}}><DialogContent className="max-w-lg"><DialogHeader><DialogTitle>Nuevo consolidado de lote</DialogTitle></DialogHeader>
     <form onSubmit={save} className="space-y-4"><div className="space-y-1"><Label htmlFor="consolidation-transport">Nombre del transporte *</Label><Input id="consolidation-transport" required disabled={saving} value={transport} onChange={e=>setTransport(e.target.value)} /></div>
       <p className="text-sm text-muted-foreground">Después escaneá los QR de los bines cosechados que integran este lote y presioná «Cerrar lote».</p>
-      {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}<div className="flex gap-2 justify-end"><Button type="button" variant="outline" disabled={saving} onClick={onClose}>Cancelar</Button><Button type="submit" disabled={saving}>{saving?'Guardando…':'Crear lote y escanear bines'}</Button></div>
+      {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}<div className="flex flex-col sm:flex-row gap-2 justify-end"><Button type="button" variant="outline" disabled={saving} onClick={onClose}>Cancelar</Button><Button type="submit" disabled={saving}>{saving?'Guardando…':'Crear lote y escanear bines'}</Button></div>
     </form></DialogContent></Dialog>;
 }
