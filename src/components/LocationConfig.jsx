@@ -83,8 +83,8 @@ function LocationForm({ type, item, onClose, onSaved }) {
   const [form, setForm] = useState({
     location_code: item?.location_code || "",
     name: item?.name || "",
-    capacity: item?.capacity ?? "",
-    positions: item?.positions ?? "",
+    capacity: item?.capacity ?? (isTunnel ? 18 : 101),
+    positions: item?.positions ?? (isTunnel ? 18 : ""),
     setpoint_temp: item?.setpoint_temp ?? "",
     target_temp: item?.target_temp ?? "",
     humidity: item?.humidity ?? "",
@@ -92,6 +92,7 @@ function LocationForm({ type, item, onClose, onSaved }) {
     active: item?.active ?? true,
   });
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   const num = (v) => (v === "" || v === null || v === undefined ? undefined : Number(v));
@@ -118,7 +119,7 @@ function LocationForm({ type, item, onClose, onSaved }) {
       }
       onSaved();
     } catch (err) {
-      console.error(err);
+      setError(err.message || "No se pudo guardar la ubicación");
       setSaving(false);
     }
   }
@@ -130,6 +131,8 @@ function LocationForm({ type, item, onClose, onSaved }) {
           <DialogTitle>{item ? "Editar" : "Agregar"} {isTunnel ? "túnel" : "cámara"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
+          {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+          <p className="text-xs text-muted-foreground">La distribución y su capacidad se eligen desde el plano de Frío.</p>
           <div className="space-y-1">
             <Label className="text-xs">Código QR *</Label>
             <Input
@@ -147,12 +150,12 @@ function LocationForm({ type, item, onClose, onSaved }) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Capacidad (pallets)</Label>
-              <Input type="number" value={form.capacity} onChange={(e) => set("capacity", e.target.value)} />
+              <Input disabled={Boolean(item?.storage_layout) || Number(item?.occupied) > 0} type="number" value={form.capacity} onChange={(e) => set("capacity", e.target.value)} />
             </div>
             {isTunnel && (
               <div className="space-y-1">
                 <Label className="text-xs">Posiciones internas</Label>
-                <Input type="number" value={form.positions} onChange={(e) => set("positions", e.target.value)} />
+                <Input disabled={Boolean(item?.storage_layout) || Number(item?.occupied) > 0} type="number" value={form.positions} onChange={(e) => set("positions", e.target.value)} />
               </div>
             )}
             <div className="space-y-1">

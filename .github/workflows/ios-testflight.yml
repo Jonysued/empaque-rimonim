@@ -38,7 +38,7 @@ jobs:
             if [[ -z "${!name}" ]]; then echo "Missing $name" >&2; exit 1; fi
           done
       - name: Build web assets and sync iOS
-        run: npm run lint && npm run typecheck && node scripts/check-offline-queue.mjs && npm run mobile:ios:sync
+        run: npm run lint && npm run typecheck && node scripts/check-offline-queue.mjs && npm run check:cold-storage && npm run mobile:ios:sync
       - name: Install signing assets
         env:
           RUNNER_TEMP_KEYCHAIN: ${{ runner.temp }}/rimonim-signing.keychain-db

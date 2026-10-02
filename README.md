@@ -41,3 +41,17 @@ Shipment loading and departure are distinct. Apply `20260930191411_dashboard_pal
 Dashboard delay limits are optional hours saved in a Catalog record of type dashboard_limits, shared across users. Only administrators and supervisors can edit them. The dashboard refreshes automatically every minute while visible, on focus and after queue changes. Pending local commands are explicitly identified and do not contribute to confirmed totals or averages.
 
 Validation: `npm run lint`, `npm run typecheck`, `npm run build`, `node scripts/check-dashboard-metrics.mjs`, and existing workflow/queue checks. Execute `scripts/check-dashboard-departure.sql` to validate departure timestamps, replay behavior, corrections and permissions; synthetic data is rolled back. Installed native apps require a separate new build.
+
+### Planos y posiciones de frío
+
+En Prefrío y Cámaras se elige primero la distribución. Los túneles tienen 18 posiciones (dos filas de nueve); las cámaras admiten cinco cargas (20 + 20 + 20 + 20 + **21**, total 101) o cuatro cargas de 21 (total 84). La numeración respeta los planos físicos. Las cargas son sectores de almacenamiento y no representan despachos.
+
+El servidor asigna la primera posición libre por número en la carga seleccionada. «Editar posición» permite confirmar otra posición libre. No se puede cambiar la distribución con posiciones asignadas. Los pallets históricos quedan pendientes de ubicar: el operador confirma su ubicación real y no se inventa una fecha de ingreso.
+
+Se puede iniciar un túnel con al menos un pallet, sin completarlo. Desde el inicio hasta el fin del ciclo no se puede agregar, retirar ni cambiar posiciones, incluso desde otro dispositivo o mediante las APIs anteriores. Todos los miembros conservan el mismo inicio y fin. Finalizar cambia el estado a `prefrio_finalizado` pero **conserva la ubicación y su ocupación** hasta confirmar la salida o escanear el pallet en una cámara. Ese traslado directo confirma ambas ubicaciones en una sola transacción.
+
+Se muestran por separado la espera antes del prefrío y el prefrío efectivo. En cámara, cada pallet tiene su propio tiempo desde el ingreso; cada carga conserva el ingreso del primer pallet, su primera fecha de completado y su inicio (automático al completarse o manual si está incompleta). La carga termina cuando sale su último pallet. El historial conserva los miembros y tiempos aunque cambie la ocupación.
+
+Sin conexión, los movimientos se guardan con un UUID y se muestran pendientes; no reservan una posición confirmada. Al reconectar, el servidor valida la asignación original y la versión del plano, asigna una posición libre y evita duplicados. Los cambios de distribución y de ciclo requieren conexión. Los conflictos permanecen en revisión en el indicador de sincronización. El inicio de un ciclo se deshabilita si este dispositivo tiene movimientos pendientes en ese túnel.
+
+Verificaciones de regresión: `npm run check:cold-storage`, `node scripts/check-offline-queue.mjs` y `node scripts/check-dashboard-metrics.mjs`. La primera ejecuta la migración en PostgreSQL aislado (PGlite) con políticas de acceso y comprueba además el almacenamiento IndexedDB real, sin utilizar registros productivos.

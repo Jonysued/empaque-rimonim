@@ -1,5 +1,5 @@
 import { supabase } from "@/api/base44Client";
-import { listCommands, removeCommand, saveCommand, readLastOwner } from "@/lib/offlineStore";
+import { listCommands, removeCommand, saveCommand, enqueueCommand, readLastOwner } from "@/lib/offlineStore";
 import { Capacitor } from "@capacitor/core";
 
 const notify = () => window.dispatchEvent(new Event("rimonim-queue-change"));
@@ -66,17 +66,16 @@ async function drain(ownerId) {
 
 export async function syncOperations() {
   if (draining) return draining;
-  const ownerId = await currentOwner();
-  draining = drain(ownerId).finally(() => { draining = null; });
+  draining = (async () => {
+    const ownerId = await currentOwner();
+    if (navigator.locks) return navigator.locks.request("rimonim-operation-sync", () => drain(ownerId));
+    return drain(ownerId);
+  })().finally(() => { draining = null; });
   return draining;
 }
 
 export async function submitOperation(rpc, params, resourceKey, operationId = crypto.randomUUID()) {
   const ownerId = await currentOwner();
-  const operations = await listCommands(ownerId);
-  if (operations.some(item => item.resourceKey === resourceKey)) {
-    throw new Error("Este registro ya tiene una operación pendiente o en revisión");
-  }
   const id = operationId;
   const command = {
     id, ownerId, rpc, params: { ...params, p_operation_id: id }, resourceKey,
@@ -84,7 +83,7 @@ export async function submitOperation(rpc, params, resourceKey, operationId = cr
   };
   // Persist first: if the process dies after the server commits, replaying this
   // exact UUID returns the first result instead of repeating the movement.
-  await saveCommand(command);
+  await enqueueCommand(command);
   notify();
   if (navigator.onLine) await syncOperations();
   const remaining = (await listCommands(ownerId)).find(item => item.id === id);

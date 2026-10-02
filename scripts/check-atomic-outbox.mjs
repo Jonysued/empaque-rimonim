@@ -1,0 +1,14 @@
+import assert from 'node:assert/strict';
+import 'fake-indexeddb/auto';
+import { enqueueCommand, listCommands, removeCommand } from '../src/lib/offlineStore.js';
+const command=(id,resourceKey)=>({id,resourceKey,ownerId:'operator',createdAt:'2026-10-02T01:00:00Z'});
+const duplicate=await Promise.allSettled([enqueueCommand(command('first','pallet:a')),enqueueCommand(command('second','pallet:a'))]);
+assert.equal(duplicate.filter(r=>r.status==='fulfilled').length,1);
+assert.equal((await listCommands('operator')).length,1);
+await Promise.all([enqueueCommand(command('z','pallet:b')),enqueueCommand(command('a','pallet:c'))]);
+assert.deepEqual((await listCommands('operator')).map(c=>c.id),['first','z','a']);
+assert.equal((await listCommands('other-account')).length,0);
+await removeCommand('first');
+await enqueueCommand(command('new','pallet:a'));
+assert.deepEqual((await listCommands('operator')).map(c=>c.id),['z','a','new']);
+console.log('IndexedDB real: doble escaneo concurrente, orden de escaneos y separación de cuentas: OK');

@@ -13,7 +13,8 @@
     "mobile:android": "npm run build && npx cap add android && node scripts/configure-android.mjs && npx cap sync android",
     "mobile:sync": "npm run build && node scripts/configure-android.mjs && npx cap sync android",
     "mobile:ios:sync": "npm run build && npx cap sync ios",
-    "import-data": "node scripts/import-base44.mjs"
+    "import-data": "node scripts/import-base44.mjs",
+    "check:cold-storage": "node scripts/check-cold-storage.mjs && node scripts/check-atomic-outbox.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",
@@ -90,6 +91,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@eslint/js": "^9.19.0",
     "@types/node": "^22.13.5",
     "@types/react": "^18.2.66",
@@ -102,6 +104,7 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.18",
     "eslint-plugin-unused-imports": "^4.3.0",
+    "fake-indexeddb": "^6.2.5",
     "globals": "^15.14.0",
     "nitro": "^3.0.260610-beta",
     "postcss": "^8.5.3",

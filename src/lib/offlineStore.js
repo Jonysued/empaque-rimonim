@@ -43,4 +43,33 @@ export const removeCommand = id => store("commands", "readwrite", s => s.delete(
 export const listCommands = async ownerId =>
   (await store("commands", "readonly", s => s.getAll()))
     .filter(command => command.ownerId === ownerId)
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    .sort((a, b) => a.sequence && b.sequence ? a.sequence - b.sequence : a.createdAt.localeCompare(b.createdAt));
+
+// One read/write transaction across tabs prevents double scans from enqueuing
+// two commands for the same pallet. A persisted sequence preserves scan order
+// even when several scans share the same millisecond.
+export async function enqueueCommand(command) {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(["commands", "snapshots"], "readwrite");
+    const commands = tx.objectStore("commands"), snapshots = tx.objectStore("snapshots");
+    let failure;
+    const lookup = commands.getAll();
+    lookup.onsuccess = () => {
+      if (lookup.result.some(item => item.ownerId === command.ownerId && item.resourceKey === command.resourceKey)) {
+        failure = new Error("Este registro ya tiene una operación pendiente o en revisión");
+        tx.abort();
+        return;
+      }
+      const counter = snapshots.get("command-sequence");
+      counter.onsuccess = () => {
+        const sequence = Number(counter.result || 0) + 1;
+        snapshots.put(sequence, "command-sequence");
+        commands.add({ ...command, sequence });
+      };
+    };
+    tx.oncomplete = () => resolve(undefined);
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(failure || tx.error);
+  });
+}

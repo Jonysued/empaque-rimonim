@@ -44,7 +44,7 @@ export function palletJourney(pallet, movements, shipments, now = Date.now()) {
   let state='toTunnel', stateAt=timestamp(pallet.created_date), location='Producción';
   for(const event of events) {
     const action=event.operation_action || event.action;
-    rows.push({id:event.id,action,at:event.at,location:event.destination_location_name || event.origin_location_name || '',elapsed:rows.at(-1)?.at !== null && event.at>=rows.at(-1)?.at ? event.at-rows.at(-1).at : null});
+    rows.push({id:event.id,action,at:event.at,location:event.destination_location_name || event.origin_location_name || '',section:event.destination_section ?? event.origin_section,position:event.destination_position ?? event.origin_position,elapsed:rows.at(-1)?.at !== null && event.at>=rows.at(-1)?.at ? event.at-rows.at(-1).at : null});
     if(action==='carga_tunel') {
       if(!firstTunnel) { add('toTunnel',pallet.created_date,event.at); firstTunnel=true; }
       tunnel={at:event.at,location:event.destination_location_id}; state='tunnel'; stateAt=event.at; location=event.destination_location_name || 'Túnel';
@@ -52,6 +52,7 @@ export function palletJourney(pallet, movements, shipments, now = Date.now()) {
       if(tunnel && (!event.origin_location_id || tunnel.location===event.origin_location_id)) add('tunnel',tunnel.at,event.at); else invalid++;
       tunnel=null; lastTunnelExit=event.at; state='toChamber'; stateAt=event.at; location='Espera de cámara';
     } else if(action==='carga_camara') {
+      if(tunnel && tunnel.location===event.origin_location_id) { add('tunnel',tunnel.at,event.at); lastTunnelExit=event.at; tunnel=null; }
       if(lastTunnelExit !== null) { add('toChamber',lastTunnelExit,event.at); lastTunnelExit=null; }
       chamber={at:event.at,location:event.destination_location_id}; state='chamber'; stateAt=event.at; location=event.destination_location_name || 'Cámara';
     } else if(action==='retiro_camara' || action==='traslado' && event.origin_location_id && !event.destination_location_id) {

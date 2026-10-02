@@ -41,13 +41,17 @@ const supabase = {
 };
 const listCommands = async user => [...commands.values()].filter(c => c.ownerId === user).sort((a,b) => a.createdAt.localeCompare(b.createdAt));
 const saveCommand = async command => commands.set(command.id, command);
+const enqueueCommand = async command => {
+  if ([...commands.values()].some(c => c.ownerId === command.ownerId && c.resourceKey === command.resourceKey)) throw new Error('Operación pendiente');
+  commands.set(command.id, command);
+};
 const removeCommand = async id => commands.delete(id);
 const readLastOwner = async () => owner;
 const Capacitor = { isNativePlatform: () => true };
 const source = (await readFile('src/lib/operationQueue.js', 'utf8'))
   .replace(/^import .*;\n/gm, '')
   .replace(/^export /gm, '');
-const queue = new Function('supabase', 'Capacitor', 'readLastOwner', 'listCommands', 'saveCommand', 'removeCommand', `${source}\nreturn { submitOperation, syncOperations };`)(supabase, Capacitor, readLastOwner, listCommands, saveCommand, removeCommand);
+const queue = new Function('supabase', 'Capacitor', 'readLastOwner', 'listCommands', 'saveCommand', 'enqueueCommand', 'removeCommand', `${source}\nreturn { submitOperation, syncOperations };`)(supabase, Capacitor, readLastOwner, listCommands, saveCommand, enqueueCommand, removeCommand);
 const id = 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
 const params = { p_lot_id: 'lot-1', p_bins: 2, p_dump_code: 'VOL-1' };
 assert.deepEqual(await queue.submitOperation('dump_lot_by_bins', params, 'lot:lot-1', id), { operation_id: id, pending: true });
