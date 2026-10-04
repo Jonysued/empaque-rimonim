@@ -9,7 +9,7 @@ on:
       build_number:
         description: iOS build number
         required: true
-        default: '14'
+        default: '15'
       release_external:
         description: Enable the existing confirmed external group
         type: boolean

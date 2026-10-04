@@ -1,6 +1,6 @@
 {
-  "build_number": "14",
+  "build_number": "15",
   "external": true,
-  "what_to_test": "Empaco: ícono del teléfono corregido, con fondo blanco y la e verde centrada dentro del círculo, igual a la identidad de la web. Revisar el ícono al actualizar la app. Las funciones operativas y los datos se conservan.",
+  "what_to_test": "Empaco: logo más grande en el encabezado del celular, sin aumentar su altura. Corregidos los campos Desde y Hasta del dashboard para que no sobresalgan de la tarjeta en iPhone. Revisar el menú y la selección de fechas. Las funciones operativas y los datos se conservan.",
   "verification_attempt": 1
 }

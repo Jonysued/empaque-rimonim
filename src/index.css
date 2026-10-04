@@ -123,6 +123,11 @@ html.capacitor-ios .app-mobile-drawer {
 .app-content { overflow-wrap: anywhere; }
 .app-content .grid > *, .app-dialog-content .grid > * { min-width: 0; }
 .app-content h1 > svg { flex-shrink: 0; }
+/* Safari date controls have intrinsic sizing; keep their native picker while
+   constraining the dashboard field and its internal value to the card. */
+.dashboard-date-input { appearance: none; -webkit-appearance: none; }
+.dashboard-date-input::-webkit-date-and-time-value { min-width: 0; }
+.dashboard-date-input::-webkit-datetime-edit { min-width: 0; padding: 0; }
 @media (max-width: 639px) {
   .app-dialog-content { padding: 1rem; border-radius: 0.75rem; }
   .app-content button, .app-dialog-content button {

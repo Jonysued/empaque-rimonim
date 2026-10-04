@@ -78,8 +78,8 @@ export default function Layout() {
 
       {/* Topbar mobile */}
       <header className="app-mobile-header lg:hidden sticky top-0 z-30 h-14 bg-background border-b flex items-center justify-between px-4">
-        <div className="flex items-center gap-2">
-          <img src={empacoLogo} alt="Empaco" className="w-32 h-auto rounded" />
+        <div className="flex min-w-0 items-center">
+          <img src={empacoLogo} alt="Empaco" className="w-44 max-w-full h-auto rounded" />
         </div>
         <button aria-label="Abrir menú" onClick={() => setSidebarOpen(true)} className="p-3 -mr-2 shrink-0">
           <Menu className="w-5 h-5" />
