@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { gunzipSync } from 'node:zlib';
+import { preparePrivateHtml } from '../private-web/navigation.mjs';
 
 const OWNER = 'jonatan@rimonim.com.ar';
 export default async function handler(req, res) {
@@ -16,6 +17,7 @@ export default async function handler(req, res) {
   try {
     const auth = createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
     const { data: { user }, error: authError } = await auth.auth.getUser(token);
+    if (authError?.name === 'AuthRetryableFetchError' || authError?.status >= 500) return res.status(503).json({ error: 'No pudimos verificar la sesión en este momento. Volveremos a intentar.' });
     if (authError || !user?.email || !user.email_confirmed_at) return res.status(401).json({ error: 'Sesión inválida o email sin verificar.' });
     const email = user.email.toLowerCase();
     const owner = email === OWNER;
@@ -55,7 +57,7 @@ export default async function handler(req, res) {
     const { data: design, error } = await db.from('private_web_design').select('html_gzip_base64').eq('id', true).single();
     if (error) throw error;
     const html = gunzipSync(Buffer.from(design.html_gzip_base64, 'base64')).toString('utf8');
-    return res.status(200).json({ html, owner });
+    return res.status(200).json({ html: preparePrivateHtml(html), owner });
   } catch {
     return res.status(503).json({ error: 'No pudimos cargar la web. Intentá nuevamente.' });
   }

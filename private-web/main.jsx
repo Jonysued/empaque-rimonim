@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { createClient } from '@supabase/supabase-js';
 import logo from '../src/empaco-logo.svg';
 import './style.css';
+import { accessWasDenied } from './navigation.mjs';
 
 const auth = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_ANON_KEY, {
   auth: { storageKey: 'empaco-private-web', persistSession: true, autoRefreshToken: true, detectSessionInUrl: false },
@@ -25,15 +26,24 @@ function PrivateWeb() {
       headers: { Authorization: `Bearer ${data.session?.access_token || ''}`, ...(body ? { 'Content-Type': 'application/json' } : {}) },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
-    const result = await response.json();
-    if (!response.ok) throw new Error(result.error || 'No se pudo completar la solicitud.');
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const failure = new Error(result.error || 'No se pudo completar la solicitud.');
+      failure.status = response.status;
+      throw failure;
+    }
+    if (!body && !action && typeof result.html !== 'string') throw new Error('No pudimos actualizar la vista. Intentá nuevamente.');
     return result;
   }
   useEffect(() => {
     let active = true;
     setHtml(''); setOwner(false); setError(''); setManage(false);
     if (!session) return;
-    const load = () => request('').then(result => { if (active) { setHtml(result.html); setOwner(result.owner); setError(''); } }).catch(e => { if (active) { setHtml(''); setError(e.message); } });
+    const load = () => request('').then(result => { if (active) { setHtml(result.html); setOwner(result.owner); setError(''); } }).catch(e => {
+      if (!active) return;
+      if (accessWasDenied(e)) { setHtml(''); setOwner(false); setManage(false); }
+      setError(e.message);
+    });
     load();
     // Recheck permission while the page stays open, including after a revocation.
     const timer = setInterval(load, 60000);

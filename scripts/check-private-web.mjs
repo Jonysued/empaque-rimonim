@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { gzipSync, gunzipSync } from 'node:zlib';
 import { PGlite } from '@electric-sql/pglite';
+import { preparePrivateHtml } from '../private-web/navigation.mjs';
 
 const allowed = new Set(['viewer@example.test']);
 let identity = { id: 'viewer-id', email: 'viewer@example.test', email_confirmed_at: '2026-10-05' };
 let contentReads = 0, emails = 0;
-const createClient = (_url, key) => key === 'anon' ? { auth: { getUser: async () => ({ data: { user: identity }, error: null }) } } : {
+let authFailure = null;
+const createClient = (_url, key) => key === 'anon' ? { auth: { getUser: async () => ({ data: { user: identity }, error: authFailure }) } } : {
   auth: { admin: { inviteUserByEmail: async () => { emails++; throw Error('Unexpected email'); } } },
   from(table) {
     const query = {
@@ -22,7 +24,7 @@ const createClient = (_url, key) => key === 'anon' ? { auth: { getUser: async ()
   },
 };
 const source = (await readFile('api/private-web.js', 'utf8')).replace(/^import .*;\n/gm, '').replace('export default async function handler', 'async function handler');
-const handler = new Function('createClient', 'gunzipSync', `${source}; return handler;`)(createClient, gunzipSync);
+const handler = new Function('createClient', 'gunzipSync', 'preparePrivateHtml', `${source}; return handler;`)(createClient, gunzipSync, preparePrivateHtml);
 Object.assign(process.env, { VITE_SUPABASE_URL: 'https://example.test', VITE_SUPABASE_ANON_KEY: 'anon', SUPABASE_SERVICE_ROLE_KEY: 'secret' });
 async function run({ token = true, method = 'GET', body, action } = {}) {
   const response = { headers: {}, code: null, body: null, setHeader(k,v) { this.headers[k] = v; }, status(code) { this.code = code; return this; }, json(body) { this.body = body; return this; } };
@@ -31,6 +33,10 @@ async function run({ token = true, method = 'GET', body, action } = {}) {
 }
 assert.equal((await run({ token: false })).code, 401);
 assert.equal(contentReads, 0);
+authFailure = { name: 'AuthRetryableFetchError', status: 0 };
+assert.equal((await run()).code, 503);
+assert.equal(contentReads, 0);
+authFailure = null;
 identity = { ...identity, email: 'other-admin@example.test', user_metadata: { email: 'jonatan@rimonim.com.ar', role: 'admin' } };
 assert.equal((await run()).code, 403);
 assert.equal(contentReads, 0);
