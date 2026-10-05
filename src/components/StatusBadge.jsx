@@ -37,7 +37,7 @@ const LABELS = {
   en_campo: "En campo",
   cerrado_campo: "Cerrado en campo",
   pesado: "Pesado · pendiente de playa",
-  recibido: "Recibido",
+  recibido: "Recibido en Empaque",
   parcialmente_volcado: "Parcialmente volcado",
   volcado: "Volcado",
   retenido: "Retenido",

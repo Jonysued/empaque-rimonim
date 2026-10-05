@@ -153,7 +153,7 @@ function TraceResult({ result, allData }) {
           })} />
           <TraceSection icon={Layers} title="Lotes de recepción de origen" items={lots} render={l => ({
             code: l.lot_code, rows: [
-              ["Productor", l.producer], ["Variedad", l.variety], ["Neto", fmtKg(l.net_weight)], ["Recibido", fmtDate(l.receipt_date)]
+              ["Productor", l.producer], ["Variedad", l.variety], ["Neto", fmtKg(l.net_weight)], ["Recibido en Empaque", fmtDate(l.receipt_date)]
             ]
           })} />
           {shipment && <EntityBlock icon={Truck} title="Despacho" code={shipment.load_number} data={[

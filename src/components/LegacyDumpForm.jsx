@@ -46,7 +46,7 @@ export default function LegacyDumpForm({ lot, onCancel, onSaved }) {
         <p className="font-mono font-bold">{lot.lot_code}</p>
         <p className="text-sm">{lot.producer} · {lot.variety}</p>
         <div className="flex justify-between text-sm mt-1">
-          <span>Recibido: <b>{fmtKg(lot.net_weight)}</b></span>
+          <span>Recibido en Empaque: <b>{fmtKg(lot.net_weight)}</b></span>
           <span>Volcado: <b>{fmtKg(lot.dumped_weight)}</b></span>
         </div>
         <p className="text-sm">BINs: <b>{totalBins} recibidos · {dumpedBins} volcados · {pendingBins} pendientes</b></p>

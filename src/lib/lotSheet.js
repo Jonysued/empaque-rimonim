@@ -4,7 +4,7 @@ import { currentWorkspace } from './workspace.js';
 const escape = value => String(value ?? '—').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
 const weight = value => value != null ? fmtKg(value) : 'Sin pesar';
 const day = value => value ? fmtDay(`${value}T12:00:00`) : '—';
-const statuses = { en_campo:'En consolidado', cerrado_campo:'Cerrado · pendiente de pesado', pesado:'Pesado', recibido:'Recibido', parcialmente_volcado:'Parcialmente volcado', volcado:'Volcado', anulado:'Anulado' };
+const statuses = { en_campo:'En consolidado', cerrado_campo:'Cerrado · pendiente de pesado', pesado:'Pesado', recibido:'Recibido en Empaque', parcialmente_volcado:'Parcialmente volcado', volcado:'Volcado', anulado:'Anulado' };
 const crews = item => item.crew === 'MIXTO' ? `MIXTO: ${(item.crew_breakdown || []).map(crew => `${crew.crew}${crew.bins_count != null ? ` (${crew.bins_count} BINs)` : ''}`).join(' / ')}` : item.crew;
 const row = (label,value) => `<div class="sheet-field"><span>${escape(label)}</span><b>${escape(value === '' ? '—' : value)}</b></div>`;
 

@@ -27,7 +27,7 @@ export function LotSummary({ lot }) {
       <div className="space-y-1">
         <div className="flex items-center gap-2 flex-wrap"><span className="font-mono font-bold break-all">{lot.lot_code}</span><StatusBadge status={lot.status} label={Number(lot.workflow_version) === 3 && lot.status === "en_campo" ? "En consolidado" : undefined} />{lot.held && <StatusBadge status="retenido" />}</div>
         <p className="text-sm text-muted-foreground">{lot.producer} · {lot.variety} · {lot.bins_count || 0} BINs{Number(lot.workflow_version) === 2 && lot.status === 'en_campo' ? ` / ${lot.expected_bins_count} declarados` : ''}</p>
-        <p className="text-xs text-muted-foreground">{Number(lot.workflow_version) === 3 ? 'Consolidado creado' : field ? 'Creado en campo' : 'Recibido'}: {fmtDate(lot.field_created_at || lot.receipt_date)}</p>
+        <p className="text-xs text-muted-foreground">{Number(lot.workflow_version) === 3 ? 'Consolidado creado' : field ? 'Creado en campo' : 'Recibido en Empaque'}: {fmtDate(lot.field_created_at || lot.receipt_date)}</p>
         {!field && <p className="text-xs text-muted-foreground">Lote del flujo anterior</p>}
         <PendingLotNotice lot={lot} />
       </div>
