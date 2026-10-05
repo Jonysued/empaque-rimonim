@@ -20,9 +20,8 @@ export default function PrintRomaneo({ pallet }) {
       ["Neto (kg)", String(pallet.net_weight ?? "—")],
       ["Bruto (kg)", String(pallet.gross_weight ?? "—")],
       ["Tara (kg)", String(pallet.tare_weight ?? "—")],
-      ["Corrida", pallet.production_run_code || "—"],
       ["Estado", pallet.status || "—"],
-      ["Fecha", fmtDay(new Date().toISOString())],
+      ["Fecha de elaboración", fmtDay(pallet.created_date)],
     ];
     const rows = fields.map(([k, v]) => `<div class="row"><span><b>${escapeHtml(k)}</b></span><span>${escapeHtml(v)}</span></div>`).join("");
     const html = `
