@@ -3,6 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { generateCode, fmtKg } from "@/lib/qr";
 import QRImage from "@/components/QRImage";
 import { loadAllCatalogs } from "@/lib/catalogs";
+import { updateNewPalletField } from "@/lib/palletPackageCount.mjs";
 import StatusBadge from "@/components/StatusBadge";
 import PrintRomaneo from "@/components/PrintRomaneo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -172,7 +173,9 @@ function PalletForm({ cats, onClose, onSaved, pallet }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
-  function update(k, v) { setForm(f => ({ ...f, [k]: v })); }
+  function update(k, v) {
+    setForm(f => pallet ? { ...f, [k]: v } : updateNewPalletField(f, k, v));
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
