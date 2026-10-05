@@ -28,9 +28,6 @@ export default async function handler(req,res) {
     const scoped=createClient(url,anon,{auth:{persistSession:false,autoRefreshToken:false},global:{headers:{Authorization:`Bearer ${token}`,...(companyId?{'x-empaco-company':companyId}:{})}}});
     const {data:{user},error:authError}=await scoped.auth.getUser(token);
     if(authError||!user) return res.status(401).json({error:'Sesión inválida'});
-    const {data:roleInCompany,error:roleError}=await scoped.rpc('my_role');
-    if(roleError) return res.status(503).json({error:'No se pudieron verificar los permisos de la empresa. Volvé a intentar.'});
-    if(roleInCompany!=='admin') return res.status(403).json({error:'Solo administradores de esta empresa'});
     let companyQuery=scoped.from('companies').select('id,slug').eq('active',true);
     companyQuery=companyId?companyQuery.eq('id',companyId):companyQuery.eq('slug','rimonim');
     const {data:company,error:companyError}=await companyQuery.single();
@@ -39,6 +36,9 @@ export default async function handler(req,res) {
     const role=String(req.body?.role||'user');
     if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)||!['admin','supervisor','recepcion','produccion','frio','despacho','calidad','user'].includes(role)) return res.status(400).json({error:'Email o rol inválido'});
     const admin=createClient(url,secret,{auth:{autoRefreshToken:false,persistSession:false}});
+    const {data:membership,error:roleError}=await admin.from('company_memberships').select('role').eq('company_id',company.id).eq('user_id',user.id).eq('active',true).maybeSingle();
+    if(roleError) return res.status(503).json({error:'No se pudieron verificar los permisos de la empresa. Volvé a intentar.'});
+    if(membership?.role!=='admin') return res.status(403).json({error:'Solo administradores de esta empresa'});
     const {data:existing,error:lookupError}=await admin.from('profiles').select('id').eq('email',email).maybeSingle();
     if(lookupError) return res.status(503).json({error:'No se pudo consultar el usuario'});
     let invitedId=existing?.id;

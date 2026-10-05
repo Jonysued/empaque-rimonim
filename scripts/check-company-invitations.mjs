@@ -9,11 +9,16 @@ const redirects=[];
 const createClient=(_url,key,options)=> {
  if(key==='secret') return {
   auth:{resetPasswordForEmail:async(_email,options)=>{inviteCalls++;redirects.push(options.redirectTo);return {error:mailFailure};},admin:{getUserById:async()=>({data:{user:{email_confirmed_at:pending?null:'confirmed'}},error:null}),inviteUserByEmail:async(_email,options)=>{inviteCalls++;redirects.push(options.redirectTo);return {data:{user:{id:'new-client-user'}},error:mailFailure};}}},
-  from:table=> table==='profiles'?{select:()=>({eq:()=>({maybeSingle:async()=>({data:existing?{id:'existing-client-user'}:null,error:null})})})}:{insert:async row=>{writes.push(row);return {error:duplicate?{code:'23505'}:null};}}
+  from:table=> {
+   if(table==='profiles') return {select:()=>({eq:()=>({maybeSingle:async()=>({data:existing?{id:'existing-client-user'}:null,error:null})})})};
+   const filters={};
+   const query={eq:(key,value)=>{filters[key]=value;return query;},maybeSingle:async()=>({data:{role:filters.company_id===ca?'admin':'user'},error:null})};
+   return {select:()=>query,insert:async row=>{writes.push(row);return {error:duplicate?{code:'23505'}:null};}};
+  }
  };
  const company=options.global.headers['x-empaco-company'] || ca;
- const query={eq:()=>query,single:async()=>({data:{id:ca,slug:'other-company'},error:null})};
- return {auth:{getUser:async()=>({data:{user:{id:'company-admin'}},error:null})},rpc:async()=>({data:company===ca?'admin':'user',error:null}),from:()=>({select:()=>query})};
+ const query={eq:()=>query,single:async()=>({data:{id:company,slug:'other-company'},error:null})};
+ return {auth:{getUser:async()=>({data:{user:{id:'company-admin'}},error:null})},rpc:async()=>{throw Error('Public my_role must not be called: it is deliberately not exposed');},from:()=>({select:()=>query})};
 };
 const saved={...process.env};
 Object.assign(process.env,{VITE_SUPABASE_URL:'https://example.test',VITE_SUPABASE_ANON_KEY:'anon',SUPABASE_SERVICE_ROLE_KEY:'secret',APP_URL:'https://app.example.test'});
