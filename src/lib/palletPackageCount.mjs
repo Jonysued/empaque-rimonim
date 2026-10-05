@@ -1,3 +1,8 @@
+export function productTypeForCategory(category, fallback = "fresco") {
+  const normalized = String(category || "").trim().toLocaleLowerCase();
+  return ["fresco", "arilos"].includes(normalized) ? normalized : fallback;
+}
+
 export function defaultPalletPackageCount(form) {
   if (form.product_type !== "fresco") return null;
   const weight = String(form.package_type || "").match(/(?:^|\s)(\d+(?:[.,]\d+)?)\s*kg\b/i);
@@ -11,8 +16,8 @@ export function defaultPalletPackageCount(form) {
 }
 
 export function updateNewPalletField(form, key, value) {
-  const next = { ...form, [key]: value };
-  if (!["package_type", "calibre", "product_type"].includes(key)) return next;
+  const next = { ...form, [key]: value, ...(key === "category" ? { product_type: productTypeForCategory(value, form.product_type) } : {}) };
+  if (!["package_type", "calibre", "product_type", "category"].includes(key)) return next;
   const count = defaultPalletPackageCount(next);
   if (count !== null) return { ...next, package_count: count };
   const previous = defaultPalletPackageCount(form);

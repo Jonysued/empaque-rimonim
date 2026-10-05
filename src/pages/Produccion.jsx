@@ -3,7 +3,7 @@ import { base44 } from "@/api/base44Client";
 import { generateCode, fmtKg } from "@/lib/qr";
 import QRImage from "@/components/QRImage";
 import { loadAllCatalogs } from "@/lib/catalogs";
-import { updateNewPalletField } from "@/lib/palletPackageCount.mjs";
+import { productTypeForCategory, updateNewPalletField } from "@/lib/palletPackageCount.mjs";
 import StatusBadge from "@/components/StatusBadge";
 import PrintRomaneo from "@/components/PrintRomaneo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -174,12 +174,15 @@ function PalletForm({ cats, onClose, onSaved, pallet }) {
   const [error, setError] = useState("");
 
   function update(k, v) {
-    setForm(f => pallet ? { ...f, [k]: v } : updateNewPalletField(f, k, v));
+    setForm(f => pallet
+      ? { ...f, [k]: v, ...(k === "category" ? { product_type: productTypeForCategory(v, f.product_type) } : {}) }
+      : updateNewPalletField(f, k, v));
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
+    if (!form.category) return setError("Seleccione una categoría");
     if (!form.net_weight || Number(form.net_weight) <= 0) return setError("Ingrese peso neto");
     if (!Number.isFinite(Number(form.net_weight)) || !Number.isInteger(Number(form.package_count || 0)) || Number(form.package_count || 0) < 0 || Number(form.gross_weight || 0) < 0 || Number(form.tare_weight || 0) < 0) return setError('Ingresá pesos válidos y una cantidad entera de bultos sin valores negativos');
     setSaving(true);
@@ -221,13 +224,10 @@ function PalletForm({ cats, onClose, onSaved, pallet }) {
           {error && <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{error}</p>}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs">Producto *</Label>
-              <Select value={form.product_type} onValueChange={v => update("product_type", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="fresco">Fresco</SelectItem>
-                  <SelectItem value="arilos">Arilos</SelectItem>
-                </SelectContent>
+              <Label className="text-xs">Categoría *</Label>
+              <Select value={form.category} onValueChange={v => update("category", v)}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar categoría" /></SelectTrigger>
+                <SelectContent>{opt(cats.categoria).map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             <div className="space-y-1">
@@ -242,13 +242,6 @@ function PalletForm({ cats, onClose, onSaved, pallet }) {
               <Select value={form.producer} onValueChange={v => update("producer", v)}>
                 <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                 <SelectContent>{opt(cats.productor).map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1">
-              <Label className="text-xs">Categoría</Label>
-              <Select value={form.category} onValueChange={v => update("category", v)}>
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                <SelectContent>{opt(cats.categoria).map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
               </Select>
             </div>
             {form.product_type === "fresco" && (

@@ -27,3 +27,10 @@ assert.equal(updateNewPalletField({ ...form, package_type: "", calibre: "Calibre
 assert.equal(updateNewPalletField({ ...selected, package_count: 200 }, "package_type", "Caja 10 kg").package_count, 200);
 assert.equal(updateNewPalletField(selected, "package_count", "200").package_count, "200");
 console.log("Pallet package counts: OK");
+
+const arilos = updateNewPalletField(selected, "category", "Arilos");
+assert.equal(arilos.product_type, "arilos");
+assert.equal(arilos.package_count, "");
+const fresco = updateNewPalletField(arilos, "category", "Fresco");
+assert.equal(fresco.product_type, "fresco");
+assert.equal(fresco.package_count, 214);
