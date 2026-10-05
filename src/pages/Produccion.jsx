@@ -269,7 +269,19 @@ function PalletForm({ cats, onClose, onSaved, pallet }) {
                 </div>
               </>
             )}
-            <div className="space-y-1"><Label className="text-xs">Marca</Label><Input value={form.brand} onChange={e => update("brand", e.target.value)} /></div>
+            <div className="space-y-1">
+              <Label className="text-xs">Marca</Label>
+              <Select value={form.brand} onValueChange={v => update("brand", v)}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar marca" /></SelectTrigger>
+                <SelectContent>
+                  {pallet?.brand && !opt(cats.marca).some(o => o.value === pallet.brand) && (
+                    <SelectItem value={pallet.brand}>{pallet.brand}</SelectItem>
+                  )}
+                  {opt(cats.marca).map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {opt(cats.marca).length === 0 && <p className="text-xs text-muted-foreground">Agregá las marcas desde Catálogos → Marcas.</p>}
+            </div>
             <div className="space-y-1"><Label className="text-xs">Bultos</Label><Input type="number" value={form.package_count} onChange={e => update("package_count", e.target.value)} /></div>
             <div className="space-y-1"><Label className="text-xs">Peso bruto (kg)</Label><Input type="number" step="0.1" value={form.gross_weight} onChange={e => update("gross_weight", e.target.value)} /></div>
             <div className="space-y-1"><Label className="text-xs">Tara (kg)</Label><Input type="number" step="0.1" value={form.tare_weight} onChange={e => update("tare_weight", e.target.value)} /></div>

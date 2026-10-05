@@ -14,7 +14,7 @@ export async function loadCatalog(type) {
 
 export async function loadAllCatalogs() {
   const types = [
-    "productor", "variedad", "categoria", "calibre", "envase"
+    "productor", "variedad", "categoria", "calibre", "envase", "marca"
   ];
   const items = await base44.entities.Catalog.list();
   return Object.fromEntries(types.map(type => [type, items.filter(item => item.type === type && item.active === true)

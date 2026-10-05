@@ -20,6 +20,7 @@ const CATALOG_TYPES = [
   { value: "categoria", label: "Categorías" },
   { value: "calibre", label: "Calibres" },
   { value: "envase", label: "Envases/Cajas" },
+  { value: "marca", label: "Marcas" },
   { value: "cliente", label: "Clientes" },
 ];
 
