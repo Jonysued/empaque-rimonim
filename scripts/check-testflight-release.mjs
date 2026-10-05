@@ -5,7 +5,7 @@ const {privateKey}=generateKeyPairSync('ec',{namedCurve:'prime256v1'});
 process.env.APPSTORE_KEY_ID='test';process.env.APPSTORE_ISSUER_ID='test';process.env.APPSTORE_API_KEY_P8_BASE64=Buffer.from(privateKey.export({type:'pkcs8',format:'pem'})).toString('base64');
 delete process.env.RELEASE_CONFIG; delete process.env.GITHUB_STEP_SUMMARY;
 process.env.BUILD_NUMBER='9';process.env.RELEASE_EXTERNAL='true';
-const fixtureEmails=['reynaldo@example.invalid','joaquin@example.invalid','tester3@example.invalid'];
+const fixtureEmails=['reynaldo@example.invalid','joaquin@example.invalid','tester3@example.invalid','tester4@example.invalid','tester5@example.invalid'];
 const fixtureFingerprints=fixtureEmails.map(e=>createHash('sha256').update(e).digest('hex'));
 const originalSource=await readFile(new URL('./finalize-testflight.mjs',import.meta.url),'utf8');
 const source=originalSource.replace(/const expectedFingerprints = new Set\(\[[^\]]*\]\);/,`const expectedFingerprints = new Set(${JSON.stringify(fixtureFingerprints)});`);
@@ -17,7 +17,7 @@ globalThis.fetch=async (url,opts={})=>{
  const p=new URL(url).pathname;let data;
  if(opts.method!=='GET' && opts.method){mutations.push(p);if(p.includes('/buildBetaDetails/'))notify=true;if(p.includes(group))assigned=true;return {ok:true,status:204};}
  if(p.includes('/apps/'))data=[{id:'build9',attributes:{version:'9',processingState:'VALID'}}];
- else if(p.endsWith('/betaTesters'))data=[{attributes:{email:fixtureEmails[0]}},{attributes:{email:wrong?'other@example.invalid':fixtureEmails[1]}},{attributes:{email:fixtureEmails[2]}}];
+ else if(p.endsWith('/betaTesters'))data=[{attributes:{email:fixtureEmails[0]}},{attributes:{email:wrong?'other@example.invalid':fixtureEmails[1]}},...fixtureEmails.slice(2).map(email=>({attributes:{email}}))];
  else if(p.endsWith('/app'))data={id:'6817152283'};
  else if(p.endsWith('/buildBetaDetail'))data={id:'detail9',attributes:{autoNotifyEnabled:notify,externalBuildState:'BETA_TESTING'}};
  else if(p.includes(internal))data=[{id:'build9'}];
@@ -28,4 +28,4 @@ globalThis.fetch=async (url,opts={})=>{
 wrong=true;await assert.rejects(import(testModule+'#wrong-group'),/no coincide/);assert.deepEqual(mutations,[]);
 wrong=false;await import(testModule+'#release');assert.ok(assigned);assert.ok(notify);assert.equal(mutations.length,2);
 mutations=[];await import(testModule+'#retry');assert.deepEqual(mutations,[]);
-console.log('Distribución externa: valida los tres destinatarios, activa aviso y no repite cambios al reintentar: OK');
+console.log('Distribución externa: valida los cinco destinatarios, activa aviso y no repite cambios al reintentar: OK');

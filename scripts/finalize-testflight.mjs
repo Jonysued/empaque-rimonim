@@ -64,13 +64,13 @@ if (externalRelease) {
   ]);
   // Apple can omit tester names. Match the previously resolved accounts by
   // fingerprint without putting contact addresses in source code or logs.
-  const expectedFingerprints = new Set(["affde18ebb2f1cfa1f2bcc69884362f883e9229fe7104366a6c453e6a27e003e", "0ff4c77d067ddc7f8bf04d9d2a5c95145a95e41cbcb91e409d51c416875c46d1", "fff80e2a0e77d6799f97bbfacbed04ec813b837da408d4b5d7ecafc6a378a9a9"]);
+  const expectedFingerprints = new Set(["affde18ebb2f1cfa1f2bcc69884362f883e9229fe7104366a6c453e6a27e003e", "0ff4c77d067ddc7f8bf04d9d2a5c95145a95e41cbcb91e409d51c416875c46d1", "fff80e2a0e77d6799f97bbfacbed04ec813b837da408d4b5d7ecafc6a378a9a9", "c7091aa4816d0832c13565273f31c4d661606f85505bcb73763097021e2c56ec", "17daf67972292ca484aa33e1975b18b8471d06feb5fe621dde917f7ac31c12c6"]);
   const fingerprints = testers.data.map(t => createHash('sha256').update(String(t.attributes.email || '').trim().toLowerCase()).digest('hex'));
   if (group.data.attributes.isInternalGroup || groupApp.data.id !== appId || testers.links?.next ||
       fingerprints.length !== expectedFingerprints.size || new Set(fingerprints).size !== expectedFingerprints.size || fingerprints.some(f => !expectedFingerprints.has(f))) {
-    throw new Error('El grupo externo no coincide con las tres cuentas confirmadas; no se distribuyó la actualización');
+    throw new Error('El grupo externo no coincide con las cinco cuentas confirmadas; no se distribuyó la actualización');
   }
-  console.log('Grupo externo verificado: 3 testers existentes');
+  console.log('Grupo externo verificado: 5 testers existentes');
   if (release.what_to_test) {
     const localizations = await api(`/v1/builds/${build.id}/betaBuildLocalizations`);
     const localization = localizations.data.find(l => l.attributes.locale === 'es-ES');
@@ -107,5 +107,5 @@ if (externalRelease) {
   if (!verified.data.some(b => b.id === build.id) || !detail.attributes.autoNotifyEnabled) throw new Error('No quedó confirmada la distribución externa');
   console.log(`Build ${BUILD_NUMBER} asignado al grupo externo existente; estado externo: ${detail.attributes.externalBuildState}; notificación automática activada`);
   if (process.env.GITHUB_STEP_SUMMARY) await import('node:fs/promises').then(({appendFile}) => appendFile(process.env.GITHUB_STEP_SUMMARY,
-    `### Empaco 1.0 (${BUILD_NUMBER})\n- Grupo verificado: 3 testers existentes.\n- Estado de Apple: ${detail.attributes.externalBuildState}.\n- Aviso automático de la actualización: activado.\n- No se agregaron testers ni permisos.\n`));
+    `### Empaco 1.0 (${BUILD_NUMBER})\n- Grupo verificado: 5 testers existentes.\n- Estado de Apple: ${detail.attributes.externalBuildState}.\n- Aviso automático de la actualización: activado.\n- No se agregaron testers ni permisos.\n`));
 }

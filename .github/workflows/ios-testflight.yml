@@ -16,7 +16,7 @@ jobs:
     env:
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-      VITE_PUBLIC_APP_URL: https://empaque-rimonim.vercel.app
+      VITE_PUBLIC_APP_URL: https://app.empaco.com.ar
       APPLE_TEAM_ID: D93K7CHP66
       IOS_PROFILE_NAME: Rimonim Empaque App Store
       IOS_CERTIFICATE_P12_BASE64: ${{ secrets.IOS_CERTIFICATE_P12_BASE64 }}

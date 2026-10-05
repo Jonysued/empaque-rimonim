@@ -30,7 +30,7 @@ for (const name of ['ic_launcher', 'ic_launcher_round']) {
 }
 const appGradle = 'android/app/build.gradle';
 const gradle = await readFile(appGradle, 'utf8');
-await writeFile(appGradle, gradle.replace(/versionCode \d+/, 'versionCode 15'));
+await writeFile(appGradle, gradle.replace(/versionCode \d+/, 'versionCode 16'));
 
 const valuesDirectory = 'android/app/src/main/res/values';
 await mkdir(valuesDirectory, { recursive: true });
