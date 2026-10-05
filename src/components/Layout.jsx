@@ -5,6 +5,7 @@ import { base44 } from "@/api/base44Client";
 import SyncStatus from "@/components/SyncStatus";
 import { cn } from "@/lib/utils";
 import { canAccess, roleLabel } from "@/lib/permissions";
+import { canManageWorkspaces } from "@/lib/workspace";
 import {
   LayoutDashboard, Repeat, Factory, Snowflake,
   Warehouse, Truck, Search, Settings, Menu, X, Users, Scale, Layers, Sprout, Building2
@@ -31,6 +32,7 @@ export default function Layout() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const visibleNav = NAV.filter(item => canAccess(user?.role || "user", item.to) && (item.to !== '/empresas' || canManageWorkspaces(user)));
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => {});
@@ -52,7 +54,7 @@ export default function Layout() {
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           <p className="px-3 py-2 text-sm font-semibold break-words">{user?.workspace?.name || 'Seleccioná una empresa'}</p>
-          {NAV.filter(item => canAccess(user?.role || "user", item.to)).map(item => {
+          {visibleNav.map(item => {
             const active = location.pathname === item.to;
             const Icon = item.icon;
             return (
@@ -99,7 +101,7 @@ export default function Layout() {
             </div>
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
               <p className="px-3 py-2 text-sm font-semibold break-words">{user?.workspace?.name || 'Seleccioná una empresa'}</p>
-              {NAV.filter(item => canAccess(user?.role || "user", item.to)).map(item => {
+              {visibleNav.map(item => {
                 const active = location.pathname === item.to;
                 const Icon = item.icon;
                 return (
@@ -125,7 +127,7 @@ export default function Layout() {
       <main className="min-w-0 lg:pl-60">
         <div className="app-content min-w-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <SyncStatus />
-          {user && !user.workspace && location.pathname !== '/empresas' ? <p>No tenés una empresa asignada. Contactá al administrador o entrá en <Link className="underline" to="/empresas">Espacio de trabajo</Link>.</p> : <Outlet />}
+          {user && !user.workspace && (location.pathname !== '/empresas' || !canManageWorkspaces(user)) ? <p>No tenés una empresa asignada. Contactá al administrador.{canManageWorkspaces(user) && <> También podés entrar en <Link className="underline" to="/empresas">Espacio de trabajo</Link>.</>}</p> : <Outlet />}
         </div>
       </main>
     </div>

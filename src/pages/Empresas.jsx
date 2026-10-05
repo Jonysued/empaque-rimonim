@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { base44, supabase } from '@/api/base44Client';
-import { selectWorkspace } from '@/lib/workspace';
+import { canManageWorkspaces, selectWorkspace } from '@/lib/workspace';
+import { Navigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,10 +24,11 @@ export default function Empresas() {
       choose(data.id);
     } catch(e) { setError(e.message); } finally { setBusy(false); }
   };
+  if (!user) return <p role={error ? 'alert' : undefined}>{error || 'Cargando...'}</p>;
+  if (!canManageWorkspaces(user)) return <Navigate to="/" replace />;
   return <div className="space-y-6">
     <div><h1 className="text-2xl font-bold">Espacio de trabajo</h1><p className="text-sm text-muted-foreground">Cada empresa tiene sus registros, catálogos, ubicaciones y equipo.</p></div>
     {error && <p role="alert" className="text-destructive">{error}</p>}
-    {!user && !error && <p>Cargando empresas...</p>}
     <div className="grid gap-4 sm:grid-cols-2">
       {user?.memberships.map(m=> <Card key={m.company_id}><CardHeader><CardTitle className="break-words">{m.companies.name}</CardTitle></CardHeader><CardContent className="space-y-3"><p className="text-sm">{roleLabel(m.role)}</p><Button disabled={m.company_id===user.workspace?.id} onClick={()=>choose(m.company_id)}>{m.company_id===user.workspace?.id?'Empresa actual':'Entrar'}</Button></CardContent></Card>)}
     </div>

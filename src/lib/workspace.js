@@ -2,6 +2,7 @@
 // verifies membership; this local value never grants access.
 let workspace = null;
 let owner = null;
+export const canManageWorkspaces = user => user?.email?.trim().toLowerCase() === 'jonatan@rimonim.com.ar';
 export const currentWorkspace = () => workspace;
 export function setWorkspace(userId, value) { owner = userId; workspace = value; }
 export function clearWorkspace() { owner = null; workspace = null; }
