@@ -60,17 +60,17 @@ function PrivateWeb() {
     <form onSubmit={login}><label htmlFor="email">Email</label><input id="email" type="email" autoComplete="email" required value={email} onChange={e => setEmail(e.target.value)} />
     <label htmlFor="password">Contraseña</label><input id="password" type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} />
     <button disabled={busy}>{busy ? 'Ingresando…' : 'Entrar a la web'}</button></form>
-    <a href="/forgot-password">¿Olvidaste tu contraseña?</a><p className="small">El acceso a esta web requiere autorización de Jonatan.</p>
+    <a href="https://app.empaco.com.ar/forgot-password">¿Olvidaste tu contraseña?</a><p className="small">El acceso a esta web requiere autorización de Jonatan.</p>
   </div></main>;
   return <div className="preview"><header className="preview-bar"><span>Vista privada · Empaco</span><div>
     {owner && <button onClick={async () => { try { await refreshAccess(); setManage(!manage); } catch(e) { setError(e.message); } }}> {manage ? 'Ver diseño' : 'Autorizar personas'}</button>}
-    <button onClick={() => { setHtml(''); setOwner(false); auth.auth.signOut(); }}>Salir</button></div></header>
+    <button onClick={() => { setHtml(''); setOwner(false); auth.auth.signOut({ scope: 'local' }); }}>Salir</button></div></header>
     {error && <p role="alert" className="error status">{error}</p>}
     {manage && owner ? <main className="access-panel"><h1>Personas autorizadas</h1><p>Solo estas personas y vos pueden ver la web. Este permiso no habilita acceso a los procesos del empaque.</p>
     <form onSubmit={e => { e.preventDefault(); access('authorize', target); }}><label htmlFor="reviewer">Email</label><input id="reviewer" type="email" required value={target} onChange={e => setTarget(e.target.value)} /><button disabled={busy}>Autorizar e invitar si no tiene cuenta</button></form>
     {notice && <p role="status">{notice}</p>}
     <ul>{reviewers.map(r => <li key={r.email}><span>{r.email}</span><button disabled={busy} onClick={() => access('revoke', r.email)}>Quitar acceso</button></li>)}</ul>
-    <p>Compartí este enlace: <a href="/web-privada">https://app.empaco.com.ar/web-privada</a></p></main> : html ? <iframe title="Diseño web de Empaco" srcDoc={html} sandbox="allow-scripts" /> : !error && <p className="loading">Verificando acceso…</p>}
+    <p>Compartí este enlace: <a href="https://empaco.com.ar/">https://empaco.com.ar/</a></p></main> : html ? <iframe title="Diseño web de Empaco" srcDoc={html} sandbox="allow-scripts" /> : !error && <p className="loading">Verificando acceso…</p>}
   </div>;
 }
 createRoot(document.getElementById('root')).render(<PrivateWeb />);
