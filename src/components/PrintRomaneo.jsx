@@ -1,3 +1,4 @@
+import { statusLabel } from "@/components/StatusBadge";
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Printer } from "lucide-react";
@@ -20,7 +21,7 @@ export default function PrintRomaneo({ pallet }) {
       ["Neto (kg)", String(pallet.net_weight ?? "—")],
       ["Bruto (kg)", String(pallet.gross_weight ?? "—")],
       ["Tara (kg)", String(pallet.tare_weight ?? "—")],
-      ["Estado", pallet.status || "—"],
+      ["Estado", statusLabel(pallet.status)],
       ["Fecha de elaboración", fmtDay(pallet.created_date)],
     ];
     const rows = fields.map(([k, v]) => `<div class="row"><span><b>${escapeHtml(k)}</b></span><span>${escapeHtml(v)}</span></div>`).join("");

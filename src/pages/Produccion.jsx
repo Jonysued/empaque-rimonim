@@ -4,7 +4,7 @@ import { generateCode, fmtKg } from "@/lib/qr";
 import QRImage from "@/components/QRImage";
 import { loadAllCatalogs } from "@/lib/catalogs";
 import { productTypeForCategory, updateNewPalletField } from "@/lib/palletPackageCount.mjs";
-import StatusBadge from "@/components/StatusBadge";
+import StatusBadge, { statusLabel } from "@/components/StatusBadge";
 import PrintRomaneo from "@/components/PrintRomaneo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,7 @@ const PALLET_STATUSES = [
 
 // Etiqueta de estación donde se encuentra el pallet
 const STATION_ABBREV = {
-  armado: "En producción",
+  armado: "Terminado",
   parcial: "En producción",
   cerrado: "En producción",
   en_tunel: "En túnel",
@@ -310,7 +310,7 @@ function PalletDetail({ pallet, onClose, onEdit, onDelete }) {
             <Info label="Bultos" value={String(pallet.package_count || 0)} />
             <Info label="Neto" value={fmtKg(pallet.net_weight)} />
             <Info label="Bruto" value={fmtKg(pallet.gross_weight)} />
-            <Info label="Estado" value={pallet.status} />
+            <Info label="Estado" value={statusLabel(pallet.status)} />
           </div>
           <div className="flex flex-wrap gap-2">
             <PrintRomaneo pallet={pallet} />
