@@ -1,5 +1,5 @@
 {
-  "build_number": "16",
+  "build_number": "17",
   "external": true,
   "what_to_test": "Empaco: espacios de trabajo por empresa e invitaciones corregidas. Nuevo pallet: Categoría primero, Envase/Caja antes de Calibre y Marcas desde Catálogos. Envase de 3,8 kg: 240 bultos para calibres 5–8 y 214 para calibres 10–14. Estado Terminado; romaneo sin Corrida y con Fecha de elaboración. Revisar creación de pallets, impresión, escaneo y sincronización sin conexión.",
   "verification_attempt": 1

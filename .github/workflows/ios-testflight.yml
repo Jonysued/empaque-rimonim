@@ -7,10 +7,11 @@ on:
     paths:
       - 'ios/App/App/Assets.xcassets/AppIcon.appiconset/**'
       - 'ios/App/App.xcodeproj/project.pbxproj'
+      - '.github/workflows/ios-testflight.yml'
 
 jobs:
   upload:
-    runs-on: macos-26
+    runs-on: macos-15
     permissions:
       contents: read
     env:
@@ -26,6 +27,8 @@ jobs:
       APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
       APPSTORE_API_KEY_P8_BASE64: ${{ secrets.APPSTORE_API_KEY_P8_BASE64 }}
     steps:
+      - name: Select Xcode 26
+        run: sudo xcode-select --switch /Applications/Xcode_26.3.app
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
