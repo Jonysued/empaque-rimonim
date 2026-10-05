@@ -4,10 +4,12 @@ const source = await readFile('src/api/base44Client.js','utf8');
 const body=source.slice(source.indexOf('const profile = async () => {'),source.indexOf('export const base44'));
 Object.defineProperty(globalThis,'navigator',{value:{onLine:true},configurable:true});
 const user={id:'owner'};let networkError=null;
-const supabase={auth:{getSession:async()=>({data:{session:{user}}}),getUser:async()=>({data:{user:networkError?null:user},error:networkError})},from:()=>({select:()=>({eq:()=>({single:async()=>({data:{id:'owner',role:'frio'},error:null})})})})};
+const workspace={id:'company-a',name:'A',slug:'rimonim'};
+const supabase={auth:{getSession:async()=>({data:{session:{user}}}),getUser:async()=>({data:{user:networkError?null:user},error:networkError})},rpc:async()=>({data:false}),from:table=>({select:()=> table==='company_memberships'?{eq:()=>({eq:async()=>({data:[{company_id:workspace.id,role:'frio',companies:workspace}]})})}:{eq:()=>({single:async()=>({data:{id:'owner',role:'user'},error:null})})}})};
 const cache=new Map();const saveSnapshot=async(id,key,value)=>cache.set(`${id}:${key}`,value);
 const readSnapshot=async(id,key)=>cache.get(`${id}:${key}`);
-const profile=new Function('supabase','Capacitor','readLastOwner','readSnapshot','saveSnapshot','saveLastOwner','unwrap',`${body};return profile;`)(supabase,{isNativePlatform:()=>true},async()=>user.id,readSnapshot,saveSnapshot,async()=>{},({data,error})=>{if(error)throw error;return data;});
+let selected=null;
+const profile=new Function('supabase','Capacitor','readLastOwner','readSnapshot','saveSnapshot','saveLastOwner','unwrap','selectedWorkspace','setWorkspace','rememberWorkspace','migrateLegacyWorkspace',`${body};return profile;`)(supabase,{isNativePlatform:()=>true},async()=>user.id,readSnapshot,saveSnapshot,async()=>{},({data,error})=>{if(error)throw error;return data;},()=>selected,()=>{},(_user,id)=>{selected=id},async()=>{});
 assert.equal((await profile()).role,'frio');
 networkError=Object.assign(new Error('Failed to fetch'),{name:'AuthRetryableFetchError',status:0});
 assert.equal((await profile()).role,'frio'); // Navigator can say online while the radio is disconnected.

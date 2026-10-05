@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { canAccess, roleLabel } from "@/lib/permissions";
 import {
   LayoutDashboard, Repeat, Factory, Snowflake,
-  Warehouse, Truck, Search, Settings, Menu, X, Users, Scale, Layers, Sprout
+  Warehouse, Truck, Search, Settings, Menu, X, Users, Scale, Layers, Sprout, Building2
 } from "lucide-react";
 
 const NAV = [
@@ -24,6 +24,7 @@ const NAV = [
   { to: "/trazabilidad", label: "Trazabilidad", icon: Search },
   { to: "/catalogos", label: "Catálogos", icon: Settings },
   { to: "/usuarios", label: "Usuarios", icon: Users },
+  { to: "/empresas", label: "Espacio de trabajo", icon: Building2 },
 ];
 
 export default function Layout() {
@@ -50,6 +51,7 @@ export default function Layout() {
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+          <p className="px-3 py-2 text-sm font-semibold break-words">{user?.workspace?.name || 'Seleccioná una empresa'}</p>
           {NAV.filter(item => canAccess(user?.role || "user", item.to)).map(item => {
             const active = location.pathname === item.to;
             const Icon = item.icon;
@@ -96,6 +98,7 @@ export default function Layout() {
               <button aria-label="Cerrar menú" onClick={() => setSidebarOpen(false)} className="p-3 -mr-2 shrink-0"><X className="w-5 h-5" /></button>
             </div>
             <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+              <p className="px-3 py-2 text-sm font-semibold break-words">{user?.workspace?.name || 'Seleccioná una empresa'}</p>
               {NAV.filter(item => canAccess(user?.role || "user", item.to)).map(item => {
                 const active = location.pathname === item.to;
                 const Icon = item.icon;
@@ -122,7 +125,7 @@ export default function Layout() {
       <main className="min-w-0 lg:pl-60">
         <div className="app-content min-w-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <SyncStatus />
-          <Outlet />
+          {user && !user.workspace && location.pathname !== '/empresas' ? <p>No tenés una empresa asignada. Contactá al administrador o entrá en <Link className="underline" to="/empresas">Espacio de trabajo</Link>.</p> : <Outlet />}
         </div>
       </main>
     </div>

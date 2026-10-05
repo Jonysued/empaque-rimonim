@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LABEL_FORMATS, generateHarvestLabels, labelPages, harvestLabelsPdf, harvestLabelsHtml } from '@/lib/harvestLabels.mjs';
 import { printHtml } from '@/lib/catalogs';
+import { currentWorkspace } from '@/lib/workspace';
 
 export default function HarvestQRGenerator() {
   const [quantity, setQuantity] = useState('18');
@@ -18,7 +19,7 @@ export default function HarvestQRGenerator() {
 
   async function generate(event) {
     event.preventDefault(); setError(''); setBusy(true);
-    try { setLabels(await generateHarvestLabels(Number(quantity))); }
+    try { setLabels(await generateHarvestLabels(Number(quantity),currentWorkspace())); }
     catch (e) { setError(e.message || 'No se pudieron generar las etiquetas'); }
     finally { setBusy(false); }
   }
@@ -48,7 +49,7 @@ export default function HarvestQRGenerator() {
       {labels.length > 0 && <>
         <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm" role="status">{labels.length} etiquetas únicas · {pages.length} {pages.length === 1 ? 'hoja' : 'hojas'}</p><div className="flex flex-wrap gap-2"><Button variant="outline" disabled={busy} onClick={download}><Download className="w-4 h-4 mr-2" /> Descargar PDF</Button><Button disabled={busy} onClick={print}><Printer className="w-4 h-4 mr-2" /> Imprimir etiquetas</Button></div></div>
         <p className="text-sm text-muted-foreground">Imprimí al 100 % o «Tamaño real», sin ajustar a la página y sin encabezados ni pies. Cada QR corresponde a un bin. Guardá el PDF para volver a imprimir estos mismos códigos; «Generar nuevos QR» crea otros distintos.</p>
-        <div className="rounded-lg border bg-muted/30 p-3 space-y-3"><h3 className="text-sm font-medium">Vista previa · primera hoja</h3><div className={`grid gap-3 ${format.columns === 1 ? 'grid-cols-1 max-w-xs mx-auto' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>{pages[0].map(item => <div key={item.code} className="rounded border bg-white text-black p-3 flex flex-col items-center"><b className="text-base">RIMONIM</b><span className="text-xs">BIN DE COSECHA</span><img src={item.image} alt={`QR del bin ${item.code}`} width={160} height={160} className="w-32 h-32" /><b className="font-mono text-xs break-all text-center">{item.code}</b></div>)}</div></div>
+        <div className="rounded-lg border bg-muted/30 p-3 space-y-3"><h3 className="text-sm font-medium">Vista previa · primera hoja</h3><div className={`grid gap-3 ${format.columns === 1 ? 'grid-cols-1 max-w-xs mx-auto' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>{pages[0].map(item => <div key={item.code} className="rounded border bg-white text-black p-3 flex flex-col items-center"><b className="text-base break-words text-center">{item.companyName}</b><span className="text-xs">BIN DE COSECHA</span><img src={item.image} alt={`QR del bin ${item.code}`} width={160} height={160} className="w-32 h-32" /><b className="font-mono text-xs break-all text-center">{item.code}</b></div>)}</div></div>
       </>}
       <p className="text-xs text-muted-foreground">Las etiquetas no crean lotes ni bines registrados. El alta se realiza al guardar la ficha en Cosecha.</p>
     </CardContent>

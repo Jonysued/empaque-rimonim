@@ -48,10 +48,11 @@ const enqueueCommand = async command => {
 const removeCommand = async id => commands.delete(id);
 const readLastOwner = async () => owner;
 const Capacitor = { isNativePlatform: () => true };
+let company='a';
 const source = (await readFile('src/lib/operationQueue.js', 'utf8'))
   .replace(/^import .*;\n/gm, '')
   .replace(/^export /gm, '');
-const queue = new Function('supabase', 'Capacitor', 'readLastOwner', 'listCommands', 'saveCommand', 'enqueueCommand', 'removeCommand', `${source}\nreturn { submitOperation, syncOperations };`)(supabase, Capacitor, readLastOwner, listCommands, saveCommand, enqueueCommand, removeCommand);
+const queue = new Function('supabase', 'Capacitor', 'readLastOwner', 'listCommands', 'saveCommand', 'enqueueCommand', 'removeCommand','workspaceOwner', `${source}\nreturn { submitOperation, syncOperations };`)(supabase, Capacitor, readLastOwner, listCommands, saveCommand, enqueueCommand, removeCommand,id=>`${id}::${company}`);
 const id = 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
 const params = { p_lot_id: 'lot-1', p_bins: 2, p_dump_code: 'VOL-1' };
 assert.deepEqual(await queue.submitOperation('dump_lot_by_bins', params, 'lot:lot-1', id), { operation_id: id, pending: true });
@@ -81,4 +82,15 @@ await queue.syncOperations();
 assert.equal(commands.size, 0, 'A duplicate from the same operation is confirmed');
 assert.equal(records.size, 1, 'Retry must not create another lot');
 assert.equal(records.get(`ReceiptLot:${lotId}`), firstRecord, 'Retry must not overwrite later changes');
+globalThis.navigator.onLine=false;
+await queue.submitOperation('dump_lot_by_bins',params,'lot:lot-1','pending-company-a');
+company='b';
+globalThis.navigator.onLine=true;
+await queue.syncOperations();
+assert.equal(commands.size,1,'Changing company never replays work from the previous company');
+assert.equal(calls.length,1);
+company='a';
+await queue.syncOperations();
+assert.equal(commands.size,0);
+assert.equal(calls.length,2);
 console.log('Offline → pendiente → sincronizado una vez; alta de lote con reintento idempotente: OK');

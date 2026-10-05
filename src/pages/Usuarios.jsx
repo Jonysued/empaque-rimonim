@@ -41,8 +41,8 @@ export default function Usuarios() {
     setInviting(true);
     setInviteMsg("");
     base44.users.inviteUser(inviteEmail.trim(), inviteRole)
-      .then(() => {
-        setInviteMsg(`Invitación enviada a ${inviteEmail.trim()}`);
+      .then(result => {
+        setInviteMsg(result.existing ? `${inviteEmail.trim()} ya tiene cuenta y fue incorporado a esta empresa.` : `Invitación enviada a ${inviteEmail.trim()}`);
         setInviteEmail("");
         load();
       })

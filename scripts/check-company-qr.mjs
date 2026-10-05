@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {companyQrPayload,readCompanyQr} from '../src/lib/companyQr.mjs';
+import {generateHarvestLabels,harvestLabelsHtml,LABEL_FORMATS} from '../src/lib/harvestLabels.mjs';
+const a={id:'company-a',slug:'rimonim',name:'Rimonim'},b={id:'company-b',slug:'client-b',name:'Client <B>'};
+assert.equal(companyQrPayload('PAL-1',a),'PAL-1');
+assert.equal(readCompanyQr(companyQrPayload('PAL-1',b),b),'PAL-1');
+assert.throws(()=>readCompanyQr(companyQrPayload('PAL-1',b),a),/otra empresa/);
+assert.throws(()=>readCompanyQr('PAL-1',b),/no identifica/);
+assert.equal(readCompanyQr('PAL-1',b,true),'PAL-1');
+const [label]=await generateHarvestLabels(1,b);
+assert.equal(label.companyName,b.name);
+assert.match(harvestLabelsHtml([label],LABEL_FORMATS.single),/Client &lt;B&gt;/);
+console.log('PASS: QR por empresa, etiquetas propias, compatibilidad Rimonim y escape del nombre');

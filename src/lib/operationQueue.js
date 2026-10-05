@@ -1,6 +1,7 @@
 import { supabase } from "@/api/base44Client";
 import { listCommands, removeCommand, saveCommand, enqueueCommand, readLastOwner } from "@/lib/offlineStore";
 import { Capacitor } from "@capacitor/core";
+import { workspaceOwner } from "@/lib/workspace";
 
 const notify = () => window.dispatchEvent(new Event("rimonim-queue-change"));
 let draining;
@@ -8,11 +9,11 @@ let draining;
 async function currentOwner() {
   if (Capacitor.isNativePlatform() && !navigator.onLine) {
     const ownerId = await readLastOwner();
-    if (ownerId) return ownerId;
+    if (ownerId) return workspaceOwner(ownerId);
   }
   const { data: { session }, error } = await supabase.auth.getSession();
   if (error || !session?.user?.id) throw new Error("Iniciá sesión para registrar operaciones");
-  return session.user.id;
+  return workspaceOwner(session.user.id);
 }
 
 export const getOperations = async () => listCommands(await currentOwner());

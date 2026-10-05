@@ -22,6 +22,7 @@ const Despachos = lazy(() => import('@/pages/Despachos'));
 const Trazabilidad = lazy(() => import('@/pages/Trazabilidad'));
 const Catalogos = lazy(() => import('@/pages/Catalogos'));
 const Usuarios = lazy(() => import('@/pages/Usuarios'));
+const Empresas = lazy(() => import('@/pages/Empresas'));
 import RouteGuard from '@/components/RouteGuard';
 import Login from '@/pages/Login';
 import ForgotPassword from '@/pages/ForgotPassword';
@@ -69,6 +70,7 @@ const AuthenticatedApp = () => {
         <Route path="/trazabilidad" element={<Trazabilidad />} />
         <Route path="/catalogos" element={<RouteGuard><Catalogos /></RouteGuard>} />
         <Route path="/usuarios" element={<RouteGuard><Usuarios /></RouteGuard>} />
+        <Route path="/empresas" element={<Empresas />} />
         </Route>
       </Route>
       <Route path="*" element={<PageNotFound />} />

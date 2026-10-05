@@ -1,15 +1,17 @@
 import QRCode from 'qrcode';
+import { companyQrPayload } from './companyQr.mjs';
+const escape=value=>String(value).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 export const LABEL_FORMATS = {
   a4_18: { label: 'A4 · 18 etiquetas de 60 × 40 mm', columns: 3, rows: 6, width: 60, height: 40, gapX: 5, gapY: 5, qr: 24, pageWidth: 210, pageHeight: 297 },
   single: { label: 'Etiqueta individual · 60 × 40 mm', columns: 1, rows: 1, width: 60, height: 40, gapX: 0, gapY: 0, qr: 24, pageWidth: 60, pageHeight: 40 },
 };
 
-export async function generateHarvestLabels(quantity) {
+export async function generateHarvestLabels(quantity,company=null) {
   if (!Number.isInteger(quantity) || quantity < 1 || quantity > 200) throw new Error('Ingresá una cantidad entre 1 y 200 etiquetas.');
   const codes = new Set();
   while (codes.size < quantity) codes.add(`BIN-${crypto.randomUUID().replaceAll('-', '').slice(0, 20).toUpperCase()}`);
-  return Promise.all([...codes].map(async code => ({ code, image: await QRCode.toDataURL(code, { width: 500, margin: 4, errorCorrectionLevel: 'M' }) })));
+  return Promise.all([...codes].map(async code => ({ code, companyName:company?.name || 'RIMONIM',image: await QRCode.toDataURL(companyQrPayload(code,company), { width: 500, margin: 4, errorCorrectionLevel: 'M' }) })));
 }
 
 export function labelPages(labels, format) {
@@ -30,7 +32,9 @@ export async function harvestLabelsPdf(labels, format) {
       pdf.setDrawColor(170); pdf.setLineWidth(0.15);
       pdf.rect(x + 0.3, y + 0.3, format.width - 0.6, format.height - 0.6);
       pdf.setTextColor(0); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(11);
-      pdf.text('RIMONIM', center, y + 5, { align: 'center' });
+      const name=item.companyName || 'RIMONIM';
+      pdf.setFontSize(Math.min(11,11*52/Math.max(52,pdf.getTextWidth(name))));
+      pdf.text(name, center, y + 5, { align: 'center' });
       pdf.setFont('helvetica', 'normal'); pdf.setFontSize(8);
       pdf.text('BIN DE COSECHA', center, y + 9, { align: 'center' });
       pdf.addImage(item.image, 'PNG', center - format.qr / 2, y + 10, format.qr, format.qr);
@@ -51,9 +55,9 @@ export function harvestLabelsHtml(labels, format) {
       column-gap: ${format.gapX}mm; row-gap: ${format.gapY}mm; break-after: page; page-break-after: always; }
     .bin-sheet:last-child { break-after: auto; page-break-after: auto; }
     .bin-sticker { box-sizing: border-box; border: 0.15mm solid #aaa; text-align: center; overflow: hidden; break-inside: avoid; padding-top: 2mm; }
-    .bin-sticker strong { display: block; font-size: 11pt; line-height: 4mm; }
+    .bin-sticker strong { display: block; font-size: 11pt; line-height: 4mm; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .bin-sticker span { display: block; font-size: 8pt; line-height: 4mm; }
     .bin-sticker img { width: ${format.qr}mm; height: ${format.qr}mm; display: block; margin: 0 auto; }
     .bin-sticker b { display: block; font: bold 8pt monospace; line-height: 4mm; }
-  </style>${labelPages(labels, format).map(page => `<section class="bin-sheet">${page.map(item => `<article class="bin-sticker"><strong>RIMONIM</strong><span>BIN DE COSECHA</span><img src="${item.image}" alt="QR ${item.code}" /><b>${item.code}</b></article>`).join('')}</section>`).join('')}`;
+  </style>${labelPages(labels, format).map(page => `<section class="bin-sheet">${page.map(item => `<article class="bin-sticker"><strong>${escape(item.companyName || 'RIMONIM')}</strong><span>BIN DE COSECHA</span><img src="${item.image}" alt="QR ${item.code}" /><b>${item.code}</b></article>`).join('')}</section>`).join('')}`;
 }

@@ -1,18 +1,21 @@
 import { createClient } from '@supabase/supabase-js';
-import { readSnapshot, saveSnapshot, saveLastOwner, readLastOwner, clearLastOwner } from '@/lib/offlineStore';
+import { readSnapshot, saveSnapshot, saveLastOwner, readLastOwner, clearLastOwner, migrateLegacyWorkspace } from '@/lib/offlineStore';
 import { Capacitor } from '@capacitor/core';
+import { currentWorkspace, setWorkspace, clearWorkspace, workspaceOwner, selectedWorkspace, rememberWorkspace, workspaceHeaders } from '@/lib/workspace';
 const webAppUrl = import.meta.env.VITE_PUBLIC_APP_URL || 'https://empaque-rimonim.vercel.app';
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabase = createClient(url || 'https://placeholder.supabase.co', key || 'placeholder', {
   auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
+  global: { fetch: (input, init) => fetch(input, String(input).includes('/rest/v1/') ? workspaceHeaders(init) : init) },
 });
 const requireConfigured = () => { if (!url || !key) throw new Error('Configurá VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY'); };
 /** @param {{ data?: any, error?: Error | null }} result */
 function unwrap({ data, error }) { if (error) throw error; return data; }
 async function rows(entity) {
   const offlineNative = Capacitor.isNativePlatform() && !navigator.onLine;
-  const ownerId = offlineNative ? await readLastOwner() : (await supabase.auth.getSession()).data.session?.user?.id;
+  const userId = offlineNative ? await readLastOwner() : (await supabase.auth.getSession()).data.session?.user?.id;
+  const ownerId = userId && workspaceOwner(userId);
   if (!ownerId) throw Object.assign(new Error('Iniciá sesión'), {status:401});
   if (!navigator.onLine) {
     const cached = await readSnapshot(ownerId, entity);
@@ -42,7 +45,7 @@ const flatten = (record) => ({ ...record.data, id: record.id, created_date: reco
 const entityClient = (entity) => ({
   async list(order = '-created_date', limit) {
     requireConfigured();
-    if (entity === 'User') return unwrap(await supabase.from('profiles').select('id,email,full_name,role')).map(x => ({ ...x, name:x.full_name }));
+    if (entity === 'User') return unwrap(await supabase.rpc('company_users')).map(x => ({ ...x, name:x.full_name }));
     // JSON fields cannot be ordered dynamically through PostgREST; sort after retrieval.
     const data = await rows(entity);
     const field = order.replace(/^-/, '');
@@ -63,7 +66,7 @@ const entityClient = (entity) => ({
     return data.map(flatten);
   },
   async update(id, patch) {
-    if(entity==='User') { const data=unwrap(await supabase.from('profiles').update({role:patch.role}).eq('id',id).select().single()); return data; }
+    if(entity==='User') return unwrap(await supabase.rpc('set_company_role',{p_user_id:id,p_role:patch.role}));
     const data=unwrap(await supabase.rpc('patch_record',{p_entity:entity,p_id:id,p_patch:patch,p_unset:[]}));
     return flatten(data);
   },
@@ -90,8 +93,9 @@ const entityClient = (entity) => ({
 const profile = async () => {
   if (Capacitor.isNativePlatform() && !navigator.onLine) {
     const ownerId = await readLastOwner();
-    const cached = ownerId && await readSnapshot(ownerId, 'profile');
-    if (cached) return cached;
+    const selected=ownerId && selectedWorkspace(ownerId);
+    const cached = ownerId && await readSnapshot(ownerId, selected ? `profile:${selected}` : 'profile');
+    if (cached?.workspace) { setWorkspace(ownerId, cached.workspace); return cached; }
     throw Object.assign(new Error('Conectate para iniciar sesión por primera vez'), { status: 401 });
   }
   const { data: { session } } = await supabase.auth.getSession();
@@ -102,14 +106,24 @@ const profile = async () => {
     if(error) throw error;
     if(!user) throw Object.assign(new Error('Iniciá sesión'),{status:401});
     const p=unwrap(await supabase.from('profiles').select('*').eq('id',user.id).single());
-    const value={...p, name:p.full_name};
+    const memberships=unwrap(await supabase.from('company_memberships').select('company_id,role,companies(id,name,slug,active)').eq('user_id',user.id).eq('active',true)).filter(m=>m.companies?.active!==false && m.companies);
+    const requested=selectedWorkspace(user.id);
+    const member=memberships.find(m=>m.company_id===requested) || memberships.find(m=>m.companies?.slug==='rimonim') || memberships[0];
+    const workspace=member?.companies || null;
+    setWorkspace(user.id,workspace);
+    if(workspace) rememberWorkspace(user.id,workspace.id);
+    await migrateLegacyWorkspace(user.id,workspace);
+    const platformAdmin=unwrap(await supabase.rpc('is_platform_admin'));
+    const value={...p, name:p.full_name,role:member?.role || 'user',workspace,memberships,platformAdmin};
     await saveSnapshot(user.id, 'profile', value).catch(() => {});
+    if(workspace) await saveSnapshot(user.id, `profile:${workspace.id}`, value).catch(() => {});
     if (Capacitor.isNativePlatform()) await saveLastOwner(user.id).catch(() => {});
     return value;
   } catch (error) {
     if (!navigator.onLine || error instanceof TypeError || error?.status === 0 || error?.name === 'AuthRetryableFetchError') {
-      const cached = await readSnapshot(session.user.id, 'profile');
-      if (cached) return cached;
+      const selected=selectedWorkspace(session.user.id);
+      const cached = await readSnapshot(session.user.id, selected ? `profile:${selected}` : 'profile');
+      if (cached?.workspace) { setWorkspace(session.user.id,cached.workspace); return cached; }
     }
     throw error;
   }
@@ -121,7 +135,7 @@ export const base44 = {
     isAuthenticated: async()=>!!(await supabase.auth.getSession()).data.session,
     async loginViaEmailPassword(email,password) { requireConfigured(); unwrap(await supabase.auth.signInWithPassword({email,password})); return profile(); },
     loginWithProvider: async (_provider,returnTo='/')=>{ requireConfigured(); unwrap(await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:new URL(returnTo,location.origin).href}})); },
-    logout: async(returnTo)=>{ if (Capacitor.isNativePlatform()) await clearLastOwner(); unwrap(await supabase.auth.signOut()); if(returnTo) location.assign('/login'); },
+    logout: async(returnTo)=>{ clearWorkspace(); if (Capacitor.isNativePlatform()) await clearLastOwner(); unwrap(await supabase.auth.signOut()); if(returnTo) location.assign('/login'); },
     redirectToLogin: ()=>location.assign('/login'),
     async verifyOtp({email,otpCode}) { const data=unwrap(await supabase.auth.verifyOtp({email,token:otpCode,type:'email'})); return {access_token:data.session?.access_token}; },
     setToken:()=>{},
@@ -129,6 +143,6 @@ export const base44 = {
     resetPasswordRequest: email=>supabase.auth.resetPasswordForEmail(email,{redirectTo:`${Capacitor.isNativePlatform() ? webAppUrl : location.origin}/reset-password`}).then(unwrap),
     resetPassword: ({newPassword})=>supabase.auth.updateUser({password:newPassword}).then(unwrap),
   },
-  users: {async inviteUser(email,role) { const session=unwrap(await supabase.auth.getSession()).session; const endpoint=Capacitor.isNativePlatform() ? `${webAppUrl}/api/invite` : '/api/invite'; const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session?.access_token}`},body:JSON.stringify({email,role})}); const body=await response.json(); if(!response.ok) throw new Error(body.error||'No se pudo invitar'); return body; }},
+  users: {async inviteUser(email,role) { const session=unwrap(await supabase.auth.getSession()).session; const endpoint=Capacitor.isNativePlatform() ? `${webAppUrl}/api/invite` : '/api/invite'; const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session?.access_token}`},body:JSON.stringify({email,role,company_id:currentWorkspace()?.id})}); const body=await response.json(); if(!response.ok) throw new Error(body.error||'No se pudo invitar'); return body; }},
   entities: /** @type {Record<string, ReturnType<typeof entityClient>>} */ (new Proxy({}, {get:(_target,name)=>entityClient(String(name))})),
 };

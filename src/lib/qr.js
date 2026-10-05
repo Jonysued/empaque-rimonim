@@ -1,3 +1,5 @@
+import { currentWorkspace } from './workspace.js';
+import { companyQrPayload } from './companyQr.mjs';
 // Generación de QR (imagen) y códigos únicos
 export const escapeHtml = value => String(value ?? '—').replace(/[&<>"']/g, char => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -5,7 +7,7 @@ export const escapeHtml = value => String(value ?? '—').replace(/[&<>"']/g, ch
 
 // Genera una URL de imagen QR usando api.qrserver.com (sin instalar dependencias)
 export function qrImageUrl(data, size = 200) {
-  const encoded = encodeURIComponent(data);
+  const encoded = encodeURIComponent(companyQrPayload(data,currentWorkspace()));
   return `https://api.qrserver.com/v1/create-qr-code/?data=${encoded}&size=${size}x${size}&margin=10`;
 }
 

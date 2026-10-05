@@ -8,8 +8,8 @@ function openDb() {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
       request.onupgradeneeded = () => {
         const db = request.result;
-        db.createObjectStore("commands", { keyPath: "id" });
-        db.createObjectStore("snapshots");
+        if (!db.objectStoreNames.contains('commands')) db.createObjectStore("commands", { keyPath: "id" });
+        if (!db.objectStoreNames.contains('snapshots')) db.createObjectStore("snapshots");
       };
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
@@ -44,6 +44,35 @@ export const listCommands = async ownerId =>
   (await store("commands", "readonly", s => s.getAll()))
     .filter(command => command.ownerId === ownerId)
     .sort((a, b) => a.sequence && b.sequence ? a.sequence - b.sequence : a.createdAt.localeCompare(b.createdAt));
+
+// Old versions had only Rimonim. Adopt their pending work once, without deleting
+// it or attributing it to a newly selected customer.
+export async function migrateLegacyWorkspace(userId, workspace) {
+  if (workspace?.slug !== 'rimonim') return;
+  const db = await openDb();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(['commands','snapshots'],'readwrite');
+    const commands=tx.objectStore('commands'), snapshots=tx.objectStore('snapshots');
+    const marker=`company-migration:${userId}`;
+    const request=snapshots.get(marker);
+    request.onsuccess=()=> {
+      if (request.result) return;
+      const all=commands.getAll();
+      all.onsuccess=()=> { for (const command of all.result) if(command.ownerId===userId) commands.put({...command,ownerId:`${userId}::${workspace.id}`}); };
+      const cursor=snapshots.openCursor();
+      cursor.onsuccess=()=> {
+        const entry=cursor.result;
+        if(!entry) { snapshots.put(true,marker); return; }
+        const key=String(entry.key);
+        if(key.startsWith(`${userId}:`) && !key.startsWith(`${userId}:profile`) && !key.startsWith(`${userId}::`)) snapshots.put(entry.value,`${userId}::${workspace.id}:${key.slice(userId.length+1)}`);
+        entry.continue();
+      };
+    };
+    tx.oncomplete=()=>resolve(undefined);
+    tx.onerror=()=>reject(tx.error);
+    tx.onabort=()=>reject(tx.error);
+  });
+}
 
 // One read/write transaction across tabs prevents double scans from enqueuing
 // two commands for the same pallet. A persisted sequence preserves scan order

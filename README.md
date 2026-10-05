@@ -24,6 +24,18 @@ Use `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` locally, then run `npm run im
 
 The standalone app uses one `records` JSONB table and a `profiles` table. Row-level security enforces write access by job role. An import via service role bypasses RLS and must run only from a trusted machine. The frontend compatibility module retains the `base44` variable name for existing screens; it talks only to Supabase.
 
+## Empresas y espacios de trabajo
+
+Aplicar `20261005140713_multi_company_isolation.sql` antes de desplegar el nuevo frontend. Conserva todos los registros y usuarios existentes en **Rimonim**. `companies` identifica empresas y `company_memberships` define el rol por empresa; `profiles.role` queda como compatibilidad de Rimonim. Una cuenta puede pertenecer a varias empresas con roles distintos.
+
+Todas las operaciones usan el encabezado `x-empaco-company`, validado contra membresías activas en el servidor. La política RLS restrictiva impide leer o escribir registros de otra empresa, incluso por RPC. Los clientes antiguos sin encabezado solo acceden a Rimonim si pertenecen a ella. Los identificadores de registros siguen siendo globales; romaneos y códigos de pallets son únicos por empresa. Los disparadores privilegiados verifican empresa y referencias.
+
+Solo el titular identificado de Empaco (`jonatan@rimonim.com.ar`, si existe al migrar) se incorpora a la administración de plataforma. Los administradores de Rimonim no reciben ese privilegio. En **Espacio de trabajo**, el titular crea empresas vacías y recibe una membresía explícita como administrador para configurarlas. `created_by` registra quién creó cada espacio. Cada administrador invita usuarios o incorpora cuentas existentes únicamente a su empresa; no cambia sus permisos en otras. Los catálogos, ubicaciones y registros operativos se configuran dentro de cada espacio. Esta versión conserva las estaciones operativas actuales; no incluye un constructor de flujos arbitrarios ni facturación de suscripciones.
+
+El selector cambia de empresa mediante recarga completa y conserva la elección por pestaña. Los snapshots y comandos offline usan usuario + empresa; los pendientes de Rimonim se migran una sola vez sin borrarlos. Cambiar de empresa requiere conexión y no sincroniza pendientes de otro espacio. Las nuevas empresas imprimen su nombre y QR con empresa incorporada; los QR de Rimonim mantienen compatibilidad con apps instaladas. Un ingreso manual busca solamente en la empresa actual.
+
+El importador exige `COMPANY_SLUG`; nunca ejecutar una importación sin identificar el cliente. Verificar con `npm run check:companies`, `npm run check:app` y `npm run check:cold-storage`. Los cambios de interfaz nativa requieren nuevos paquetes iOS/Android, separados del despliegue web. La página comercial permanece desactivada hasta nueva autorización.
+
 ## Operational checks before switching traffic
 
 - Test login, invitation, password reset, Google OAuth if enabled, and permissions for every role.

@@ -1,4 +1,5 @@
 import { fmtKg, fmtDate, fmtDay, qrImageUrl } from './qr.js';
+import { currentWorkspace } from './workspace.js';
 
 const escape = value => String(value ?? '—').replace(/[&<>"']/g, char => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[char]));
 const weight = value => value != null ? fmtKg(value) : 'Sin pesar';
@@ -56,7 +57,7 @@ export function lotSheetHtml(lot, bins) {
     .sheet-bin-note { font-size: 7pt; margin: 1mm 0 0; color: #555; }
     .sheet-footer { margin-top: 2mm; font-size: 8pt; color: #555; }
   </style><article class="lot-sheet">
-    <header class="sheet-header"><div><h1>RIMONIM</h1><h2>Ficha de lote</h2><p><b>${escape(lot.lot_code)}</b></p><p>Operación de empaque</p></div><img class="sheet-qr" src="${qrImageUrl(lot.lot_code,300)}" width="300" height="300" alt="QR del lote" /></header>
+    <header class="sheet-header"><div><h1>${escape(currentWorkspace()?.name || 'RIMONIM')}</h1><h2>Ficha de lote</h2><p><b>${escape(lot.lot_code)}</b></p><p>Operación de empaque</p></div><img class="sheet-qr" src="${qrImageUrl(lot.lot_code,300)}" width="300" height="300" alt="QR del lote" /></header>
     ${lot.pendingStatus ? `<p class="sheet-warning">${lot.pendingStatus === 'conflict' ? 'Requiere revisión de sincronización' : 'Datos de este dispositivo pendientes de sincronizar'}</p>` : ''}
     <section class="sheet-section"><h3>Datos del lote</h3><div class="sheet-grid">${fields.map(([label,value])=>row(label,value)).join('')}</div></section>
     <section class="sheet-section"><h3>Pesos y balance</h3><div class="sheet-grid sheet-weights">${weights.map(([label,value])=>row(label,value)).join('')}</div></section>

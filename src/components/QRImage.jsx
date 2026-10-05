@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
+import { currentWorkspace } from '@/lib/workspace';
+import { companyQrPayload } from '@/lib/companyQr.mjs';
 
 // Generate on-device: cached records must remain scannable without signal.
 export default function QRImage({ code, size = 160, className = '' }) {
@@ -8,7 +10,7 @@ export default function QRImage({ code, size = 160, className = '' }) {
   useEffect(() => {
     let active = true;
     setImage(null); setError('');
-    QRCode.toDataURL(String(code || ''), { width: size, margin: 2 })
+    QRCode.toDataURL(companyQrPayload(code,currentWorkspace()), { width: size, margin: 2 })
       .then(src => { if (active) setImage({ code, size, src }); })
       .catch(() => { if (active) setError('No se pudo generar el QR'); });
     return () => { active = false; };

@@ -4,6 +4,8 @@ import { Capacitor } from "@capacitor/core";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScanLine, Keyboard, X } from "lucide-react";
+import { currentWorkspace } from '@/lib/workspace';
+import { readCompanyQr } from '@/lib/companyQr.mjs';
 
 /**
  * Escáner QR: usa el decodificador nativo si el navegador lo soporta,
@@ -117,17 +119,18 @@ export default function QRScanner({ onScan, label = "Escanear QR" }) {
 
   }, [scanning]);
 
-  function handleScan(val) {
+  function handleScan(val,manualInput=false) {
     setScanning(false);
     setManual(false);
     setError("");
-    if (onScan) onScan(val);
+    try { if (onScan) onScan(readCompanyQr(val,currentWorkspace(),manualInput)); }
+    catch(e) { setError(e.message); }
   }
 
   function submitManual(e) {
     e.preventDefault();
     if (!code.trim()) return;
-    handleScan(code.trim());
+    handleScan(code.trim(),true);
     setCode("");
   }
 
