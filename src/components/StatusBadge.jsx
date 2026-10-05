@@ -52,7 +52,7 @@ const LABELS = {
   en_camara: "En cámara",
   reservado: "Reservado",
   despachado: "Despachado",
-  liberado: "Liberado",
+  liberado: "Liberado de Cámara",
   borrador: "Borrador",
   cargado: "Cargado",
   enviado: "Enviado",
