@@ -247,17 +247,17 @@ function PalletForm({ cats, onClose, onSaved, pallet }) {
             {form.product_type === "fresco" && (
               <>
                 <div className="space-y-1">
-                  <Label className="text-xs">Calibre</Label>
-                  <Select value={form.calibre} onValueChange={v => update("calibre", v)}>
-                    <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>{opt(cats.calibre).map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
                   <Label className="text-xs">Envase/Caja</Label>
                   <Select value={form.package_type} onValueChange={v => update("package_type", v)}>
                     <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                     <SelectContent>{opt(cats.envase).map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Calibre</Label>
+                  <Select value={form.calibre} onValueChange={v => update("calibre", v)}>
+                    <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectContent>{opt(cats.calibre).map(o => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}</SelectContent>
                   </Select>
                 </div>
               </>
