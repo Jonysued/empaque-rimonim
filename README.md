@@ -83,3 +83,15 @@ La trazabilidad de origen de los pallets creados manualmente sigue sin estar con
 Aplicar `20261002162159_flexible_chamber_loads.sql`. Las cargas 1–4 conservan su numeración y admiten 20 o 21 pallets. La quinta se habilita sin reemplazar el plano ocupado; el total es 101. Sus posiciones disponibles son 21 menos la cantidad de posiciones 21 ocupadas en las primeras cuatro: 20+20+21+21 deja 19; 4×21 deja 17. El servidor rechaza ocupar una posición 21 si invade posiciones ocupadas de la quinta.
 
 Las primeras cuatro pueden marcarse completas con 20 o 21; la quinta con su cantidad real. Una carga completa requiere reapertura explícita para agregar pallets. Reabrir conserva el inicio del tiempo y registra la información anterior en el evento. Los traslados y salidas siguen habilitados; los túneles mantienen sus reglas de bloqueo durante el prefrío.
+# Private commercial website review
+
+The selected design is available only through `/web-privada`, with a separate
+login session and server-verified email allowlist. Only
+`jonatan@rimonim.com.ar` can authorize/revoke reviewers. Operational administrator
+roles do not grant this access. New reviewer invitations create an Auth account
+without any company membership; existing accounts keep their current permissions.
+The HTML is stored compressed in `private_web_design`, with direct client access
+revoked and RLS enabled. It is not bundled in public frontend assets. The latest
+source is the uploaded `empaco-web-editable(1).zip` (October 5, 2026).
+Demo submissions and purchase buttons are illustrative in this private review.
+Run `node scripts/check-private-web.mjs` to verify access boundaries.
