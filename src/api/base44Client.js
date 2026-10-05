@@ -143,6 +143,21 @@ export const base44 = {
     resetPasswordRequest: email=>supabase.auth.resetPasswordForEmail(email,{redirectTo:`${Capacitor.isNativePlatform() ? webAppUrl : location.origin}/reset-password`}).then(unwrap),
     resetPassword: ({newPassword})=>supabase.auth.updateUser({password:newPassword}).then(unwrap),
   },
-  users: {async inviteUser(email,role) { const session=unwrap(await supabase.auth.getSession()).session; const endpoint=Capacitor.isNativePlatform() ? `${webAppUrl}/api/invite` : '/api/invite'; const response=await fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session?.access_token}`},body:JSON.stringify({email,role,company_id:currentWorkspace()?.id})}); const body=await response.json(); if(!response.ok) throw new Error(body.error||'No se pudo invitar'); return body; }},
+  users: {async inviteUser(email,role) {
+    if(!navigator.onLine) throw new Error('Para enviar invitaciones necesitás conexión a internet.');
+    let session=unwrap(await supabase.auth.getSession()).session;
+    if(!session) throw new Error('Iniciá sesión para enviar invitaciones.');
+    const endpoint=Capacitor.isNativePlatform() ? `${webAppUrl}/api/invite` : '/api/invite';
+    const send=()=>fetch(endpoint,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.access_token}`},body:JSON.stringify({email,role,company_id:currentWorkspace()?.id})});
+    let response=await send();
+    if(response.status===401) {
+      session=unwrap(await supabase.auth.refreshSession()).session;
+      if(!session) throw new Error('La sesión venció. Iniciá sesión de nuevo.');
+      response=await send();
+    }
+    const body=await response.json().catch(()=>({error:'El servidor no pudo procesar la invitación. Volvé a intentar.'}));
+    if(!response.ok) throw new Error(body.error||'No se pudo invitar');
+    return body;
+  }},
   entities: /** @type {Record<string, ReturnType<typeof entityClient>>} */ (new Proxy({}, {get:(_target,name)=>entityClient(String(name))})),
 };
