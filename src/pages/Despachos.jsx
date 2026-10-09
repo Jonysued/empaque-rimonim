@@ -82,6 +82,7 @@ export default function Despachos() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold">{s.load_number}</span>
                       <StatusBadge status={s.status} />
+                      {s.pendingStatus && <p className="text-xs text-amber-700">{s.pendingStatus === 'conflict' ? 'Requiere revisión' : s.pendingDeparture ? 'Salida pendiente de sincronizar' : 'Pendiente de sincronizar'}</p>}
                     </div>
                     <p className="text-sm text-muted-foreground">{s.client || "Sin cliente"} · {s.destination || "—"}</p>
                     <p className="text-xs text-muted-foreground">{s.product_type === "fresco" ? "Fresco" : "Arilos"} · {fmtDate(s.date)}</p>
@@ -142,13 +143,13 @@ function ShipmentForm({ shipment = null, cats, pallets, onClose, onSaved }) {
         const currentCount = latest.loaded_pallet_ids?.length || 0;
         if (capacity < currentCount) throw new Error(`La carga ahora tiene ${currentCount} pallets. Actualizá la capacidad.`);
         if (currentCount > 0 && form.product_type !== latest.product_type) throw new Error("La carga ya tiene pallets y no permite cambiar el producto");
-        await base44.entities.Shipment.update(shipment.id, {
+        const saved = await base44.entities.Shipment.update(shipment.id, {
           load_number: form.load_number.trim(), client: form.client, destination: form.destination.trim(),
           product_type: form.product_type, target_capacity: capacity, carrier: form.carrier.trim(),
           container_number: form.container_number.trim(), remito: form.remito.trim(),
           thermograph: form.thermograph.trim(), seal: form.seal.trim(),
         });
-        toast.success("Carga actualizada");
+        toast[saved.pendingStatus ? 'warning' : 'success'](saved.pendingStatus ? 'Cambios guardados; pendientes de sincronizar' : 'Carga actualizada');
         onSaved();
         return;
       }
@@ -163,7 +164,7 @@ function ShipmentForm({ shipment = null, cats, pallets, onClose, onSaved }) {
       });
       const selected = available.filter(p => selectedIds.has(p.id)).slice(0, capacity);
       const results = selected.length > 0 ? await loadPalletsIntoShipment(created, selected) : [];
-      if (results.some(result => result.pending)) toast.warning("Carga creada; algunos pallets están pendientes de sincronizar");
+      if (created.pendingStatus || results.some(result => result.pending)) toast.warning("Carga guardada en este dispositivo; pendiente de sincronizar");
       onSaved();
     } catch (e) {
       if (created) {
@@ -315,7 +316,8 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
 
   async function saveExtra() {
     try {
-      await base44.entities.Shipment.update(shipment.id, extra);
+      const saved = await base44.entities.Shipment.update(shipment.id, extra);
+      if (saved.pendingStatus) toast.warning('Datos guardados; pendientes de sincronizar');
       onChanged();
     } catch (e) { setError(e.message); }
   }
@@ -328,7 +330,8 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
       const result = await unloadPalletFromShipment(shipment.id, palletToRemove.id);
       setPalletToRemove(null);
       if (result.pending) toast.warning("Retiro guardado en este dispositivo; pendiente de sincronizar");
-      else { toast.success("Pallet retirado de la carga"); onChanged(); }
+      else toast.success("Pallet retirado de la carga");
+      onChanged();
     } catch (e) { setError(e.message || "No se pudo retirar el pallet"); }
     finally { setRemoving(false); }
   }
@@ -338,9 +341,9 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
     setReopening(true);
     setError("");
     try {
-      await reopenShipmentForCorrection(shipment.id, reopenOperationId);
+      const result = await reopenShipmentForCorrection(shipment.id, reopenOperationId);
       setConfirmReopen(false);
-      toast.success("Carga reabierta. Ya podés corregir los pallets.");
+      toast[result.pending ? 'warning' : 'success'](result.pending ? 'Reapertura pendiente de sincronizar' : 'Carga reabierta. Ya podés corregir los pallets.');
       onChanged();
     } catch (e) { setError(e.message || "No se pudo reabrir la carga"); }
     finally { setReopening(false); }
@@ -350,7 +353,8 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
     if (sending) return;
     setSending(true); setError("");
     try {
-      await base44.entities.Shipment.update(shipment.id, { status: "enviado", ...extra });
+      const saved = await base44.entities.Shipment.update(shipment.id, { status: "enviado", ...extra });
+      toast[saved.pendingStatus ? 'warning' : 'success'](saved.pendingStatus ? 'Salida guardada en este dispositivo; pendiente de confirmación al sincronizar' : 'Salida confirmada');
       onChanged();
     } catch (e) { setError(e.message); }
     finally { setSending(false); }

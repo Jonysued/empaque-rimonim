@@ -9,6 +9,7 @@ import { Capacitor } from "@capacitor/core";
 const OFFLINE_ENTITIES = ["ReceiptLot", "DumpingEvent", "Pallet", "Location", "CoolingCycle", "StorageBatch", "Shipment", "Catalog", "Bin", "ProductionRun", "MovementEvent"];
 
 const names = {
+  offline_record_operation: "Pallet o despacho",
   move_pallet_location: "Movimiento de pallet",
   change_cooling_cycle: "Ciclo de prefrío",
   cooling_cycle_command: "Ciclo de prefrío",

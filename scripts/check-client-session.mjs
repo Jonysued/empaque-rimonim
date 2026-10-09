@@ -5,14 +5,21 @@ const body=source.slice(source.indexOf('const profile = async () => {'),source.i
 Object.defineProperty(globalThis,'navigator',{value:{onLine:true},configurable:true});
 const user={id:'owner'};let networkError=null;
 const workspace={id:'company-a',name:'A',slug:'rimonim'};
-const supabase={auth:{getSession:async()=>({data:{session:{user}}}),getUser:async()=>({data:{user:networkError?null:user},error:networkError})},rpc:async()=>({data:false}),from:table=>({select:()=> table==='company_memberships'?{eq:()=>({eq:async()=>({data:[{company_id:workspace.id,role:'frio',companies:workspace}]})})}:{eq:()=>({single:async()=>({data:{id:'owner',role:'user'},error:null})})}})};
+let refreshError=null;
+const supabase={auth:{getSession:async()=>({data:{session:refreshError?null:{user}},error:refreshError}),getUser:async()=>({data:{user:networkError?null:user},error:networkError})},rpc:async()=>({data:false}),from:table=>({select:()=> table==='company_memberships'?{eq:()=>({eq:async()=>({data:[{company_id:workspace.id,role:'frio',companies:workspace}]})})}:{eq:()=>({single:async()=>({data:{id:'owner',role:'user'},error:null})})}})};
 const cache=new Map();const saveSnapshot=async(id,key,value)=>cache.set(`${id}:${key}`,value);
 const readSnapshot=async(id,key)=>cache.get(`${id}:${key}`);
 let selected=null;
-const profile=new Function('supabase','Capacitor','readLastOwner','readSnapshot','saveSnapshot','saveLastOwner','unwrap','selectedWorkspace','setWorkspace','rememberWorkspace','migrateLegacyWorkspace',`${body};return profile;`)(supabase,{isNativePlatform:()=>true},async()=>user.id,readSnapshot,saveSnapshot,async()=>{},({data,error})=>{if(error)throw error;return data;},()=>selected,()=>{},(_user,id)=>{selected=id},async()=>{});
+const identity=source.slice(source.indexOf('export const isOfflineError'),source.indexOf('async function rows')).replace(/^export /gm,'');
+const profile=new Function('supabase','Capacitor','readLastOwner','readSnapshot','saveSnapshot','saveLastOwner','unwrap','selectedWorkspace','setWorkspace','rememberWorkspace','migrateLegacyWorkspace',`${identity}\n${body};return profile;`)(supabase,{isNativePlatform:()=>true},async()=>user.id,readSnapshot,saveSnapshot,async()=>{},({data,error})=>{if(error)throw error;return data;},()=>selected,()=>{},(_user,id)=>{selected=id},async()=>{});
 assert.equal((await profile()).role,'frio');
 networkError=Object.assign(new Error('Failed to fetch'),{name:'AuthRetryableFetchError',status:0});
 assert.equal((await profile()).role,'frio'); // Navigator can say online while the radio is disconnected.
+refreshError=networkError;
+assert.equal((await profile()).role,'frio'); // Expired session cannot refresh through Wi-Fi with no internet.
+refreshError=Object.assign(new Error('Invalid refresh token'),{status:401});
+await assert.rejects(profile(),/Invalid refresh token/);
+refreshError=null;
 networkError=Object.assign(new Error('Invalid JWT'),{status:401});
 await assert.rejects(profile(),/Invalid JWT/); // Real session rejection never uses cached credentials.
 navigator.onLine=false;

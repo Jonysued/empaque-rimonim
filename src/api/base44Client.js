@@ -2,6 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import { readSnapshot, saveSnapshot, saveLastOwner, readLastOwner, clearLastOwner, migrateLegacyWorkspace } from '@/lib/offlineStore';
 import { Capacitor } from '@capacitor/core';
 import { currentWorkspace, setWorkspace, clearWorkspace, workspaceOwner, selectedWorkspace, rememberWorkspace, workspaceHeaders } from '@/lib/workspace';
+import { getOperations, submitOperation } from '@/lib/operationQueue';
+import { projectRecordOperations } from '@/lib/recordProjection.mjs';
 const webAppUrl = import.meta.env.VITE_PUBLIC_APP_URL || 'https://empaque-rimonim.vercel.app';
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -12,12 +14,32 @@ export const supabase = createClient(url || 'https://placeholder.supabase.co', k
 const requireConfigured = () => { if (!url || !key) throw new Error('Configurá VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY'); };
 /** @param {{ data?: any, error?: Error | null }} result */
 function unwrap({ data, error }) { if (error) throw error; return data; }
+export const isOfflineError = error => error?.status !== 401 && error?.status !== 403 &&
+  (error instanceof TypeError || error?.status === 0 || error?.name === 'AuthRetryableFetchError' || /failed to fetch|fetch failed|networkerror/i.test(error?.message || ''));
+export async function localSessionIdentity() {
+  const native = Capacitor.isNativePlatform();
+  if (native && !navigator.onLine) {
+    const id = await readLastOwner();
+    if (id) return { id, offline: true };
+  }
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    if (!session?.user?.id) throw Object.assign(new Error('Iniciá sesión'), { status: 401 });
+    return { id: session.user.id, offline: !navigator.onLine };
+  } catch (error) {
+    if (native && isOfflineError(error)) {
+      const id = await readLastOwner();
+      if (id) return { id, offline: true };
+    }
+    throw error;
+  }
+}
 async function rows(entity) {
-  const offlineNative = Capacitor.isNativePlatform() && !navigator.onLine;
-  const userId = offlineNative ? await readLastOwner() : (await supabase.auth.getSession()).data.session?.user?.id;
+  const { id: userId, offline } = await localSessionIdentity();
   const ownerId = userId && workspaceOwner(userId);
   if (!ownerId) throw Object.assign(new Error('Iniciá sesión'), {status:401});
-  if (!navigator.onLine) {
+  if (offline) {
     const cached = await readSnapshot(ownerId, entity);
     if (cached) return cached;
     throw new Error('No hay datos de esta sección guardados para usar sin conexión');
@@ -28,7 +50,7 @@ async function rows(entity) {
       const batch=unwrap(await supabase.from('records').select('id,data,created_date').eq('entity',entity).order('created_date',{ascending:true}).order('id',{ascending:true}).range(offset,offset+999));
       all.push(...batch);
       if(batch.length<1000) {
-        await saveSnapshot(ownerId, entity, all).catch(() => {});
+        await saveSnapshot(ownerId, entity, all);
         return all;
       }
     }
@@ -47,16 +69,27 @@ const entityClient = (entity) => ({
     requireConfigured();
     if (entity === 'User') return unwrap(await supabase.rpc('company_users')).map(x => ({ ...x, name:x.full_name }));
     // JSON fields cannot be ordered dynamically through PostgREST; sort after retrieval.
-    const data = await rows(entity);
+    const confirmed = await rows(entity);
+    const data = ['Pallet', 'Shipment'].includes(entity)
+      ? projectRecordOperations(entity, confirmed, await getOperations()) : confirmed;
     const field = order.replace(/^-/, '');
     const sign = order.startsWith('-') ? -1 : 1;
     const sorted = data.map(flatten).sort((a,b) => String(a[field] ?? '').localeCompare(String(b[field] ?? '')) * sign);
     return limit ? sorted.slice(0,limit) : sorted;
   },
   async filter(query) { return (await this.list()).filter(row => Object.entries(query).every(([k,v]) => row[k] === v)); },
-  async get(id) { const data = unwrap(await supabase.from('records').select('id,data,created_date').eq('entity',entity).eq('id',id).single()); return flatten(data); },
+  async get(id) { if (['Pallet','Shipment'].includes(entity)) {
+    const record = (await this.list()).find(row => row.id === id);
+    if (!record) throw new Error('Registro no encontrado');
+    return record;
+  } const data = unwrap(await supabase.from('records').select('id,data,created_date').eq('entity',entity).eq('id',id).single()); return flatten(data); },
   async create(record) {
     const id = crypto.randomUUID();
+    if (['Pallet','Shipment'].includes(entity)) {
+      const result = await submitOperation('offline_record_operation', { p_entity: entity, p_id: id, p_action: 'create', p_payload: record, p_expected: null, p_recorded_at: new Date().toISOString() }, `record:${entity}:${id}:create`);
+      if (result.pending) return flatten(projectRecordOperations(entity, [], await getOperations()).find(row => row.id === id));
+      return this.get(id);
+    }
     const data = unwrap(await supabase.from('records').insert({entity,id,data:{...record,id}}).select('id,data,created_date').single());
     return flatten(data);
   },
@@ -67,6 +100,17 @@ const entityClient = (entity) => ({
   },
   async update(id, patch) {
     if(entity==='User') return unwrap(await supabase.rpc('set_company_role',{p_user_id:id,p_role:patch.role}));
+    if (['Pallet','Shipment'].includes(entity)) {
+      const before = await this.get(id);
+      const action = entity === 'Shipment' && patch.status === 'enviado' ? 'dispatch' : 'patch';
+      const payload = { ...patch };
+      if (action === 'dispatch') delete payload.status;
+      const expected = Object.fromEntries(Object.keys(payload).map(key => [key, before[key] ?? null]));
+      if (action === 'dispatch') { expected.status = before.status; expected.loaded_pallet_ids = before.loaded_pallet_ids || []; }
+      const result = await submitOperation('offline_record_operation', { p_entity: entity, p_id: id, p_action: action, p_payload: payload, p_expected: expected }, `record:${entity}:${id}:${action}`);
+      if (result.pending) return flatten(projectRecordOperations(entity, [{ id, created_date: before.created_date, data: before }], await getOperations()).find(row => row.id === id));
+      return this.get(id);
+    }
     const data=unwrap(await supabase.rpc('patch_record',{p_entity:entity,p_id:id,p_patch:patch,p_unset:[]}));
     return flatten(data);
   },
@@ -98,10 +142,10 @@ const profile = async () => {
     if (cached?.workspace) { setWorkspace(ownerId, cached.workspace); return cached; }
     throw Object.assign(new Error('Conectate para iniciar sesión por primera vez'), { status: 401 });
   }
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.user?.id) throw Object.assign(new Error('Iniciá sesión'), {status:401});
+  const identity = await localSessionIdentity();
+  const session = { user: { id: identity.id } };
   try {
-    if (!navigator.onLine) throw new TypeError('Sin conexión');
+    if (identity.offline) throw new TypeError('Sin conexión');
     const {data:{user},error} = await supabase.auth.getUser();
     if(error) throw error;
     if(!user) throw Object.assign(new Error('Iniciá sesión'),{status:401});
@@ -120,7 +164,7 @@ const profile = async () => {
     if (Capacitor.isNativePlatform()) await saveLastOwner(user.id).catch(() => {});
     return value;
   } catch (error) {
-    if (!navigator.onLine || error instanceof TypeError || error?.status === 0 || error?.name === 'AuthRetryableFetchError') {
+    if (isOfflineError(error)) {
       const selected=selectedWorkspace(session.user.id);
       const cached = await readSnapshot(session.user.id, selected ? `profile:${selected}` : 'profile');
       if (cached?.workspace) { setWorkspace(session.user.id,cached.workspace); return cached; }

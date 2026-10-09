@@ -52,7 +52,7 @@ let company='a';
 const source = (await readFile('src/lib/operationQueue.js', 'utf8'))
   .replace(/^import .*;\n/gm, '')
   .replace(/^export /gm, '');
-const queue = new Function('supabase', 'Capacitor', 'readLastOwner', 'listCommands', 'saveCommand', 'enqueueCommand', 'removeCommand','workspaceOwner', `${source}\nreturn { submitOperation, syncOperations };`)(supabase, Capacitor, readLastOwner, listCommands, saveCommand, enqueueCommand, removeCommand,id=>`${id}::${company}`);
+const queue = new Function('supabase', 'Capacitor', 'readLastOwner', 'listCommands', 'saveCommand', 'enqueueCommand', 'removeCommand','workspaceOwner','localSessionIdentity','readSnapshot','saveSnapshot', `${source}\nreturn { submitOperation, syncOperations };`)(supabase, Capacitor, readLastOwner, listCommands, saveCommand, enqueueCommand, removeCommand,id=>`${id}::${company}`,async()=>({id:owner,offline:!navigator.onLine}),async()=>[],async()=>{});
 const id = 'aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa';
 const params = { p_lot_id: 'lot-1', p_bins: 2, p_dump_code: 'VOL-1' };
 assert.deepEqual(await queue.submitOperation('dump_lot_by_bins', params, 'lot:lot-1', id), { operation_id: id, pending: true });

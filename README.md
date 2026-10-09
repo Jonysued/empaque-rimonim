@@ -85,6 +85,25 @@ Aplicar `20261002162159_flexible_chamber_loads.sql`. Las cargas 1–4 conservan 
 Las primeras cuatro pueden marcarse completas con 20 o 21; la quinta con su cantidad real. Una carga completa requiere reapertura explícita para agregar pallets. Reabrir conserva el inicio del tiempo y registra la información anterior en el evento. Los traslados y salidas siguen habilitados; los túneles mantienen sus reglas de bloqueo durante el prefrío.
 # Private commercial website review
 
+### Offline operativo (9 de octubre de 2026)
+
+Pallets y despachos guardan altas, ediciones y salida en IndexedDB antes de
+enviarlas. Los pendientes permanecen separados por usuario y empresa. El servidor
+valida permisos, campos originales y reglas operativas en una transacción;
+reintentar el mismo UUID no repite la operación. Un cambio concurrente se conserva
+para revisión, sin sobreescribirlo automáticamente. Los romaneos oficiales se
+numeran al sincronizar; no se imprimen romaneos ni packing lists pendientes.
+La salida offline se muestra pendiente y no cuenta como despacho confirmado.
+Las altas conservan la fecha local de elaboración; los tiempos de confirmación
+de salida siguen siendo los del servidor. Reabrir un despacho enviado y los
+bloqueos de ciclo de prefrío siguen requiriendo conexión.
+
+La sesión nativa recupera únicamente la identidad local previamente validada ante
+un error transitorio de red, incluso con Wi-Fi sin internet y el token vencido;
+un rechazo real de credenciales no habilita ese fallback. Aplicar la migración
+`20261009134143_offline_pallet_shipment_commands.sql` antes del frontend y
+ejecutar `npm run check:offline`. Las apps instaladas requieren una nueva versión.
+
 The selected design is available only through `/web-privada`, with a separate
 login session and server-verified email allowlist. Only
 `jonatan@rimonim.com.ar` can authorize/revoke reviewers. Operational administrator

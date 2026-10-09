@@ -5,6 +5,7 @@ import QRImage from "@/components/QRImage";
 import { loadAllCatalogs } from "@/lib/catalogs";
 import { productTypeForCategory, updateNewPalletField } from "@/lib/palletPackageCount.mjs";
 import StatusBadge, { statusLabel } from "@/components/StatusBadge";
+import { toast } from 'sonner';
 import PrintRomaneo from "@/components/PrintRomaneo";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -121,7 +122,7 @@ export default function Produccion() {
                     <TableBody>
                       {filteredPallets.map(p => (
                         <TableRow key={p.id} className="cursor-pointer" onClick={() => setSelectedPallet(p)}>
-                          <TableCell className="font-bold">{p.romaneo_number}</TableCell>
+                          <TableCell className="font-bold">{p.romaneo_number}{p.pendingStatus && <span className="block text-xs text-amber-700">{p.pendingStatus === 'conflict' ? 'Requiere revisión' : 'Pendiente de sincronizar'}</span>}</TableCell>
                           <TableCell className="text-xs font-mono">{p.pallet_code}</TableCell>
                           <TableCell>{p.product_type === "fresco" ? "Fresco" : "Arilos"}</TableCell>
                           <TableCell>{p.variety || "—"}</TableCell>
@@ -197,11 +198,12 @@ function PalletForm({ cats, onClose, onSaved, pallet }) {
         avg_box_weight: Number(form.package_count) > 0 ? Math.round(net / Number(form.package_count) * 100) / 100 : 0,
       };
       if (pallet) {
-        await base44.entities.Pallet.update(pallet.id, payload);
+        const saved = await base44.entities.Pallet.update(pallet.id, payload);
+        if (saved.pendingStatus) toast.warning('Cambios guardados en este dispositivo; pendientes de sincronizar');
       } else {
         const code = generateCode("PAL");
         // Postgres assigns the number atomically across operators.
-        await base44.entities.Pallet.create({
+        const saved = await base44.entities.Pallet.create({
           ...payload,
           pallet_code: code,
           pallet_type: "Euro",
@@ -209,6 +211,7 @@ function PalletForm({ cats, onClose, onSaved, pallet }) {
           composition_estimated: true,
           origin_lots: [],
         });
+        if (saved.pendingStatus) toast.warning('Pallet guardado en este dispositivo. El número de romaneo se asignará al sincronizar.');
       }
       onSaved();
     } catch (e) { setError(e.message || "Error"); setSaving(false); }

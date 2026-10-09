@@ -91,7 +91,7 @@ export default function PrintPackingList({ shipment, pallets }) {
 
   return (
     <div className="w-full flex flex-col items-center gap-1">
-      <Button type="button" size="lg" onClick={print} className="w-full">
+      <Button type="button" size="lg" onClick={print} disabled={Boolean(shipment.pendingStatus) || pallets.some(pallet => pallet.pendingStatus)} className="w-full">
         <Printer className="w-4 h-4 mr-2" /> Imprimir packing list
       </Button>
       <ChangePrinter />

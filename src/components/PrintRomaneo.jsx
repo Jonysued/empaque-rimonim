@@ -40,7 +40,7 @@ export default function PrintRomaneo({ pallet }) {
   }
 
   return (
-    <Button type="button" onClick={print} className="w-full">
+    <Button type="button" onClick={print} disabled={Boolean(pallet.pendingStatus)} className="w-full">
       <Printer className="w-4 h-4 mr-2" /> Imprimir romaneo
     </Button>
   );

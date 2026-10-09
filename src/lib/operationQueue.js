@@ -1,5 +1,5 @@
-import { supabase } from "@/api/base44Client";
-import { listCommands, removeCommand, saveCommand, enqueueCommand, readLastOwner } from "@/lib/offlineStore";
+import { supabase, localSessionIdentity } from "@/api/base44Client";
+import { listCommands, removeCommand, saveCommand, enqueueCommand, readLastOwner, readSnapshot, saveSnapshot } from "@/lib/offlineStore";
 import { Capacitor } from "@capacitor/core";
 import { workspaceOwner } from "@/lib/workspace";
 
@@ -11,6 +11,7 @@ async function currentOwner() {
     const ownerId = await readLastOwner();
     if (ownerId) return workspaceOwner(ownerId);
   }
+  if (Capacitor.isNativePlatform()) return workspaceOwner((await localSessionIdentity()).id);
   const { data: { session }, error } = await supabase.auth.getSession();
   if (error || !session?.user?.id) throw new Error("Iniciá sesión para registrar operaciones");
   return workspaceOwner(session.user.id);
@@ -24,13 +25,14 @@ export function isConnectionError(error) {
 
 async function drain(ownerId) {
   if (!navigator.onLine) return;
+  if (Capacitor.isNativePlatform() && (await localSessionIdentity()).offline) return;
   for (;;) {
     const command = (await listCommands(ownerId))[0];
     if (!command) return;
     if (command.status === "conflict") return;
     // A different account must never replay commands saved on this device.
     if (await currentOwner() !== ownerId) return;
-    let error;
+    let error, data;
     try {
       if (command.rpc === "create_receipt_lot") {
         const { p_record: record } = command.params;
@@ -48,7 +50,7 @@ async function drain(ownerId) {
                    lookup.data.data.lot_code === record.lot_code) error = null;
         }
       } else {
-        ({ error } = await supabase.rpc(command.rpc, command.params));
+        ({ error, data } = await supabase.rpc(command.rpc, command.params));
       }
     } catch (unexpected) {
       if (isConnectionError(unexpected)) return;
@@ -59,6 +61,27 @@ async function drain(ownerId) {
       await saveCommand({ ...command, status: "conflict", error: error.message });
       notify();
       return; // preserve order: later commands may depend on this one.
+    }
+    if (command.rpc === 'offline_record_operation' && data?.record) {
+      const entity = command.params.p_entity;
+      const snapshot = await readSnapshot(ownerId, entity) || [];
+      await saveSnapshot(ownerId, entity, [...snapshot.filter(row => row.id !== data.record.id), data.record]);
+    }
+    if (['load_pallet_into_shipment','unload_pallet_from_shipment'].includes(command.rpc)) {
+      // Keep confirmed snapshots aligned even when syncing in the background.
+      // If the read loses signal, keep this UUID pending and safely replay it.
+      try {
+        for (const [entity, id] of [['Shipment', command.params.p_shipment_id], ['Pallet', command.params.p_pallet_id]]) {
+          const latest = await supabase.from('records').select('id,data,created_date').eq('entity',entity).eq('id',id).single();
+          if (latest.error) throw latest.error;
+          const snapshot = await readSnapshot(ownerId, entity) || [];
+          await saveSnapshot(ownerId, entity, [...snapshot.filter(row => row.id !== id), latest.data]);
+        }
+      } catch (error) {
+        if (isConnectionError(error)) return;
+        await saveCommand({ ...command, status: 'conflict', error: error.message });
+        notify(); return;
+      }
     }
     await removeCommand(command.id);
     notify();
