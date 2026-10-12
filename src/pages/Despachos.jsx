@@ -90,8 +90,8 @@ export default function Despachos() {
                   </div>
                   <div className="text-right space-y-1">
                     <p className="text-sm"><b>{(s.loaded_pallet_ids || []).length}</b> / {s.target_capacity || 21} pallets</p>
-                    <p className="text-sm">{fmtKg(s.total_weight)}</p>
-                    <p className="text-xs text-muted-foreground">{fmtNum(s.total_packages)} bultos</p>
+                    <p className="text-sm">{s.pendingTotalsUnavailable ? 'Peso pendiente de datos locales' : fmtKg(s.total_weight)}</p>
+                    <p className="text-xs text-muted-foreground">{s.pendingTotalsUnavailable ? 'Bultos pendientes de datos locales' : `${fmtNum(s.total_packages)} bultos`}</p>
                   </div>
                 </div>
               </CardContent>
@@ -369,6 +369,7 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
         <DialogHeader><DialogTitle>Carga {shipment.load_number}</DialogTitle></DialogHeader>
           <Button size="sm" variant="outline" disabled={Boolean(shipment.pendingDeparture)} className="self-start" onClick={onEdit}><Pencil className="w-4 h-4 mr-1" /> Editar carga</Button>
           {shipment.pendingDeparture && <p role="status" className="text-sm text-amber-700">Salida guardada en este dispositivo, pendiente de sincronizar. La carga queda bloqueada hasta confirmar la salida.</p>}
+          {shipment.pendingStatus && !shipment.pendingDeparture && <p role="status" className="text-sm text-amber-700">{shipment.pendingStatus === 'conflict' ? 'La carga requiere revisión.' : 'Cambios y totales locales pendientes de sincronizar.'}</p>}
           <PrintPackingList shipment={{ ...shipment, ...Object.fromEntries(Object.entries(extra).filter(entry => entry[1])) }} pallets={loadedPallets} />
         <div className="space-y-4">
           <div className="flex justify-center"><QRLabel code={shipment.shipment_code} title="Despacho" subtitle={shipment.load_number} /></div>
@@ -379,7 +380,8 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
             <Info label="Estado" value={shipment.status} />
             <Info label="Salida confirmada" value={shipment.dispatched_at ? fmtDate(shipment.dispatched_at) : "—"} />
             <Info label="Pallets cargados" value={`${loadedPallets.length}/${shipment.target_capacity || 21}`} />
-            <Info label="Peso total" value={fmtKg(shipment.total_weight)} />
+            <Info label="Peso total" value={shipment.pendingTotalsUnavailable ? 'Pendiente de datos locales' : fmtKg(shipment.total_weight)} />
+            <Info label="Bultos totales" value={shipment.pendingTotalsUnavailable ? 'Pendiente de datos locales' : fmtNum(shipment.total_packages)} />
           </div>
 
           {/* Datos de carga */}

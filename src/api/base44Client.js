@@ -70,8 +70,15 @@ const entityClient = (entity) => ({
     if (entity === 'User') return unwrap(await supabase.rpc('company_users')).map(x => ({ ...x, name:x.full_name }));
     // JSON fields cannot be ordered dynamically through PostgREST; sort after retrieval.
     const confirmed = await rows(entity);
-    const data = !confirmedOnly && ['Pallet', 'Shipment'].includes(entity)
-      ? projectRecordOperations(entity, confirmed, await getOperations()) : confirmed;
+    let data = confirmed;
+    if (!confirmedOnly && ['Pallet', 'Shipment'].includes(entity)) {
+      const operations = await getOperations();
+      const palletRecords = entity === 'Shipment' && operations.some(command =>
+        ['load_pallet_into_shipment', 'unload_pallet_from_shipment'].includes(command.rpc) ||
+        command.rpc === 'offline_record_operation' && ['Pallet', 'Shipment'].includes(command.params.p_entity))
+        ? await rows('Pallet') : undefined;
+      data = projectRecordOperations(entity, confirmed, operations, palletRecords);
+    }
     const field = order.replace(/^-/, '');
     const sign = order.startsWith('-') ? -1 : 1;
     const sorted = data.map(flatten).sort((a,b) => String(a[field] ?? '').localeCompare(String(b[field] ?? '')) * sign);
@@ -88,7 +95,7 @@ const entityClient = (entity) => ({
     const id = crypto.randomUUID();
     if (['Pallet','Shipment'].includes(entity)) {
       const result = await submitOperation('offline_record_operation', { p_entity: entity, p_id: id, p_action: 'create', p_payload: record, p_expected: null, p_recorded_at: new Date().toISOString() }, `record:${entity}:${id}:create`);
-      if (result.pending) return flatten(projectRecordOperations(entity, [], await getOperations()).find(row => row.id === id));
+      if (result.pending) return flatten(projectRecordOperations(entity, [], await getOperations(), entity === 'Shipment' ? [] : undefined).find(row => row.id === id));
       return this.get(id);
     }
     const data = unwrap(await supabase.from('records').insert({entity,id,data:{...record,id}}).select('id,data,created_date').single());
@@ -110,7 +117,7 @@ const entityClient = (entity) => ({
       const expected = Object.fromEntries(Object.keys(payload).map(key => [key, before[key] ?? null]));
       if (action === 'dispatch') { expected.status = before.status; expected.loaded_pallet_ids = before.loaded_pallet_ids || []; }
       const result = await submitOperation('offline_record_operation', { p_entity: entity, p_id: id, p_action: action, p_payload: payload, p_expected: expected }, `record:${entity}:${id}:${action}`);
-      if (result.pending) return flatten(projectRecordOperations(entity, [{ id, created_date: before.created_date, data: before }], await getOperations()).find(row => row.id === id));
+      if (result.pending) return flatten(projectRecordOperations(entity, [{ id, created_date: before.created_date, data: before }], await getOperations(), entity === 'Shipment' ? await rows('Pallet') : undefined).find(row => row.id === id));
       return this.get(id);
     }
     const data=unwrap(await supabase.rpc('patch_record',{p_entity:entity,p_id:id,p_patch:patch,p_unset:[]}));

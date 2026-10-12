@@ -1,6 +1,6 @@
 {
-  "build_number": "19",
+  "build_number": "20",
   "external": false,
-  "what_to_test": "Empaco: corregido el falso conflicto al preparar una carga y confirmar su salida offline. La carga queda bloqueada mientras su salida se sincroniza. Dashboard con datos confirmados del servidor; altas y ediciones locales se muestran aparte como pendientes. Probar creación de carga, carga de pallets, salida sin señal, reconexión, conflictos reales entre dispositivos y dashboard sin alterar por pendientes. Distribución externa pendiente de resolver el permiso de Apple API.",
+  "what_to_test": "Empaco: Despachos calcula el peso y los bultos locales al agregar o retirar pallets sin conexión y al editar un pallet cargado. Los totales quedan identificados como pendientes de sincronizar; el dashboard conserva los valores confirmados. Probar carga, retiro, edición, salida y reconexión sin duplicar totales. Si faltan datos de un pallet en el celular, no se muestra una suma parcial como total. La asignación al grupo externo se realiza desde el panel de Apple.",
   "verification_attempt": 1
 }

@@ -87,6 +87,12 @@ Las primeras cuatro pueden marcarse completas con 20 o 21; la quinta con su cant
 
 ### Offline operativo (9 de octubre de 2026)
 
+Build 20: los totales locales de Despachos se recalculan con los pallets
+proyectados al cargar, retirar o editar peso/bultos sin conexión. La carga se
+identifica como pendiente; `listConfirmed` conserva los totales del servidor.
+Si falta un pallet en el caché, se indica que faltan datos en vez de mostrar una
+suma parcial. `check:offline` verifica estos casos y los reintentos idempotentes.
+
 Revisión del 12/10: la proyección de carga/retiro actualiza el estado de la carga
 en orden, sin presentar una salida local como confirmada. Una salida pendiente
 bloquea cambios posteriores. El dashboard usa `listConfirmed`, preservando la
