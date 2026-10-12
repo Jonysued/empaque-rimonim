@@ -98,7 +98,11 @@ export function summarizeStages(stages, intervals, waiting, filters) {
   });
 }
 
-export function dashboardMetrics(data, filters={}, now=Date.now()) {
+export function dashboardMetrics(input, filters={}, now=Date.now()) {
+  // Callers use confirmed snapshots. Also reject projected rows defensively;
+  // do not calculate stock or averages from device-only pending operations.
+  const data=Object.fromEntries(Object.entries(input).map(([key,value])=>[key,
+    Array.isArray(value) ? value.filter(row=>!row.pendingStatus) : value]));
   const {lots=[],bins=[],dumps=[],pallets=[],movements=[],shipments=[],runs=[],locations=[]}=data;
   const byLot=new Map(lots.map(l=>[l.id,l]));
   const relevantBins=bins.filter(b=>b.status!=='anulado' && identityMatch(b,filters));

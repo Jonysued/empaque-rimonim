@@ -361,13 +361,14 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
   }
 
   const loadedPallets = (shipment.loaded_pallet_ids || []).map(id => pallets.find(p => p.id === id)).filter(Boolean);
-  const canChangePallets = ["borrador", "reservado", "cargado"].includes(shipment.status);
+  const canChangePallets = !shipment.pendingDeparture && ["borrador", "reservado", "cargado"].includes(shipment.status);
 
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Carga {shipment.load_number}</DialogTitle></DialogHeader>
-          <Button size="sm" variant="outline" className="self-start" onClick={onEdit}><Pencil className="w-4 h-4 mr-1" /> Editar carga</Button>
+          <Button size="sm" variant="outline" disabled={Boolean(shipment.pendingDeparture)} className="self-start" onClick={onEdit}><Pencil className="w-4 h-4 mr-1" /> Editar carga</Button>
+          {shipment.pendingDeparture && <p role="status" className="text-sm text-amber-700">Salida guardada en este dispositivo, pendiente de sincronizar. La carga queda bloqueada hasta confirmar la salida.</p>}
           <PrintPackingList shipment={{ ...shipment, ...Object.fromEntries(Object.entries(extra).filter(entry => entry[1])) }} pallets={loadedPallets} />
         <div className="space-y-4">
           <div className="flex justify-center"><QRLabel code={shipment.shipment_code} title="Despacho" subtitle={shipment.load_number} /></div>

@@ -65,18 +65,19 @@ async function rows(entity) {
 const flatten = (record) => ({ ...record.data, id: record.id, created_date: record.created_date });
 /** @param {string} entity */
 const entityClient = (entity) => ({
-  async list(order = '-created_date', limit) {
+  async list(order = '-created_date', limit, { confirmedOnly = false } = {}) {
     requireConfigured();
     if (entity === 'User') return unwrap(await supabase.rpc('company_users')).map(x => ({ ...x, name:x.full_name }));
     // JSON fields cannot be ordered dynamically through PostgREST; sort after retrieval.
     const confirmed = await rows(entity);
-    const data = ['Pallet', 'Shipment'].includes(entity)
+    const data = !confirmedOnly && ['Pallet', 'Shipment'].includes(entity)
       ? projectRecordOperations(entity, confirmed, await getOperations()) : confirmed;
     const field = order.replace(/^-/, '');
     const sign = order.startsWith('-') ? -1 : 1;
     const sorted = data.map(flatten).sort((a,b) => String(a[field] ?? '').localeCompare(String(b[field] ?? '')) * sign);
     return limit ? sorted.slice(0,limit) : sorted;
   },
+  async listConfirmed(order = '-created_date', limit) { return this.list(order, limit, { confirmedOnly: true }); },
   async filter(query) { return (await this.list()).filter(row => Object.entries(query).every(([k,v]) => row[k] === v)); },
   async get(id) { if (['Pallet','Shipment'].includes(entity)) {
     const record = (await this.list()).find(row => row.id === id);
@@ -102,6 +103,7 @@ const entityClient = (entity) => ({
     if(entity==='User') return unwrap(await supabase.rpc('set_company_role',{p_user_id:id,p_role:patch.role}));
     if (['Pallet','Shipment'].includes(entity)) {
       const before = await this.get(id);
+      if (entity === 'Shipment' && before.pendingDeparture) throw new Error('La salida ya está pendiente de sincronizar. Esperá su confirmación antes de modificar la carga.');
       const action = entity === 'Shipment' && patch.status === 'enviado' ? 'dispatch' : 'patch';
       const payload = { ...patch };
       if (action === 'dispatch') delete payload.status;

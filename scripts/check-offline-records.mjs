@@ -26,11 +26,16 @@ try {
   await assert.rejects(call('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaad','Pallet','offline-pallet','patch',{romaneo_number:'fake'},{}),/no permitidos/);
   const ship=await call('aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaae','Shipment','offline-shipment','create',{load_number:'TEST',status:'borrador',target_capacity:21,product_type:'fresco',loaded_pallet_ids:[]});
   assert.equal(ship.record.data.status,'borrador');
+  // The expected version must come from the device BEFORE any server replay.
+  const loadCommand={rpc:'load_pallet_into_shipment',status:'pending',params:{p_shipment_id:'offline-shipment',p_pallet_id:'offline-pallet'}};
+  const localLoaded=projectRecordOperations('Shipment',[ship.record],[loadCommand])[0].data;
+  assert.equal(localLoaded.status,'cargado');
   await db.exec("update public.records set data=data||'{\"status\":\"liberado\"}'::jsonb where id='offline-pallet'");
   await db.query("select public.load_pallet_into_shipment($1,'offline-shipment','offline-pallet')",['aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaf']);
   const loaded=(await db.query("select data from public.records where id='offline-shipment'")).rows[0].data;
   const closeId='aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaba';
-  const expected={status:loaded.status,loaded_pallet_ids:['offline-pallet']};
+  const expected={status:localLoaded.status,loaded_pallet_ids:localLoaded.loaded_pallet_ids};
+  assert.equal(loaded.status,expected.status);
   const departure=await call(closeId,'Shipment','offline-shipment','dispatch',{seal:'123'},expected);
   assert.equal(departure.record.data.status,'enviado');
   assert.ok(departure.record.data.dispatched_at);
@@ -48,5 +53,12 @@ try {
   const pendingShipment=projectRecordOperations('Shipment',[ship.record],[{...create,params:{p_entity:'Shipment',p_id:'offline-shipment',p_action:'dispatch',p_payload:{}}}]);
   assert.equal(pendingShipment[0].data.status,'borrador');
   assert.equal(pendingShipment[0].data.pendingDeparture,true);
+  const unloaded=projectRecordOperations('Shipment',[ship.record],[loadCommand,{...loadCommand,rpc:'unload_pallet_from_shipment'}]);
+  assert.equal(unloaded[0].data.status,'borrador');
+  assert.deepEqual(unloaded[0].data.loaded_pallet_ids,[]);
+  const conflict=projectRecordOperations('Shipment',[ship.record],[{...loadCommand,status:'conflict'}, {...create,params:{p_entity:'Shipment',p_id:'offline-shipment',p_action:'patch',p_payload:{seal:'not-applied'}}}]);
+  assert.equal(conflict[0].data.pendingStatus,'conflict');assert.equal(conflict[0].data.seal,undefined);
+  const metadata=projectRecordOperations('Shipment',[ship.record],[loadCommand,{...create,params:{p_entity:'Shipment',p_id:'offline-shipment',p_action:'dispatch',p_payload:{seal:'offline-seal'}}}]);
+  assert.equal(metadata[0].data.status,'cargado');assert.equal(metadata[0].data.seal,'offline-seal');assert.equal(metadata[0].data.pendingDeparture,true);
   console.log('PASS: pallets/despachos offline; romaneo único; reintentos de altas, ediciones y salida idempotentes; conflictos, permisos y empresa; salida local no confirmada');
 } finally { await db.close(); }

@@ -87,6 +87,14 @@ Las primeras cuatro pueden marcarse completas con 20 o 21; la quinta con su cant
 
 ### Offline operativo (9 de octubre de 2026)
 
+Revisión del 12/10: la proyección de carga/retiro actualiza el estado de la carga
+en orden, sin presentar una salida local como confirmada. Una salida pendiente
+bloquea cambios posteriores. El dashboard usa `listConfirmed`, preservando la
+versión del servidor de registros editados offline. `check:offline` incluye la
+consulta confirmada y la regresión de salida con el estado calculado antes de
+reconectar. Build 19 publica pruebas internas; la automatización externa queda
+pendiente del permiso de Apple que rechazó la asignación al grupo con 403.
+
 Pallets y despachos guardan altas, ediciones y salida en IndexedDB antes de
 enviarlas. Los pendientes permanecen separados por usuario y empresa. El servidor
 valida permisos, campos originales y reglas operativas en una transacción;

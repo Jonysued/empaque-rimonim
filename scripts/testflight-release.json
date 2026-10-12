@@ -1,6 +1,6 @@
 {
-  "build_number": "18",
-  "external": true,
-  "what_to_test": "Empaco: sesión offline corregida con Wi-Fi sin internet y token vencido. Alta y edición de pallets, creación y edición de cargas, carga/retiro de pallets y salida de transporte guardados como pendientes. Verificar cierre y reapertura de la app sin señal, reconexión sin duplicados y conflictos entre dispositivos. El romaneo se numera al sincronizar; no imprimir documentos pendientes. Prefrío mantiene sus bloqueos de seguridad.",
+  "build_number": "19",
+  "external": false,
+  "what_to_test": "Empaco: corregido el falso conflicto al preparar una carga y confirmar su salida offline. La carga queda bloqueada mientras su salida se sincroniza. Dashboard con datos confirmados del servidor; altas y ediciones locales se muestran aparte como pendientes. Probar creación de carga, carga de pallets, salida sin señal, reconexión, conflictos reales entre dispositivos y dashboard sin alterar por pendientes. Distribución externa pendiente de resolver el permiso de Apple API.",
   "verification_attempt": 1
 }

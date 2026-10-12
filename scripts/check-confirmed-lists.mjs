@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { projectRecordOperations } from '../src/lib/recordProjection.mjs';
+const source=await readFile('src/api/base44Client.js','utf8');
+const body=source.slice(source.indexOf('const entityClient ='),source.indexOf('const profile ='));
+const confirmed=[{id:'existing',created_date:'2026-10-01T12:00:00Z',data:{net_weight:500,status:'armado'}}];
+const operations=[{rpc:'offline_record_operation',status:'pending',params:{p_entity:'Pallet',p_id:'existing',p_action:'patch',p_payload:{net_weight:900}}},{rpc:'offline_record_operation',status:'pending',createdAt:'2026-10-12T12:00:00Z',params:{p_entity:'Pallet',p_id:'new',p_action:'create',p_payload:{net_weight:700,status:'armado'}}}];
+const client=new Function('rows','getOperations','projectRecordOperations','flatten','requireConfigured',`${body};return entityClient('Pallet');`)(async()=>confirmed,async()=>operations,projectRecordOperations,row=>({...row.data,id:row.id,created_date:row.created_date}),()=>{});
+const local=await client.list();assert.equal(local.length,2);assert.equal(local.find(p=>p.id==='existing').net_weight,900);
+const server=await client.listConfirmed();assert.equal(server.length,1);assert.equal(server[0].net_weight,500);assert.equal(server[0].pendingStatus,undefined);
+assert.equal(confirmed[0].data.net_weight,500);
+console.log('PASS: el dashboard conserva la versión confirmada de un pallet editado offline y excluye altas locales; operación local conserva la proyección');

@@ -24,7 +24,7 @@ export default function Dashboard() {
   const refresh=useCallback(async()=>{
     const request=++sequence.current;
     try {
-      const values=await Promise.all([...Object.values(ENTITIES).map(entity=>base44.entities[entity].list()),getOperations()]);
+      const values=await Promise.all([...Object.values(ENTITIES).map(entity=>base44.entities[entity].listConfirmed()),getOperations()]);
       if(request!==sequence.current)return;
       setData(Object.fromEntries(Object.keys(ENTITIES).map((key,i)=>[key,values[i]]))); setPending(values.at(-1).length);
       setUpdated(Date.now());setNow(Date.now());setError('');
