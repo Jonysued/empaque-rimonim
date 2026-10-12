@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { base44 } from '@/api/base44Client';
 import { changeCoolingCycle, storageCommand } from '@/lib/palletMovements';
 import { getOperations } from '@/lib/operationQueue';
+import { subscribeOperationalRefresh } from '@/lib/operationalRefresh.mjs';
 import { STORAGE_LAYOUTS, sectionCapacity, positionRows, positionLabel, coolingTimes, fifthLoadEnabled, storageSections } from '@/lib/coldStorage.mjs';
 import { durationLabel, operationDate } from '@/lib/dashboardMetrics.mjs';
 import QRScanner from '@/components/QRScanner';
@@ -37,12 +38,11 @@ export default function StoragePage({ type, AddForm }) {
     finally { if (mounted.current && version === refreshVersion.current) setLoading(false); }
   }, [type]);
   useEffect(() => {
-    let active = true; mounted.current = true;
-    const update = () => { if (active) { setOnline(navigator.onLine); refresh(); } };
-    update();
-    const timer = setInterval(() => { setNow(Date.now()); if (navigator.onLine && !operationBusy.current) update(); }, 15000);
-    window.addEventListener('rimonim-queue-change', update); window.addEventListener('online', update); window.addEventListener('offline', update);
-    return () => { active = false; mounted.current = false; clearInterval(timer); window.removeEventListener('rimonim-queue-change', update); window.removeEventListener('online', update); window.removeEventListener('offline', update); };
+    mounted.current = true;
+    const stop = subscribeOperationalRefresh(() => { setOnline(navigator.onLine); return refresh(); }, {
+      intervalMs: 15000, onTick: () => setNow(Date.now()), canPoll: () => navigator.onLine && !operationBusy.current,
+    });
+    return () => { mounted.current = false; refreshVersion.current++; stop(); };
   }, [refresh]);
   const location = locations.find(l => l.id === selectedId);
   const occupants = pallets.filter(p => p.location_id === selectedId);

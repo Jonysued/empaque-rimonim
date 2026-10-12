@@ -67,11 +67,23 @@ async function drain(ownerId) {
       const snapshot = await readSnapshot(ownerId, entity) || [];
       await saveSnapshot(ownerId, entity, [...snapshot.filter(row => row.id !== data.record.id), data.record]);
     }
+    const related = [];
+    if (command.rpc === 'offline_record_operation' && data?.record) {
+      if (command.params.p_entity === 'Pallet' && data.record.data?.shipment_id) {
+        related.push(['Shipment', data.record.data.shipment_id]);
+      }
+      if (command.params.p_entity === 'Shipment' && command.params.p_action === 'dispatch') {
+        for (const id of data.record.data?.loaded_pallet_ids || []) related.push(['Pallet', id]);
+      }
+    }
     if (['load_pallet_into_shipment','unload_pallet_from_shipment'].includes(command.rpc)) {
+      related.push(['Shipment', command.params.p_shipment_id], ['Pallet', command.params.p_pallet_id]);
+    }
+    if (related.length) {
       // Keep confirmed snapshots aligned even when syncing in the background.
       // If the read loses signal, keep this UUID pending and safely replay it.
       try {
-        for (const [entity, id] of [['Shipment', command.params.p_shipment_id], ['Pallet', command.params.p_pallet_id]]) {
+        for (const [entity, id] of related) {
           const latest = await supabase.from('records').select('id,data,created_date').eq('entity',entity).eq('id',id).single();
           if (latest.error) throw latest.error;
           const snapshot = await readSnapshot(ownerId, entity) || [];

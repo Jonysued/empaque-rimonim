@@ -1,3 +1,4 @@
+import { subscribeOperationalRefresh } from '@/lib/operationalRefresh.mjs';
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { generateCode, fmtKg, fmtDate, fmtNum } from "@/lib/qr";
@@ -48,10 +49,8 @@ export default function Despachos() {
   }
 
   useEffect(() => {
-    refresh();
-    window.addEventListener('rimonim-queue-change', refresh);
-    window.addEventListener('focus', refresh);
-    return () => { request.current++; window.removeEventListener('rimonim-queue-change', refresh); window.removeEventListener('focus', refresh); };
+    const stop = subscribeOperationalRefresh(refresh);
+    return () => { request.current++; stop(); };
   }, []);
 
   return (

@@ -1,3 +1,4 @@
+import { subscribeOperationalRefresh } from '@/lib/operationalRefresh.mjs';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { getOperations, submitOperation } from '@/lib/operationQueue';
@@ -30,8 +31,8 @@ export default function Vuelco() {
     } catch (e) { if (request === sequence.current) { setError(e.message || 'No se pudo cargar Vuelco'); setState(s => ({ ...s, loading: false })); } }
   }, []);
   useEffect(() => {
-    refresh(); window.addEventListener('rimonim-queue-change',refresh); window.addEventListener('focus',refresh);
-    return () => { sequence.current++; window.removeEventListener('rimonim-queue-change',refresh); window.removeEventListener('focus',refresh); };
+    const stop = subscribeOperationalRefresh(refresh);
+    return () => { sequence.current++; stop(); };
   }, [refresh]);
   const { lots, bins, dumps, operations, loading } = state;
   const selected = lots.find(lot => lot.id === selectedId);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { getOperations } from '@/lib/operationQueue';
+import { subscribeOperationalRefresh } from '@/lib/operationalRefresh.mjs';
 import { useAuth } from '@/lib/AuthContext';
 import { dashboardMetrics, operationDay, operationDate, durationLabel, normalizeFilter, STAGE_LABELS } from '@/lib/dashboardMetrics.mjs';
 import { fmtKg } from '@/lib/qr';
@@ -32,10 +33,8 @@ export default function Dashboard() {
     finally {if(request===sequence.current)setLoading(false);}
   },[]);
   useEffect(()=>{
-    refresh();
-    const tick=setInterval(()=>{setNow(Date.now());if(document.visibilityState==='visible')refresh();},60000);
-    window.addEventListener('focus',refresh);window.addEventListener('online',refresh);window.addEventListener('rimonim-queue-change',refresh);
-    return()=>{sequence.current++;clearInterval(tick);window.removeEventListener('focus',refresh);window.removeEventListener('online',refresh);window.removeEventListener('rimonim-queue-change',refresh);};
+    const stop=subscribeOperationalRefresh(refresh,{intervalMs:60000,onTick:()=>setNow(Date.now())});
+    return()=>{sequence.current++;stop();};
   },[refresh]);
   const validPeriod=!filters.from || !filters.to || filters.from<=filters.to;
   const metrics=useMemo(()=>dashboardMetrics(data,filters,now),[data,filters,now]);

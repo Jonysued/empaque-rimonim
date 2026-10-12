@@ -87,6 +87,18 @@ Las primeras cuatro pueden marcarse completas con 20 o 21; la quinta con su cant
 
 ### Offline operativo (9 de octubre de 2026)
 
+Build 21: la cola conserva el UUID de una edición de pallet hasta guardar el
+despacho relacionado; una salida conserva el UUID hasta guardar los pallets
+enviados. Un corte después del commit se reintenta sin repetir la operación.
+`check-sync-snapshots.mjs` verifica el reinicio entre confirmación y lectura.
+Los refrescos automáticos de Dashboard, Producción, Despachos, Vuelco y Frío
+agrupan avisos durante 150 ms, evitan solaparse y se pausan con la pantalla oculta.
+Al volver se consulta de nuevo. `check-operational-refresh.mjs` verifica 60
+clientes simulados; no es una prueba de capacidad del servidor productivo.
+Las listas históricas todavía se descargan completas: siguen pendientes la
+paginación/filtros en servidor y una prueba de carga con usuarios reales.
+
+
 Build 20: los totales locales de Despachos se recalculan con los pallets
 proyectados al cargar, retirar o editar peso/bultos sin conexión. La carga se
 identifica como pendiente; `listConfirmed` conserva los totales del servidor.

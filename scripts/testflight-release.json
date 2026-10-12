@@ -1,6 +1,6 @@
 {
-  "build_number": "20",
+  "build_number": "21",
   "external": false,
-  "what_to_test": "Empaco: Despachos calcula el peso y los bultos locales al agregar o retirar pallets sin conexión y al editar un pallet cargado. Los totales quedan identificados como pendientes de sincronizar; el dashboard conserva los valores confirmados. Probar carga, retiro, edición, salida y reconexión sin duplicar totales. Si faltan datos de un pallet en el celular, no se muestra una suma parcial como total. La asignación al grupo externo se realiza desde el panel de Apple.",
+  "what_to_test": "Empaco: probar edición de peso y bultos de un pallet cargado, cortar la señal al sincronizar y volver a conectar. La operación sigue pendiente hasta guardar también el despacho actualizado. Verificar salida y estados de pallets después de reiniciar. Dashboard, Producción, Vuelco, Frío y Despachos agrupan avisos de sincronización y pausan refrescos automáticos en segundo plano. La asignación al grupo externo se realiza desde el panel de Apple.",
   "verification_attempt": 1
 }
