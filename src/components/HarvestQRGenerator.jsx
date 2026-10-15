@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { LABEL_FORMATS, generateHarvestLabels, labelPages, harvestLabelsPdf, harvestLabelsHtml } from '@/lib/harvestLabels.mjs';
+import { MAX_HARVEST_LABELS, LABEL_FORMATS, generateHarvestLabels, labelPages, harvestLabelsPdf, harvestLabelsHtml } from '@/lib/harvestLabels.mjs';
 import { printHtml } from '@/lib/catalogs';
 import { currentWorkspace } from '@/lib/workspace';
 
@@ -41,7 +41,7 @@ export default function HarvestQRGenerator() {
     <CardContent className="space-y-5">
       <p className="text-sm text-muted-foreground">Generá etiquetas de 60 × 40 mm, pegalas en los bines y escanealas en Cosecha para cargar la información de cada uno.</p>
       <form onSubmit={generate} className="flex flex-wrap items-end gap-3">
-        <div className="space-y-1"><Label htmlFor="bin-qr-count">Cantidad de etiquetas</Label><Input id="bin-qr-count" className="w-36" type="number" min="1" max="200" step="1" required disabled={busy} value={quantity} onChange={e => setQuantity(e.target.value)} /></div>
+        <div className="space-y-1"><Label htmlFor="bin-qr-count">Cantidad de etiquetas</Label><Input id="bin-qr-count" className="w-36" type="number" min="1" max={MAX_HARVEST_LABELS} step="1" required disabled={busy} value={quantity} onChange={e => setQuantity(e.target.value)} /><p className="text-xs text-muted-foreground">Hasta 10.000 etiquetas por generación.</p></div>
         <div className="space-y-1 w-full min-w-0 sm:flex-1 sm:min-w-60"><Label htmlFor="bin-qr-format">Formato de impresión</Label><select id="bin-qr-format" className="flex h-10 w-full rounded-md border bg-background px-3 text-sm" disabled={busy} value={formatKey} onChange={e => setFormatKey(e.target.value)}>{Object.entries(LABEL_FORMATS).map(([key,item]) => <option key={key} value={key}>{item.label}</option>)}</select></div>
         <Button type="submit" disabled={busy}><QrCode className="w-4 h-4 mr-2" />{busy ? 'Preparando…' : labels.length ? 'Generar nuevos QR' : 'Generar QR'}</Button>
       </form>

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { PNG } from 'pngjs';
 import jsQR from 'jsqr';
+import QRCode from 'qrcode';
 import { LABEL_FORMATS, generateHarvestLabels, labelPages, harvestLabelsPdf, harvestLabelsHtml } from '../src/lib/harvestLabels.mjs';
 const labels = await generateHarvestLabels(17);
 assert.equal(new Set(labels.map(label => label.code)).size,17);
@@ -26,5 +27,22 @@ for (const format of Object.values(LABEL_FORMATS)) {
   assert.equal((html.match(/<section /g)||[]).length,pages.length);
   assert.ok(!html.includes('api.qrserver.com'));
 }
-for (const count of [0,201,1.5,NaN]) await assert.rejects(generateHarvestLabels(count));
+for (const count of [0,10001,1.5,NaN,Infinity]) await assert.rejects(generateHarvestLabels(count));
+assert.equal((await generateHarvestLabels(201)).length,201);
+// Exercise the upper boundary without retaining 10,000 raster images in CI.
+const originalRenderer = QRCode.toDataURL;
+let active = 0, peak = 0;
+try {
+  QRCode.toDataURL = async () => {
+    active++; peak = Math.max(peak,active);
+    await Promise.resolve();
+    active--;
+    return 'data:image/png;base64,test';
+  };
+  const large = await generateHarvestLabels(10000);
+  assert.equal(large.length,10000);
+  assert.equal(new Set(large.map(label => label.code)).size,10000);
+  assert.equal(labelPages(large,LABEL_FORMATS.a4_18).length,556);
+  assert.ok(peak <= 20);
+} finally { QRCode.toDataURL = originalRenderer; }
 console.log('PASS: QR decodificables y únicos, PDF paginado con medidas reales, etiquetas completas y límites de cantidad');

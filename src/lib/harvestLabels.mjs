@@ -7,11 +7,20 @@ export const LABEL_FORMATS = {
   single: { label: 'Etiqueta individual · 60 × 40 mm', columns: 1, rows: 1, width: 60, height: 40, gapX: 0, gapY: 0, qr: 24, pageWidth: 60, pageHeight: 40 },
 };
 
+export const MAX_HARVEST_LABELS = 10000;
+
 export async function generateHarvestLabels(quantity,company=null) {
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 200) throw new Error('Ingresá una cantidad entre 1 y 200 etiquetas.');
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_HARVEST_LABELS) throw new Error('Ingresá una cantidad entre 1 y 10.000 etiquetas.');
   const codes = new Set();
   while (codes.size < quantity) codes.add(`BIN-${crypto.randomUUID().replaceAll('-', '').slice(0, 20).toUpperCase()}`);
-  return Promise.all([...codes].map(async code => ({ code, companyName:company?.name || 'RIMONIM',image: await QRCode.toDataURL(companyQrPayload(code,company), { width: 500, margin: 4, errorCorrectionLevel: 'M' }) })));
+  const orderedCodes = [...codes];
+  const labels = [];
+  // Limit simultaneous image work and let the browser repaint between batches.
+  for (let offset = 0; offset < orderedCodes.length; offset += 20) {
+    labels.push(...await Promise.all(orderedCodes.slice(offset, offset + 20).map(async code => ({ code, companyName:company?.name || 'RIMONIM',image: await QRCode.toDataURL(companyQrPayload(code,company), { width: 500, margin: 4, errorCorrectionLevel: 'M' }) }))));
+    if (offset + 20 < orderedCodes.length) await new Promise(resolve => setTimeout(resolve, 0));
+  }
+  return labels;
 }
 
 export function labelPages(labels, format) {
