@@ -140,3 +140,24 @@ revoked and RLS enabled. It is not bundled in public frontend assets. The latest
 source is the uploaded `empaco-web-editable(1).zip` (October 5, 2026).
 Demo submissions and purchase buttons are illustrative in this private review.
 Run `node scripts/check-private-web.mjs` to verify access boundaries.
+
+### Correcciones administrativas de cosecha
+
+Aplicar `20261016153359_admin_harvest_corrections.sql` antes de publicar el frontend.
+La última columna de las tablas de Cosecha, Consolidado de Lote, Pesado y Playa
+muestra **Editar** solo al rol administrador de la empresa. El RPC vuelve a
+validar ese rol y RLS mantiene el aislamiento. Estas correcciones requieren
+conexión y que el dispositivo no tenga operaciones pendientes.
+
+Se pueden corregir datos de cosecha del bin, transportista/notas del lote y
+bruto/tara del pesaje. Los resúmenes del lote y los pesos de sus bines se actualizan
+en la misma transacción. No se editan identificadores ni estados manualmente.
+Los pesajes existentes se administran desde **Editar → Pesaje** en Consolidado.
+Eliminar un bin exige que esté libre o en un consolidado abierto. Eliminar un
+lote sin pesaje libera sus bines de cosecha, sin borrarlos. Eliminar un pesaje
+antes de recepción devuelve el lote a pendientes de pesado. No se permiten
+correcciones con vuelcos realizados ni eliminar pesajes ya recibidos en playa.
+Cada corrección conserva actor, datos previos e identificador idempotente en
+`empaque_private.harvest_corrections`. Las versiones concurrentes se rechazan
+para no sobrescribir cambios de otro usuario. Verificar con
+`node scripts/check-admin-harvest.mjs` (también incluido en `check:app`).

@@ -1,0 +1,58 @@
+import assert from 'node:assert/strict';
+import { readFile,readdir } from 'node:fs/promises';
+import { PGlite } from '@electric-sql/pglite';
+const db=new PGlite();
+const admin='aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa',other='bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb';
+try {
+ await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;create schema auth;
+ create function auth.uid() returns uuid language sql as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb);`);
+ for(const f of (await readdir('supabase/migrations')).filter(f=>f.endsWith('.sql')).sort())await db.exec(await readFile('supabase/migrations/'+f,'utf8'));
+ await db.exec(`insert into auth.users values('${admin}','admin@example.test','{}'),('${other}','other@example.test','{}');update public.profiles set role='admin' where id='${admin}';update public.profiles set role='recepcion' where id='${other}';grant usage on schema auth to authenticated;grant select,insert,update,delete on public.records to authenticated;grant select on public.profiles to authenticated;`);
+ const actor=async id=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);await db.exec('set role authenticated');};
+ await actor(admin);
+ const row=async(entity,id)=>(await db.query('select data from public.records where entity=$1 and id=$2',[entity,id])).rows[0]?.data;
+ const correct=async(entity,id,action,patch={},expected=null,op=crypto.randomUUID())=>{
+  const before=expected||await row(entity,id);
+  return (await db.query('select public.admin_harvest_correction($1,$2,$3,$4,$5,$6) result',[op,entity,id,action,before,patch])).rows[0].result;
+ };
+ const harvest=async id=>db.query('select public.harvest_bin_operation($1,$2,$3)',[crypto.randomUUID(),id,{bin_code:id.toUpperCase(),producer:'A',variety:'Wonderful',harvest_date:'2026-10-16',crew:'Uno'}]);
+ const field=async(id,action,record={},code=null,gross=null,tare=null)=>db.query('select public.field_lot_operation($1,$2,$3,$4,$5,$6,$7)',[crypto.randomUUID(),id,action,record,code,gross,tare]);
+ await harvest('bin-a'); await harvest('bin-b');
+ const before=await row('Bin','bin-a');const op=crypto.randomUUID();
+ await correct('Bin','bin-a','edit',{producer:'B'},before,op);
+ await correct('Bin','bin-a','edit',{producer:'B'},before,op); // same operation, exactly once
+ await assert.rejects(correct('Bin','bin-a','edit',{producer:'C'},before),/cambió/);
+ await field('lot-a','create',{workflow_version:3,lot_code:'LOT-A',transport:'Carrier'});
+ await field('lot-a','add_bin',{},'BIN-A');await field('lot-a','add_bin',{},'BIN-B');
+ await correct('Bin','bin-a','edit',{variety:'Other'});
+ assert.match((await row('ReceiptLot','lot-a')).variety,/Other/);
+ await field('lot-a','close');
+ await assert.rejects(correct('Bin','bin-a','delete'),/cerrado/);
+ await field('lot-a','weigh',{},null,1100,100);
+ await correct('ReceiptLot','lot-a','edit_weight',{gross_weight:1200,tare_weight:100});
+ assert.equal((await row('ReceiptLot','lot-a')).net_weight,1100);
+ assert.equal((await row('Bin','bin-a')).net_weight,550);
+ await assert.rejects(correct('ReceiptLot','lot-a','edit_weight',{gross_weight:10,tare_weight:20}),/inválidos/);
+ await assert.rejects(correct('ReceiptLot','lot-a','delete'),/pesaje/);
+ await correct('ReceiptLot','lot-a','delete_weight');
+ assert.equal((await row('ReceiptLot','lot-a')).status,'cerrado_campo');
+ assert.equal((await row('Bin','bin-a')).net_weight,undefined);
+ await correct('ReceiptLot','lot-a','delete');
+ assert.equal(await row('ReceiptLot','lot-a'),undefined);
+ assert.equal((await row('Bin','bin-a')).status,'cosechado');
+ assert.equal((await row('Bin','bin-a')).receipt_lot_id,undefined);
+ await correct('Bin','bin-a','delete');assert.equal(await row('Bin','bin-a'),undefined);
+ await field('lot-b','create',{workflow_version:3,lot_code:'LOT-B',transport:'Carrier'});
+ await field('lot-b','add_bin',{},'BIN-B');await field('lot-b','close');await field('lot-b','weigh',{},null,600,100);await field('lot-b','receive');
+ await assert.rejects(correct('ReceiptLot','lot-b','delete_weight'),/playa/);
+ await db.query('select public.dump_bin_by_qr($1,$2,$3,$4,$5)',[crypto.randomUUID(),'bin-b','lot-b','BIN-B','DUMP-B']);
+ await assert.rejects(correct('ReceiptLot','lot-b','edit_weight',{gross_weight:900,tare_weight:100}),/vuelcos/);
+ await actor(other);await assert.rejects(correct('Bin','bin-b','edit',{producer:'No'}),/administradores/);
+ await actor(admin);
+ await db.exec(`reset role;insert into public.companies(name,slug) values('Other','other');insert into public.company_memberships(company_id,user_id,role) select id,'${other}','admin' from public.companies where slug='other';`);
+ const company=(await db.query("select id from public.companies where slug='other'")).rows[0].id;
+ await actor(other);await db.query("select set_config('request.headers',$1,false)",[JSON.stringify({'x-empaco-company':company})]);
+ await assert.rejects(correct('Bin','bin-b','delete',{},{}),/no encontrado/);
+ console.log('PASS: admin-only, tenant isolation, stale edits, idempotency, bin summaries, atomic weights, deletion and downstream protections');
+}catch(e){console.error(e.message,e.where||'');process.exitCode=1;}finally{await db.close();}

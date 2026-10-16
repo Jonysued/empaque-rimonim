@@ -1,3 +1,5 @@
+import AdminHarvestActions from '@/components/AdminHarvestActions';
+import { useAuth } from '@/lib/AuthContext';
 import React, { useState } from 'react';
 import { useFieldLots, fieldOperation } from '@/lib/fieldLots';
 import { isFieldLot } from '@/lib/fieldWorkflow.mjs';
@@ -12,6 +14,7 @@ import { Warehouse, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function RecepcionPlaya() {
+  const { user } = useAuth();
   const { lots, loading, error: loadError, refresh } = useFieldLots();
   const [selectedId, setSelectedId] = useState(null);
   const [error, setError] = useState('');
@@ -56,7 +59,7 @@ export default function RecepcionPlaya() {
               <TableHead scope="col">Transporte</TableHead><TableHead scope="col">Productor</TableHead>
               <TableHead scope="col">Variedad</TableHead><TableHead scope="col" className="text-right">BINs</TableHead>
               <TableHead scope="col">Fecha de registro</TableHead><TableHead scope="col" className="text-right">Peso neto</TableHead>
-            </TableRow></TableHeader>
+            {user?.role === 'admin' && <TableHead scope="col" className="text-right">Administración</TableHead>}</TableRow></TableHeader>
             <TableBody>{available.map(lot => <TableRow key={lot.id}>
               <TableCell className="font-mono font-semibold">{lot.lot_code}</TableCell>
               <TableCell><StatusBadge status={lot.status} /><PendingLotNotice lot={lot} /></TableCell>
@@ -64,7 +67,7 @@ export default function RecepcionPlaya() {
               <TableCell>{lot.variety || '—'}</TableCell><TableCell className="text-right">{lot.bins_count || 0}</TableCell>
               <TableCell>{fmtDate(lot.field_created_at || lot.receipt_date)}</TableCell>
               <TableCell className="text-right">{lot.net_weight != null ? fmtKg(lot.net_weight) : '—'}</TableCell>
-            </TableRow>)}</TableBody>
+            {user?.role === 'admin' && <TableCell className="text-right"><AdminHarvestActions entity="ReceiptLot" record={lot} onSaved={refresh} /></TableCell>}</TableRow>)}</TableBody>
           </Table>
         </div>
       </>}</div>

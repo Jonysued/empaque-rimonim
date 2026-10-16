@@ -1,3 +1,5 @@
+import AdminHarvestActions from '@/components/AdminHarvestActions';
+import { useAuth } from '@/lib/AuthContext';
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { generateCode, fmtDate, fmtKg } from '@/lib/qr';
@@ -13,6 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Layers, Plus } from 'lucide-react';
 import { toast } from 'sonner';
 export default function ConsolidadoLote() {
+  const { user } = useAuth();
   const { lots, bins, loading, error, refresh } = useFieldLots();
   const [showForm,setShowForm] = useState(false);
   const [selectedId,setSelectedId] = useState(null);
@@ -35,7 +38,7 @@ export default function ConsolidadoLote() {
               <TableHead scope="col">Variedad</TableHead><TableHead scope="col" className="text-right">BINs</TableHead>
               <TableHead scope="col">Fecha de registro</TableHead><TableHead scope="col" className="text-right">Neto</TableHead>
               <TableHead scope="col" className="text-right">Sin volcar</TableHead><TableHead scope="col" className="text-right">Volcado</TableHead>
-            </TableRow></TableHeader>
+            {user?.role === 'admin' && <TableHead scope="col" className="text-right">Administración</TableHead>}</TableRow></TableHeader>
             <TableBody>{lots.map(lot => <TableRow key={lot.id}>
               <TableCell><button type="button" className="min-h-11 text-left font-mono font-semibold text-primary underline underline-offset-4 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`Ver consolidado ${lot.lot_code}`} onClick={()=>setSelectedId(lot.id)}>{lot.lot_code}</button>{!isFieldLot(lot) && <p className="text-xs text-muted-foreground">Lote del flujo anterior</p>}</TableCell>
               <TableCell><div className="flex items-center gap-2"><StatusBadge status={lot.status} label={Number(lot.workflow_version) === 3 && lot.status === 'en_campo' ? 'En consolidado' : undefined} />{lot.held && <StatusBadge status="retenido" />}</div><PendingLotNotice lot={lot} /></TableCell>
@@ -45,7 +48,7 @@ export default function ConsolidadoLote() {
               <TableCell className="text-right">{lot.net_weight != null ? fmtKg(lot.net_weight) : 'Pendiente de pesado'}</TableCell>
               <TableCell className="text-right">{lot.net_weight != null ? fmtKg(lot.remaining_weight) : '—'}</TableCell>
               <TableCell className="text-right">{lot.net_weight != null ? fmtKg(lot.dumped_weight) : '—'}</TableCell>
-            </TableRow>)}</TableBody>
+            {user?.role === 'admin' && <TableCell className="text-right"><AdminHarvestActions entity="ReceiptLot" record={lot} onSaved={refresh} /></TableCell>}</TableRow>)}</TableBody>
           </Table>
         </div>
       </div>}
