@@ -1,10 +1,10 @@
 export const BIN_STAGES = [
   ['consolidate','Cosecha → cierre del consolidado'], ['weigh','Cierre del consolidado → pesado'],
-  ['yard','Pesado → recepción Playa Empaque'], ['dump','Playa Empaque → vuelco del BIN'], ['binTotal','Cosecha → vuelco del BIN'],
+  ['yard','Pesado → recepción Playa Empaque'], ['dump','Playa Empaque → vuelco del BIN'], ['harvestToYard','Cosecha → recepción en empaque'], ['binTotal','Cosecha → vuelco del BIN'],
 ];
 export const PALLET_STAGES = [
   ['toTunnel','Creación → ingreso a prefrío'], ['tunnel','Permanencia en prefrío'],
-  ['toChamber','Salida de prefrío → ingreso a cámara'], ['chamber','Permanencia en cámara'],
+  ['cooling','Prefrío efectivo · inicio → fin'], ['toChamber','Salida de prefrío → ingreso a cámara'], ['chamber','Permanencia en cámara'],
   ['toLoad','Salida de cámara → carga en transporte'], ['load','Carga → despacho confirmado'], ['palletTotal','Creación → despacho confirmado'],
 ];
 export const STAGE_LABELS = Object.fromEntries([...BIN_STAGES, ...PALLET_STAGES]);
@@ -94,7 +94,7 @@ export function summarizeStages(stages, intervals, waiting, filters) {
     const sums=new Map();
     intervals.filter(s=>s && s.key===key && inPeriod(s.end,filters)).forEach(s=>sums.set(s.id,(sums.get(s.id)||0)+s.ms));
     const values=[...sums.values()]; const waits=waiting.filter(s=>s.key===key); const ages=waits.map(s=>s.age).filter(n=>n!==null);
-    return {key,label,average:values.length ? values.reduce((a,b)=>a+b,0)/values.length : null,count:values.length,pending:waits.length,maxWait:ages.length?Math.max(...ages):null,unknown:waits.length-ages.length};
+    return {key,label,average:values.length ? values.reduce((a,b)=>a+b,0)/values.length : null,count:values.length,pending:waits.length,maxWait:ages.length?Math.max(...ages):null,unknown:waits.length-ages.length,samples:[...sums].map(([id,ms])=>({id,ms})),waiting:waits};
   });
 }
 
@@ -113,7 +113,7 @@ export function dashboardMetrics(input, filters={}, now=Date.now()) {
     const harvest=bin.scanned_at || (Number(bin.harvest_workflow)===3 ? bin.created_date : null);
     if(lot && !(Number(lot.workflow_version)>=2)) { if(!harvest)incompleteBins++; continue; }
     const closed=lot?.field_closed_at, weighed=lot?.weighed_at, received=lot?.yard_received_at, dumped=bin.dumped_at || event?.dump_date;
-    for(const [key,a,b] of [['consolidate',harvest,closed],['weigh',closed,weighed],['yard',weighed,received],['dump',received,dumped],['binTotal',harvest,dumped]]) { const s=sample(key,bin.id,a,b); if(s) intervals.push(s); }
+    for(const [key,a,b] of [['consolidate',harvest,closed],['weigh',closed,weighed],['yard',weighed,received],['dump',received,dumped],['harvestToYard',harvest,received],['binTotal',harvest,dumped]]) { const s=sample(key,bin.id,a,b); if(s) intervals.push(s); }
     if(!harvest) incompleteBins++;
     if(bin.status==='volcado' || dumped || lot?.status==='anulado' || lot?.status==='volcado') continue;
     const legacyLot=lot && !(Number(lot.workflow_version)>=2);
@@ -138,6 +138,19 @@ export function dashboardMetrics(input, filters={}, now=Date.now()) {
   for(const m of movements) { if(!movementsByPallet.has(m.unit_id))movementsByPallet.set(m.unit_id,[]); movementsByPallet.get(m.unit_id).push(m); }
   const journeys=ps.map(p=>({pallet:p,...palletJourney(p,movementsByPallet.get(p.id)||[],shipments,now)}));
   const pIntervals=journeys.flatMap(j=>j.intervals),pWaiting=journeys.flatMap(j=>j.waiting);
+  const palletIds=new Set(ps.map(p=>p.id));
+  for(const cycle of data.cycles || []) {
+    for(const id of new Set(cycle.pallet_ids || [])) {
+      if(!palletIds.has(id))continue;
+      if(cycle.status==='cerrado') { const interval=sample('cooling',id,cycle.start_time,cycle.end_time); if(interval)pIntervals.push(interval); }
+      else if(cycle.status==='abierto')pWaiting.push(pending('cooling',id,cycle.start_time,now));
+    }
+  }
+  // Pending harvest-to-yard measures total elapsed time until receipt, across stations.
+  for(const bin of relevantBins) {
+    const lot=byLot.get(bin.receipt_lot_id);
+    if(!lot?.yard_received_at && bin.status!=='volcado' && lot?.status!=='anulado')waiting.push(pending('harvestToYard',bin.id,bin.scanned_at || (Number(bin.harvest_workflow)===3 ? bin.created_date : null),now));
+  }
   const pRows=journeys.filter(j=>j.active).map(j=>({pallet:j.pallet,journey:j,wait:j.waiting[0]})).sort((a,b)=>(b.wait.age??-1)-(a.wait.age??-1));
   const byBin=new Map(bins.map(b=>[b.id,b]));
   const acceptedDumps=dumps.filter(d=>inPeriod(d.dump_date,filters) && identityMatch({...byLot.get(d.receipt_lot_id),...d,...byBin.get(d.bin_id)},filters));
@@ -152,11 +165,48 @@ export function dashboardMetrics(input, filters={}, now=Date.now()) {
   const production=runs.filter(r=>identityMatch(r,filters) && inPeriod(r.date || r.start_time || r.created_date,filters));
   const sentJourneys=journeys.filter(j=>j.dispatch!==null && inPeriod(j.dispatch,filters));
   const cold=locations.filter(l=>['tunel','camara'].includes(l.type)).map(l=>({location:l,pallets:ps.filter(p=>p.location_id===l.id),oldest:pRows.filter(r=>r.pallet.location_id===l.id).reduce((m,r)=>r.wait.age===null?m:Math.max(m??0,r.wait.age),null)}));
-  return {binStats,binTimes:summarizeStages(BIN_STAGES,intervals,waiting,filters),palletTimes:summarizeStages(PALLET_STAGES,pIntervals,pWaiting,filters),
+  return {productivity:productivityMetrics(data,filters,ps,journeys,lotRows),binStats,binTimes:summarizeStages(BIN_STAGES,intervals,waiting,filters),palletTimes:summarizeStages(PALLET_STAGES,pIntervals,pWaiting,filters),
     lotRows:[...lotRows.values()].sort((a,b)=>(b.maxWait??-1)-(a.maxWait??-1)),pRows,cold,
     production:{fresh:production.reduce((s,r)=>s+(Number(r.fresh_weight)||0),0),aril:production.reduce((s,r)=>s+(Number(r.aril_weight)||0),0),discard:production.reduce((s,r)=>s+(Number(r.discard_weight)||0),0)},
     shipmentsPending:shipments.filter(s=>['borrador','reservado','cargado'].includes(s.status) && (!filters.producer && !filters.variety || ps.some(p=>p.shipment_id===s.id))).length,
     shippedKg:sentJourneys.reduce((s,j)=>s+(Number(j.pallet.net_weight)||0),0),shippedPallets:sentJourneys.length,
     missingDispatch:journeys.filter(j=>j.missingDispatch).length,incompleteBins,invalidIntervals:journeys.reduce((s,j)=>s+j.invalid,0),
     held:lots.filter(l=>l.held && identityMatch(l,filters)).map(l=>`Lote ${l.lot_code} retenido por calidad`)};
+}
+
+function productivityMetrics(data,filters,pallets,journeys,lotRows) {
+  const bins=(data.bins || []).filter(b=>b.status!=='anulado' && identityMatch(b,filters));
+  const harvestInPeriod=bin=> {
+    const day=/^\d{4}-\d{2}-\d{2}$/.test(bin.harvest_date || '') ? bin.harvest_date : operationDay(bin.scanned_at || bin.created_date);
+    return day && (!filters.from || day>=filters.from) && (!filters.to || day<=filters.to);
+  };
+  const harvested=bins.filter(b=>Number(b.harvest_workflow)===3 && harvestInPeriod(b));
+  const knownWeight=b=>b.net_weight!==null && b.net_weight!==undefined && Number.isFinite(Number(b.net_weight));
+  const produced=pallets.filter(p=>p.status!=='anulado' && inPeriod(p.created_date,filters));
+  const daily=new Map(),groups=new Map();
+  const productKey=p=>String(p.product_type || '').startsWith('aril')?'aril':p.product_type==='descarte'?'discard':'fresh';
+  const totals={fresh:0,aril:0,discard:0};
+  for(const p of produced) {
+    const day=operationDay(p.created_date),key=productKey(p),kg=Number(p.net_weight)||0;
+    totals[key]+=kg;
+    if(!daily.has(day))daily.set(day,{day,fresh:0,aril:0,discard:0});
+    daily.get(day)[key]+=kg;
+    const category=p.category || (key==='aril'?'Arilos':key==='discard'?'Descarte':'Fresco');
+    const groupKey=JSON.stringify([p.producer || 'Sin productor',p.variety || 'Sin variedad',category]);
+    if(!groups.has(groupKey))groups.set(groupKey,{id:groupKey,producer:p.producer || 'Sin productor',variety:p.variety || 'Sin variedad',category,pallets:0,packages:0,kg:0});
+    const row=groups.get(groupKey);row.pallets++;row.packages+=Number(p.package_count)||0;row.kg+=kg;
+  }
+  const stocks=new Map();
+  const add=(key,label,units,kg,unknown=0)=>{
+    if(!stocks.has(key))stocks.set(key,{key,label,units:0,kg:0,unknown:0});
+    const row=stocks.get(key);row.units+=units;row.kg+=kg;row.unknown+=unknown;
+  };
+  add('consolidate','Bines sin consolidar',0,0);add('weigh','Bines pendientes de pesado',0,0);add('yard','Bines en camino al empaque',0,0);add('dump','Bines en playa pendientes de vuelco',0,0);
+  for(const row of lotRows.values())add(row.stage,row.stage==='consolidate'?'Bines sin consolidar':row.stage==='weigh'?'Bines pendientes de pesado':row.stage==='yard'?'Bines en camino al empaque':'Bines en playa pendientes de vuelco',row.count,Number(row.kg)||0,row.kg===null?row.count:0);
+  const labels={toTunnel:'Pallets esperando prefrío',tunnel:'Pallets en túneles',toChamber:'Pallets esperando cámara',chamber:'Pallets en cámaras',toLoad:'Pallets disponibles para carga',load:'Pallets cargados pendientes de despacho'};
+  Object.entries(labels).forEach(([key,label])=>add(key,label,0,0));
+  for(const j of journeys.filter(j=>j.active))add(j.waiting[0].key,labels[j.waiting[0].key] || j.waiting[0].location,1,Number(j.pallet.net_weight)||0);
+  return {harvestedBins:harvested.length,harvestedKg:harvested.filter(knownWeight).reduce((s,b)=>s+Number(b.net_weight),0),unweighedHarvested:harvested.filter(b=>!knownWeight(b)).length,
+    producedKg:produced.reduce((s,p)=>s+(Number(p.net_weight)||0),0),producedPallets:produced.length,producedPackages:produced.reduce((s,p)=>s+(Number(p.package_count)||0),0),
+    totals,daily:[...daily.values()].sort((a,b)=>a.day.localeCompare(b.day)),groups:[...groups.values()].sort((a,b)=>b.kg-a.kg),stock:[...stocks.values()]};
 }

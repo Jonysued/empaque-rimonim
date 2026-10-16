@@ -37,3 +37,34 @@ console.log('PASS: BIN means, repeated pallet stays, departure, loading correcti
 const localOnly=dashboardMetrics({pallets:[{id:'local',status:'armado',created_date:time(0),pendingStatus:'pending',net_weight:900}],shipments:[{id:'local-load',status:'borrador',pendingStatus:'pending'}]},filters,base+hour);
 assert.equal(localOnly.pRows.length,0);assert.equal(localOnly.shipmentsPending,0);
 console.log('PASS: el dashboard excluye pallets y cargas locales sin confirmar');
+const productivityData={...d,
+ bins:[...bins.map(bin=>({...bin,harvest_date:'2026-09-30'})),{id:'unweighed',harvest_workflow:3,harvest_date:'2026-09-30',scanned_at:time(0),producer:'LAS 500',variety:'Wonderful',status:'cosechado'},
+ {id:'other-day',harvest_workflow:3,harvest_date:'2026-09-29',scanned_at:time(0),net_weight:900,status:'cosechado',producer:'LAS 500',variety:'Wonderful'}],
+ pallets:[{...p,producer:'LAS 500',variety:'Wonderful',product_type:'fresco',category:'Primera',package_count:240},
+ {id:'aril',created_date:time(1),status:'armado',net_weight:100,package_count:20,product_type:'arilo',category:'Arilos',producer:'LAS 500',variety:'Wonderful'},
+ {id:'excluded',created_date:time(1),status:'anulado',net_weight:999},
+ {id:'local-product',created_date:time(1),status:'armado',net_weight:999,pendingStatus:'pending'}],
+ cycles:[{id:'cycle1',pallet_ids:['p','p'],status:'cerrado',start_time:time(1),end_time:time(3)},
+ {id:'cycle2',pallet_ids:['p'],status:'cerrado',start_time:time(4),end_time:time(7)},
+ {id:'active',pallet_ids:['aril'],status:'abierto',start_time:time(12)},
+ {id:'unconfirmed',pallet_ids:['p'],status:'cerrado',start_time:time(1),end_time:time(8),pendingStatus:'pending'}]};
+const activity=dashboardMetrics(productivityData,{from:'2026-09-30',to:'2026-09-30'},base+16*hour);
+assert.equal(activity.productivity.harvestedBins,3,'Harvest date must stay on its declared local calendar day');
+assert.equal(activity.productivity.harvestedKg,1000,'Unweighed bins add no invented weight');
+assert.equal(activity.productivity.unweighedHarvested,1);
+assert.equal(activity.productivity.producedKg,600,'Cancelled and local-only pallets do not count');
+assert.equal(activity.productivity.producedPallets,2);
+assert.equal(activity.productivity.producedPackages,260);
+assert.equal(activity.productivity.daily[0].fresh,500);assert.equal(activity.productivity.daily[0].aril,100);
+assert.equal(activity.productivity.groups.reduce((s,g)=>s+g.kg,0),600);
+assert.equal(activity.productivity.stock.find(s=>s.key==='dump').kg,500);
+assert.equal(activity.productivity.stock.find(s=>s.key==='toTunnel').units,1,'Dispatched pallets are excluded from stock');
+assert.equal(activity.binTimes.find(r=>r.key==='harvestToYard').average,3.5*hour);
+const effective=activity.palletTimes.find(r=>r.key==='cooling');
+assert.equal(effective.average,5*hour,'Effective cooling uses actual cycles, sums repeated stays per pallet, deduplicates membership');
+assert.equal(effective.count,1);assert.equal(effective.pending,1);assert.equal(effective.maxWait,4*hour);
+const outside=dashboardMetrics(productivityData,{from:'2026-10-05',to:'2026-10-05'},base+16*hour);
+assert.equal(outside.productivity.producedKg,0);assert.equal(outside.productivity.stock.find(s=>s.key==='dump').kg,500,'Current stock ignores activity date filters');
+const noProducer=dashboardMetrics(productivityData,{...filters,producer:'OTHER'},base+16*hour);
+assert.equal(noProducer.productivity.producedKg,0);assert.equal(noProducer.palletTimes.find(r=>r.key==='cooling').count,0);
+console.log('PASS: dashboard sections, harvest cohorts, pallet production, current stock, product groups, effective cooling and detail samples');

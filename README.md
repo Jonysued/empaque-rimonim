@@ -161,3 +161,21 @@ Cada corrección conserva actor, datos previos e identificador idempotente en
 `empaque_private.harvest_corrections`. Las versiones concurrentes se rechazan
 para no sobrescribir cambios de otro usuario. Verificar con
 `node scripts/check-admin-harvest.mjs` (también incluido en `check:app`).
+
+### Dashboard: tiempos y productividad
+
+El dashboard separa **Tiempos de proceso** y **Productividad**, con filtros
+compartidos y selector de sección en celular. En escritorio se ven ambas.
+Los promedios usan etapas terminadas en el período; al tocar una etapa se
+muestran sus unidades medidas y pendientes actuales. El prefrío efectivo usa
+los ciclos confirmados, separado de la permanencia total en túnel.
+
+Productividad usa pallets confirmados y no anulados, fechados por creación,
+para kg, pallets, bultos, gráfico diario y tabla por productor/variedad/categoría.
+Los kg cosechados usan la fecha declarada de cosecha y el peso asignado al bin;
+se informa cuántos todavía no tienen peso. Volcado y despacho usan sus eventos
+confirmados. Stock y ocupación incluyen todos los días; el filtro Cuadro afecta
+solo a bines y la ocupación física total siempre incluye todos los productores.
+No se presenta un rendimiento porcentual ni kg/hora sin vínculos y horas reales.
+`check-dashboard-metrics.mjs` comprueba períodos, pesos faltantes, producción,
+stock, ciclos repetidos y exclusión de registros locales pendientes.
