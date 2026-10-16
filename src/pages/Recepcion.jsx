@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Sprout } from "lucide-react";
 
 export default function Recepcion() {
@@ -39,19 +40,32 @@ export default function Recepcion() {
   }
   const selected = bins.find(bin => bin.id === selectedId);
   const harvests = bins.filter(bin => Number(bin.harvest_workflow) === 3);
-  return <div className="space-y-6">
+  return <div className="min-w-0 space-y-6">
     <div><h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Sprout className="w-6 h-6" /> Cosecha</h1>
       <p className="text-muted-foreground">Pegar el QR en el bin, escanearlo y registrar su información de cosecha</p></div>
     {(error || scanError) && <p role="alert" className="text-sm text-destructive">{error || scanError}</p>}
     <Card><CardContent className="p-4 space-y-3">{cats ? <QRScanner label="Escanear QR del BIN para registrar cosecha" onScan={scan} /> : <p>Cargando catálogos…</p>}</CardContent></Card>
-    <div className="space-y-3"><h2 className="font-semibold">BINs registrados ({harvests.length})</h2>
-      {loading ? <p>Cargando…</p> : !harvests.length ? <p className="text-sm text-muted-foreground">Escaneá el primer BIN para registrar su cosecha.</p> : harvests.map(bin =>
-        <button key={bin.id} type="button" className="block w-full text-left" onClick={() => setSelectedId(bin.id)}><Card><CardContent className="p-4 space-y-1">
-          <div className="flex items-center gap-2 flex-wrap"><b className="font-mono break-all">{bin.bin_code}</b><StatusBadge status={bin.receipt_lot_id ? 'consolidado' : 'cosechado'} /></div>
-          <p className="text-sm">{bin.producer} · {bin.variety} · {bin.origin || 'Sin cuadro'} · {bin.crew || 'Sin cuadrilla'}</p>
-          <p className="text-xs text-muted-foreground">Registrado: {fmtDate(bin.scanned_at || bin.created_date)}{bin.receipt_lot_code ? ` · Lote ${bin.receipt_lot_code}` : ''}</p>
-          {bin.pendingStatus && <p className="text-xs text-amber-800">{bin.pendingStatus === 'conflict' ? 'Requiere revisión' : 'Pendiente de sincronizar'}</p>}
-        </CardContent></Card></button>)}</div>
+    <div className="min-w-0 space-y-3"><h2 className="font-semibold">BINs registrados ({harvests.length})</h2>
+      {loading ? <p>Cargando…</p> : !harvests.length ? <p className="text-sm text-muted-foreground">Escaneá el primer BIN para registrar su cosecha.</p> : <>
+        <p className="text-xs text-muted-foreground sm:hidden">Deslizá la tabla hacia los costados para ver todas las columnas.</p>
+        <div className="min-w-0 overflow-hidden rounded-lg border bg-card">
+          <Table aria-label="BINs registrados en Cosecha">
+            <TableHeader><TableRow>
+              <TableHead scope="col">BIN</TableHead><TableHead scope="col">Estado</TableHead>
+              <TableHead scope="col">Productor</TableHead><TableHead scope="col">Variedad</TableHead>
+              <TableHead scope="col">Cuadro</TableHead><TableHead scope="col">Cuadrilla</TableHead>
+              <TableHead scope="col">Registrado</TableHead><TableHead scope="col">Lote</TableHead>
+            </TableRow></TableHeader>
+            <TableBody>{harvests.map(bin => <TableRow key={bin.id}>
+              <TableCell><button type="button" className="min-h-11 text-left font-mono font-semibold text-primary underline underline-offset-4 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`Ver cosecha del BIN ${bin.bin_code}`} onClick={() => setSelectedId(bin.id)}>{bin.bin_code}</button></TableCell>
+              <TableCell><StatusBadge status={bin.receipt_lot_id ? 'consolidado' : 'cosechado'} />{bin.pendingStatus && <p className="mt-1 text-xs text-amber-800">{bin.pendingStatus === 'conflict' ? 'Requiere revisión' : 'Pendiente de sincronizar'}</p>}</TableCell>
+              <TableCell>{bin.producer || '—'}</TableCell><TableCell>{bin.variety || '—'}</TableCell>
+              <TableCell>{bin.origin || 'Sin cuadro'}</TableCell><TableCell>{bin.crew || 'Sin cuadrilla'}</TableCell>
+              <TableCell>{fmtDate(bin.scanned_at || bin.created_date)}</TableCell><TableCell>{bin.receipt_lot_code || '—'}</TableCell>
+            </TableRow>)}</TableBody>
+          </Table>
+        </div>
+      </>}</div>
     {code && cats && <HarvestForm key={code} code={code} cats={cats} initial={initial} onClose={() => setCode(null)} onSaved={async (record, pending) => {
       setCode(null); setInitial({ ...record, crew: record.crew === 'MIXTO' ? '' : record.crew });
       toast[pending ? 'warning' : 'success'](pending ? 'Cosecha guardada en este dispositivo; pendiente de sincronizar' : 'BIN registrado. Ya puede incorporarse a un consolidado.'); await refresh();
