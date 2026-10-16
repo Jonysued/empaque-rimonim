@@ -2,10 +2,14 @@ import React from 'react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { fmtKg } from '@/lib/qr';
-import { durationLabel } from '@/lib/dashboardMetrics.mjs';
 
 export default function DashboardProductivity({ metrics, data }) {
   const p=metrics.productivity;
+  const occupancy=data.locations.filter(location=>['tunel','camara'].includes(location.type)).map(location=>{
+    const pallets=data.pallets.filter(pallet=>!pallet.pendingStatus && pallet.status!=='anulado' && pallet.location_id===location.id);
+    const capacity=Number(location.capacity);
+    return {location,occupied:pallets.length,capacity:Number.isFinite(capacity)&&capacity>0?capacity:null,kg:pallets.reduce((sum,pallet)=>sum+(Number(pallet.net_weight)||0),0)};
+  });
   return <div className="min-w-0 space-y-5">
     <p className="text-sm text-muted-foreground">Volumen del período y stock actual. Los filtros de fecha se aplican a la actividad; el stock incluye todos los días. Cuadro filtra únicamente bines.</p>
     <div className="grid grid-cols-1 min-[380px]:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -21,7 +25,7 @@ export default function DashboardProductivity({ metrics, data }) {
     </CardContent></Card>
     <Card><CardHeader><CardTitle className="text-base">Producción por productor, variedad y categoría</CardTitle></CardHeader><CardContent><Rows headers={['Productor','Variedad','Categoría','Pallets','Bultos','Kilos']} empty={!p.groups.length}>{p.groups.map(row=><tr key={row.id} className="border-b"><td>{row.producer}</td><td>{row.variety}</td><td>{row.category}</td><td>{row.pallets}</td><td>{row.packages}</td><td>{fmtKg(row.kg)}</td></tr>)}</Rows></CardContent></Card>
     <Card><CardHeader><CardTitle className="text-base">Stock por etapa · situación actual</CardTitle></CardHeader><CardContent><Rows headers={['Etapa','Unidades','Kilos conocidos','Sin peso']} empty={false}>{p.stock.map(row=><tr key={row.key} className="border-b"><td>{row.label}</td><td>{row.units}</td><td>{row.unknown&&row.kg===0?'Pendiente de pesado':fmtKg(row.kg)}</td><td>{row.unknown||'—'}</td></tr>)}</Rows><p className="mt-3 text-xs text-muted-foreground">Las primeras cuatro filas cuentan bines; las restantes cuentan pallets. No se suman como una sola unidad de stock.</p></CardContent></Card>
-    <Card><CardHeader><CardTitle className="text-base">Ocupación de prefrío y cámaras</CardTitle></CardHeader><CardContent><Rows headers={['Ubicación','Pallets filtrados','Ocupación total / capacidad','Kilos filtrados','Mayor permanencia actual']} empty={!metrics.cold.length}>{metrics.cold.map(({location,pallets,oldest})=><tr key={location.id} className="border-b"><td>{location.name}</td><td>{pallets.length}</td><td>{data.pallets.filter(p=>p.status!=='anulado'&&p.location_id===location.id).length} / {location.capacity||'—'}</td><td>{fmtKg(pallets.reduce((s,p)=>s+(Number(p.net_weight)||0),0))}</td><td>{durationLabel(oldest)}</td></tr>)}</Rows><p className="mt-3 text-xs text-muted-foreground">La ocupación total incluye todos los productores y variedades para mostrar la capacidad real disponible.</p></CardContent></Card>
+    <Card><CardHeader><CardTitle className="text-base">Ocupación de prefrío y cámaras</CardTitle></CardHeader><CardContent><Rows headers={['Ubicación','Pallets ocupados / capacidad','Lugares libres','Kilos almacenados']} empty={!occupancy.length}>{occupancy.map(({location,occupied,capacity,kg})=><tr key={location.id} className="border-b"><td>{location.name}</td><td>{occupied} / {capacity??'Sin configurar'}</td><td>{capacity===null?'—':Math.max(0,capacity-occupied)}</td><td>{fmtKg(kg)}</td></tr>)}</Rows><p className="mt-3 text-xs text-muted-foreground">Ocupación actual completa de cada ubicación, sin aplicar los filtros de fecha, productor, variedad ni cuadro.</p></CardContent></Card>
     <p className="text-xs text-muted-foreground">{metrics.shipmentsPending} cargas pendientes de despacho. Kg/hora, productividad por persona y rendimiento se incorporarán cuando existan horas efectivas y vínculos de producción verificables.</p>
   </div>;
 }
