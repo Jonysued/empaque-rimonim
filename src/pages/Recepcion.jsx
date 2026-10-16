@@ -60,7 +60,7 @@ export default function Recepcion() {
               <TableHead scope="col">Registrado</TableHead><TableHead scope="col">Lote</TableHead>
             {user?.role === 'admin' && <TableHead scope="col" className="text-right">Administración</TableHead>}</TableRow></TableHeader>
             <TableBody>{harvests.map(bin => <TableRow key={bin.id}>
-              <TableCell><button type="button" className="min-h-11 text-left font-mono font-semibold text-primary underline underline-offset-4 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`Ver cosecha del BIN ${bin.bin_code}`} onClick={() => setSelectedId(bin.id)}>{bin.bin_code}</button></TableCell>
+              <TableCell><button type="button" className="min-h-11 text-left font-mono font-semibold text-primary rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-label={`Ver cosecha del BIN ${bin.bin_code}`} onClick={() => setSelectedId(bin.id)}>{bin.bin_code}</button></TableCell>
               <TableCell><StatusBadge status={bin.receipt_lot_id ? 'consolidado' : 'cosechado'} />{bin.pendingStatus && <p className="mt-1 text-xs text-amber-800">{bin.pendingStatus === 'conflict' ? 'Requiere revisión' : 'Pendiente de sincronizar'}</p>}</TableCell>
               <TableCell>{bin.producer || '—'}</TableCell><TableCell>{bin.variety || '—'}</TableCell>
               <TableCell>{bin.origin || 'Sin cuadro'}</TableCell><TableCell>{bin.crew || 'Sin cuadrilla'}</TableCell>
