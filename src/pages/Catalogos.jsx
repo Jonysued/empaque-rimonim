@@ -16,6 +16,7 @@ const CATALOG_TYPES = [
   { value: "especie", label: "Especies" },
   { value: "tipo_cosecha", label: "Tipos de cosecha" },
   { value: "cuadrilla", label: "Cuadrillas" },
+  { value: "transportista", label: "Transportistas" },
   { value: "destino", label: "Destinos" },
   { value: "categoria", label: "Categorías" },
   { value: "calibre", label: "Calibres" },

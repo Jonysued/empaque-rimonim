@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { base44 } from '@/api/base44Client';
 import { generateCode, fmtDate, fmtKg } from '@/lib/qr';
 import { isFieldLot } from '@/lib/fieldWorkflow.mjs';
 import { useFieldLots, fieldOperation } from '@/lib/fieldLots';
@@ -7,7 +8,6 @@ import StatusBadge from '@/components/StatusBadge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Layers, Plus } from 'lucide-react';
@@ -57,17 +57,30 @@ export default function ConsolidadoLote() {
 }
 function ConsolidationForm({onClose,onSaved}) {
   const [transport,setTransport]=useState('');
+  const [carriers,setCarriers]=useState([]);
+  const [loadingCarriers,setLoadingCarriers]=useState(true);
+  const [catalogError,setCatalogError]=useState('');
   const [id]=useState(()=>crypto.randomUUID());
   const [operationId]=useState(()=>crypto.randomUUID());
   const [code]=useState(()=>generateCode('LOT'));
   const [saving,setSaving]=useState(false);
   const [error,setError]=useState('');
-  async function save(event){event.preventDefault();if(!transport.trim())return setError('Ingresá el nombre del transporte');setSaving(true);
-    try{const result=await fieldOperation(id,'create',{p_record:{workflow_version:3,lot_code:code,transport:transport.trim()}},operationId);await onSaved(id,result.pending);}
+  useEffect(() => {
+    let active = true;
+    base44.entities.Catalog.filter({type:'transportista'}).then(items => {
+      if (active) setCarriers(items.filter(item => item.active !== false).sort((a,b) => a.label.localeCompare(b.label)));
+    }).catch(e => { if (active) setCatalogError(e.message || 'No se pudieron cargar los transportistas'); })
+      .finally(() => { if (active) setLoadingCarriers(false); });
+    return () => { active = false; };
+  }, []);
+  async function save(event){event.preventDefault();setError('');const carrier=carriers.find(item=>item.id===transport);if(loadingCarriers || catalogError || !carrier)return setError('Seleccioná un transportista de Catálogos');setSaving(true);
+    try{const result=await fieldOperation(id,'create',{p_record:{workflow_version:3,lot_code:code,transport:carrier.label}},operationId);await onSaved(id,result.pending);}
     catch(e){setError(e.message);setSaving(false);}}
   return <Dialog open onOpenChange={()=>{if(!saving)onClose();}}><DialogContent className="max-w-lg"><DialogHeader><DialogTitle>Nuevo consolidado de lote</DialogTitle></DialogHeader>
-    <form onSubmit={save} className="space-y-4"><div className="space-y-1"><Label htmlFor="consolidation-transport">Nombre del transporte *</Label><Input id="consolidation-transport" required disabled={saving} value={transport} onChange={e=>setTransport(e.target.value)} /></div>
+    <form onSubmit={save} className="space-y-4"><div className="space-y-1"><Label htmlFor="consolidation-transport">Transportista *</Label><select id="consolidation-transport" className="flex h-11 w-full rounded-md border bg-background px-3 text-sm" required disabled={saving || loadingCarriers || !!catalogError || !carriers.length} value={transport} onChange={e=>setTransport(e.target.value)}><option value="">{loadingCarriers ? 'Cargando transportistas…' : 'Seleccionar transportista'}</option>{carriers.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select></div>
+      {catalogError && <p role="alert" className="text-sm text-destructive">{catalogError}</p>}
+      {!loadingCarriers && !catalogError && !carriers.length && <p className="text-sm text-muted-foreground">Primero agregá un transportista en Catálogos → Transportistas.</p>}
       <p className="text-sm text-muted-foreground">Después escaneá los QR de los bines cosechados que integran este lote y presioná «Cerrar lote».</p>
-      {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}<div className="flex flex-col sm:flex-row gap-2 justify-end"><Button type="button" variant="outline" disabled={saving} onClick={onClose}>Cancelar</Button><Button type="submit" disabled={saving}>{saving?'Guardando…':'Crear lote y escanear bines'}</Button></div>
+      {error&&<p role="alert" className="text-sm text-destructive">{error}</p>}<div className="flex flex-col sm:flex-row gap-2 justify-end"><Button type="button" variant="outline" disabled={saving} onClick={onClose}>Cancelar</Button><Button type="submit" disabled={saving || loadingCarriers || !!catalogError || !transport}>{saving?'Guardando…':'Crear lote y escanear bines'}</Button></div>
     </form></DialogContent></Dialog>;
 }
