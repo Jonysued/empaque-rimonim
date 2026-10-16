@@ -3,21 +3,21 @@ import { useFieldLots, fieldOperation } from '@/lib/fieldLots';
 import { isFieldLot } from '@/lib/fieldWorkflow.mjs';
 import { fmtKg, fmtDate } from '@/lib/qr';
 import QRScanner from '@/components/QRScanner';
-import LotDetail, { LotSummary, PendingLotNotice } from '@/components/LotDetail';
+import { LotSummary, PendingLotNotice } from '@/components/LotDetail';
+import StatusBadge from '@/components/StatusBadge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Warehouse, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function RecepcionPlaya() {
-  const { lots, bins, loading, error: loadError, refresh } = useFieldLots();
+  const { lots, loading, error: loadError, refresh } = useFieldLots();
   const [selectedId, setSelectedId] = useState(null);
-  const [detailId, setDetailId] = useState(null);
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [operationId, setOperationId] = useState(() => crypto.randomUUID());
   const selected = lots.find(lot => lot.id === selectedId);
-  const detail = lots.find(lot => lot.id === detailId);
   const available = lots.filter(lot => isFieldLot(lot) && lot.status === 'pesado' && !lot.held && lot.pendingStatus !== 'conflict');
   function scan(code) {
     setError('');
@@ -38,7 +38,7 @@ export default function RecepcionPlaya() {
     } catch (e) { setError(e.message); }
     finally { setSaving(false); }
   }
-  return <div className="space-y-6">
+  return <div className="min-w-0 space-y-6">
     <div><h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Warehouse className="w-6 h-6" /> Recepción Playa Empaque</h1><p className="text-muted-foreground">Escanear el QR del lote recibido para habilitarlo en Vuelco</p></div>
     {(loadError || error) && <p role="alert" className="text-sm text-destructive">{loadError || error}</p>}
     <Card><CardHeader><CardTitle className="text-base">Recibir lote en playa</CardTitle></CardHeader><CardContent className="space-y-4">
@@ -46,10 +46,27 @@ export default function RecepcionPlaya() {
         <div className="flex flex-wrap gap-2"><Button variant="outline" disabled={saving} onClick={() => setSelectedId(null)}>Cancelar</Button><Button disabled={saving} onClick={receive}><CheckCircle2 className="w-4 h-4 mr-2" />{saving ? 'Registrando…' : 'Confirmar recepción en playa'}</Button></div></> :
         <QRScanner label="Escanear QR del lote recibido" onScan={scan} />}
     </CardContent></Card>
-    <div className="space-y-3"><h2 className="font-semibold">Pendientes de llegada ({available.length})</h2><p className="text-sm text-muted-foreground">Escaneá el QR del lote cuando llegue al empaque.</p>
-      {loading ? <p>Cargando…</p> : !available.length ? <p className="text-sm text-muted-foreground">No hay lotes pesados pendientes de recibir.</p> : available.map(lot => <LotSummary key={lot.id} lot={lot} />)}</div>
-    <div className="space-y-3"><h2 className="font-semibold">Últimos lotes recibidos en playa</h2>{lots.filter(lot => isFieldLot(lot) && lot.yard_received_at).slice(0,20).map(lot =>
-      <button key={lot.id} type="button" className="block w-full text-left" onClick={() => setDetailId(lot.id)}><LotSummary lot={lot} /></button>)}</div>
-    {detail && <LotDetail lot={detail} bins={bins.filter(bin => bin.receipt_lot_id === detail.id)} onClose={() => setDetailId(null)} onUpdated={refresh} />}
+    <div className="min-w-0 space-y-3"><h2 className="font-semibold">Pendientes de llegada ({available.length})</h2><p className="text-sm text-muted-foreground">Escaneá el QR del lote cuando llegue al empaque.</p>
+      {loading ? <p>Cargando…</p> : !available.length ? <p className="text-sm text-muted-foreground">No hay lotes pesados pendientes de recibir.</p> : <>
+        <p className="text-xs text-muted-foreground sm:hidden">Deslizá la tabla hacia los costados para ver todas las columnas.</p>
+        <div className="min-w-0 overflow-hidden rounded-lg border bg-card">
+          <Table aria-label="Lotes pendientes de llegada a Playa Empaque">
+            <TableHeader><TableRow>
+              <TableHead scope="col">Lote</TableHead><TableHead scope="col">Estado</TableHead>
+              <TableHead scope="col">Transporte</TableHead><TableHead scope="col">Productor</TableHead>
+              <TableHead scope="col">Variedad</TableHead><TableHead scope="col" className="text-right">BINs</TableHead>
+              <TableHead scope="col">Fecha de registro</TableHead><TableHead scope="col" className="text-right">Peso neto</TableHead>
+            </TableRow></TableHeader>
+            <TableBody>{available.map(lot => <TableRow key={lot.id}>
+              <TableCell className="font-mono font-semibold">{lot.lot_code}</TableCell>
+              <TableCell><StatusBadge status={lot.status} /><PendingLotNotice lot={lot} /></TableCell>
+              <TableCell>{lot.transport || '—'}</TableCell><TableCell>{lot.producer || '—'}</TableCell>
+              <TableCell>{lot.variety || '—'}</TableCell><TableCell className="text-right">{lot.bins_count || 0}</TableCell>
+              <TableCell>{fmtDate(lot.field_created_at || lot.receipt_date)}</TableCell>
+              <TableCell className="text-right">{lot.net_weight != null ? fmtKg(lot.net_weight) : '—'}</TableCell>
+            </TableRow>)}</TableBody>
+          </Table>
+        </div>
+      </>}</div>
   </div>;
 }
