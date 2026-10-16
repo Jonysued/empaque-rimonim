@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { useFieldLots, fieldOperation } from '@/lib/fieldLots';
 import { isFieldLot } from '@/lib/fieldWorkflow.mjs';
-import { fmtKg } from '@/lib/qr';
+import { fmtKg, fmtDate } from '@/lib/qr';
 import QRScanner from '@/components/QRScanner';
-import LotDetail, { LotSummary, PendingLotNotice } from '@/components/LotDetail';
+import LotDetail, { PendingLotNotice } from '@/components/LotDetail';
+import StatusBadge from '@/components/StatusBadge';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,18 +28,35 @@ export default function PesadoLote() {
     if (!available.some(item => item.id === lot.id)) return setError('El lote debe estar cerrado en Consolidado de Lote y pendiente de pesado.');
     setSelectedId(lot.id);
   }
-  return <div className="space-y-6">
+  return <div className="min-w-0 space-y-6">
     <div><h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Scale className="w-6 h-6" /> Pesado de Lote</h1><p className="text-muted-foreground">Ingresar bruto y tara; distribuir el neto entre los bines del lote cerrado</p></div>
     {(loadError || error) && <p role="alert" className="text-sm text-destructive">{loadError || error}</p>}
     <Card><CardHeader><CardTitle className="text-base">{selected ? `Pesar ${selected.lot_code}` : 'Escanear el QR del lote cerrado'}</CardTitle></CardHeader>
       <CardContent>{selected && <Button type="button" variant="outline" className="mb-4" onClick={() => setDetailId(selected.id)}>Ver ficha completa e imprimir A4</Button>}{selected ? <WeightForm key={selected.id} lot={selected} onCancel={() => setSelectedId(null)} onSaved={async pending => {
         setSelectedId(null); toast[pending ? 'warning' : 'success'](pending ? 'Pesado guardado en este dispositivo; pendiente de sincronizar' : 'Lote pesado. Ya puede recibirse en Playa Empaque.'); await refresh();
       }} /> : <QRScanner label="Escanear QR del lote" onScan={scan} />}</CardContent></Card>
-    <div className="space-y-3"><h2 className="font-semibold">Pendientes de pesado ({available.length})</h2>
-      {loading ? <p>Cargando…</p> : !available.length ? <p className="text-sm text-muted-foreground">No hay lotes cerrados pendientes de pesado.</p> : available.map(lot =>
-        <button type="button" key={lot.id} className="block w-full text-left" onClick={() => { setSelectedId(lot.id); setError(''); }}><LotSummary lot={lot} /></button>)}</div>
-    <div className="space-y-3"><h2 className="font-semibold">Últimos lotes pesados</h2>{lots.filter(lot => lot.weighed_at || (!isFieldLot(lot) && lot.net_weight != null)).slice(0,20).map(lot =>
-      <button type="button" key={lot.id} className="block w-full text-left" onClick={() => setDetailId(lot.id)}><LotSummary lot={lot} /></button>)}</div>
+    <div className="min-w-0 space-y-3"><h2 className="font-semibold">Pendientes de pesado ({available.length})</h2>
+      {loading ? <p>Cargando…</p> : !available.length ? <p className="text-sm text-muted-foreground">No hay lotes cerrados pendientes de pesado.</p> : <>
+        <p className="text-xs text-muted-foreground sm:hidden">Deslizá la tabla hacia los costados para ver todas las columnas.</p>
+        <div className="min-w-0 overflow-hidden rounded-lg border bg-card">
+          <Table aria-label="Lotes pendientes de pesado">
+            <TableHeader><TableRow>
+              <TableHead scope="col">Lote</TableHead><TableHead scope="col">Estado</TableHead>
+              <TableHead scope="col">Transporte</TableHead><TableHead scope="col">Productor</TableHead>
+              <TableHead scope="col">Variedad</TableHead><TableHead scope="col" className="text-right">BINs</TableHead>
+              <TableHead scope="col">Fecha de registro</TableHead><TableHead scope="col">Acción</TableHead>
+            </TableRow></TableHeader>
+            <TableBody>{available.map(lot => <TableRow key={lot.id}>
+              <TableCell className="font-mono font-semibold">{lot.lot_code}</TableCell>
+              <TableCell><div className="flex items-center gap-2"><StatusBadge status={lot.status} />{lot.held && <StatusBadge status="retenido" />}</div><PendingLotNotice lot={lot} /></TableCell>
+              <TableCell>{lot.transport || '—'}</TableCell><TableCell>{lot.producer || '—'}</TableCell>
+              <TableCell>{lot.variety || '—'}</TableCell><TableCell className="text-right">{lot.bins_count || 0}</TableCell>
+              <TableCell>{fmtDate(lot.field_created_at || lot.receipt_date)}</TableCell>
+              <TableCell><Button type="button" variant="outline" className="min-h-11" aria-label={`Pesar lote ${lot.lot_code}`} onClick={() => { setSelectedId(lot.id); setError(''); }}>Pesar lote</Button></TableCell>
+            </TableRow>)}</TableBody>
+          </Table>
+        </div>
+      </>}</div>
     {detail && <LotDetail printFullSheet lot={detail} bins={bins.filter(bin => bin.receipt_lot_id === detail.id)} onClose={() => setDetailId(null)} onUpdated={refresh} />}
   </div>;
 }
