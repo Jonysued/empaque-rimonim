@@ -8,7 +8,7 @@ import { canAccess, roleLabel } from "@/lib/permissions";
 import { canManageWorkspaces } from "@/lib/workspace";
 import {
   LayoutDashboard, Repeat, Factory, Snowflake,
-  Warehouse, Truck, Search, Settings, Menu, X, Users, Scale, Layers, Sprout, Building2
+  Warehouse, Truck, Search, Settings, Menu, X, Users, Scale, Layers, Sprout, Building2, Boxes
 } from "lucide-react";
 
 const NAV = [
@@ -22,6 +22,7 @@ const NAV = [
   { to: "/prefrio", label: "Prefrío", icon: Snowflake },
   { to: "/camaras", label: "Cámaras", icon: Warehouse },
   { to: "/despachos", label: "Despachos", icon: Truck },
+  { to: "/stock-insumos", label: "Stock Insumos", icon: Boxes },
   { to: "/trazabilidad", label: "Trazabilidad", icon: Search },
   { to: "/catalogos", label: "Catálogos", icon: Settings },
   { to: "/usuarios", label: "Usuarios", icon: Users },

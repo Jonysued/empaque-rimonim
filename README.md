@@ -179,3 +179,45 @@ solo a bines y la ocupación física total siempre incluye todos los productores
 No se presenta un rendimiento porcentual ni kg/hora sin vínculos y horas reales.
 `check-dashboard-metrics.mjs` comprueba períodos, pesos faltantes, producción,
 stock, ciclos repetidos y exclusión de registros locales pendientes.
+
+### Stock Insumos
+
+Aplicar `20261016164332_supply_stock_and_pallet_consumption.sql` antes de desplegar.
+La nueva pestaña `/stock-insumos` usa icono Boxes y permite consulta a los roles
+operativos; administradores y supervisores gestionan insumos, depósitos,
+remitos y reglas. No se inicializa inventario ficticio. Configurar insumos y
+unidades, depósitos, stock inicial/ingresos y después reglas por producto/envase
+(con categoría, marca y calibre opcionales). Las reglas más específicas tienen
+prioridad; coincidencias ambiguas se rechazan. Cada depósito decide si bloquea
+faltantes (por defecto) o permite saldo negativo alertado.
+
+Entradas, stock inicial, devoluciones, roturas, ajustes de diferencia y traslados
+se registran con comprobantes. Ingresos exigen proveedor y remito únicos por
+empresa; demás movimientos exigen motivo. Las correcciones generan reversión y
+conservan originales. Fotos JPG/PNG/WebP o PDF (hasta 3 × 10 MB) se guardan en
+`supply-remitos`, bucket privado y rutas por empresa, con enlaces de 2 minutos.
+El historial usa paginación estable de 100 movimientos; cada remito se consulta
+completo independientemente de la página, y la exportación incluye la vista
+cargada. Todos los saldos se mantienen junto con el ledger en una transacción.
+
+Un trigger privado de alcance limitado integra cualquier alta/edición/borrado
+permitido de Pallet con su consumo. Producción no obtiene permisos para editar
+stock. Cada pallet guarda su receta/version y materiales netos: una edición
+240→214 devuelve 26 cajas si la regla usa una caja por bulto. Cambios solo de
+peso o ubicación no consumen otra vez; eliminar un pallet permitido revierte
+su consumo. Cambiar el armado elige la nueva regla, revirtiendo diferencias.
+Las reglas editadas no recalculan pallets anteriores. Pallets ya existentes e
+importaciones de servicio no reciben consumos retroactivos. Nuevos pallets sin
+regla quedan visibles como pendientes de regla: una vez configurada se aplica
+explícitamente desde Stock Insumos, con idempotencia y control de faltantes.
+
+La generación offline de pallets sigue en la cola existente: el pallet y su
+consumo se confirman juntos al sincronizar; un faltante queda en revisión para
+reintentar tras corregir stock. Stock/remitos/reglas requieren conexión para
+escrituras. Consultas previamente guardadas se pueden ver offline, indicando
+fecha de consulta y pendientes; no se presentan reservas locales como stock
+confirmado. La caché está separada por usuario/empresa y filtro. Los adjuntos
+requieren conexión para abrir enlaces privados.
+
+Verificar con `node scripts/check-supply-stock.mjs` (incluido en `check:app`),
+`check:offline`, `check:companies`, `check:cold-storage`, lint, typecheck y build.

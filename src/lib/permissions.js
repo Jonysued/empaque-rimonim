@@ -22,6 +22,7 @@ export const PAGE_ACCESS = {
   "/camaras": ["admin", "supervisor", "frio"],
   "/despachos": ["admin", "supervisor", "despacho"],
   "/trazabilidad": null,
+  "/stock-insumos": ["admin", "supervisor", "recepcion", "produccion", "frio", "despacho", "calidad"],
   "/catalogos": ["admin", "supervisor"],
   "/usuarios": ["admin"],
 };

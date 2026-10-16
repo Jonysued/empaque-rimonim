@@ -1,4 +1,5 @@
 import { subscribeOperationalRefresh } from '@/lib/operationalRefresh.mjs';
+import { Link, useSearchParams } from "react-router-dom";
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { generateCode, fmtKg } from "@/lib/qr";
@@ -41,6 +42,8 @@ const STATION_ABBREV = {
 };
 
 export default function Produccion() {
+  const [searchParams,setSearchParams] = useSearchParams();
+  const linkedPalletId = searchParams.get("pallet");
   const [pallets, setPallets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -73,12 +76,21 @@ export default function Produccion() {
     return () => { request.current++; stop(); };
   }, []);
 
+  useEffect(() => {
+    if(!linkedPalletId || loading)return;
+    const linked=pallets.find(p=>p.id===linkedPalletId);
+    if(linked)setSelectedPallet(linked);
+    else setLoadError('No se encontró el pallet solicitado en esta empresa.');
+    setSearchParams({}, {replace:true});
+  },[linkedPalletId,loading,pallets,setSearchParams]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Factory className="w-6 h-6" /> Producción</h1>
           <p className="text-muted-foreground">Clasificación y pallets</p>
+          <p className="text-xs text-muted-foreground mt-1">Los insumos se descuentan automáticamente al confirmar el pallet. Las operaciones offline esperan la sincronización. <Link className="text-primary" to="/stock-insumos">Ver stock y pallets sin regla</Link>.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => setFormPallet("new")}><Package className="w-4 h-4 mr-1" /> Nuevo pallet</Button>

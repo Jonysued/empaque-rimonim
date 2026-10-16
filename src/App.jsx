@@ -20,6 +20,7 @@ const Prefrio = lazy(() => import('@/pages/Prefrio'));
 const Camaras = lazy(() => import('@/pages/Camaras'));
 const Despachos = lazy(() => import('@/pages/Despachos'));
 const Trazabilidad = lazy(() => import('@/pages/Trazabilidad'));
+const StockInsumos = lazy(() => import('@/pages/StockInsumos'));
 const Catalogos = lazy(() => import('@/pages/Catalogos'));
 const Usuarios = lazy(() => import('@/pages/Usuarios'));
 const Empresas = lazy(() => import('@/pages/Empresas'));
@@ -68,6 +69,7 @@ const AuthenticatedApp = () => {
         <Route path="/camaras" element={<RouteGuard><Camaras /></RouteGuard>} />
         <Route path="/despachos" element={<RouteGuard><Despachos /></RouteGuard>} />
         <Route path="/trazabilidad" element={<Trazabilidad />} />
+        <Route path="/stock-insumos" element={<RouteGuard><StockInsumos /></RouteGuard>} />
         <Route path="/catalogos" element={<RouteGuard><Catalogos /></RouteGuard>} />
         <Route path="/usuarios" element={<RouteGuard><Usuarios /></RouteGuard>} />
         <Route path="/empresas" element={<Empresas />} />

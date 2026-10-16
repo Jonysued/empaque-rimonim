@@ -9,7 +9,7 @@ const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export const supabase = createClient(url || 'https://placeholder.supabase.co', key || 'placeholder', {
   auth: { autoRefreshToken: true, persistSession: true, detectSessionInUrl: true },
-  global: { fetch: (input, init) => fetch(input, String(input).includes('/rest/v1/') ? workspaceHeaders(init) : init) },
+  global: { fetch: (input, init) => fetch(input, (String(input).includes('/rest/v1/') || String(input).includes('/storage/v1/')) ? workspaceHeaders(init) : init) },
 });
 const requireConfigured = () => { if (!url || !key) throw new Error('Configurá VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY'); };
 /** @param {{ data?: any, error?: Error | null }} result */

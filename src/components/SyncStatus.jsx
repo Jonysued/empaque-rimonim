@@ -1,3 +1,4 @@
+import { getSupplySnapshot } from "@/lib/supplyStock";
 import React, { useEffect, useState } from "react";
 import { discardOperation, getOperations, retryOperation, syncOperations } from "@/lib/operationQueue";
 import { Button } from "@/components/ui/button";
@@ -40,7 +41,7 @@ export default function SyncStatus() {
       preparing = true;
       if (active) setOfflineError(false);
       try {
-        await Promise.all(OFFLINE_ENTITIES.map(entity => base44.entities[entity].list()));
+        await Promise.all([...OFFLINE_ENTITIES.map(entity => base44.entities[entity].list()),getSupplySnapshot()]);
         if (active) setOfflineReady(true);
       } catch { if (active) setOfflineError(true); }
       finally { preparing = false; }
