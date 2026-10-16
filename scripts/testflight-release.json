@@ -1,6 +1,6 @@
 {
-  "build_number": "21",
+  "build_number": "22",
   "external": false,
-  "what_to_test": "Empaco: probar edición de peso y bultos de un pallet cargado, cortar la señal al sincronizar y volver a conectar. La operación sigue pendiente hasta guardar también el despacho actualizado. Verificar salida y estados de pallets después de reiniciar. Dashboard, Producción, Vuelco, Frío y Despachos agrupan avisos de sincronización y pausan refrescos automáticos en segundo plano. La asignación al grupo externo se realiza desde el panel de Apple.",
+  "what_to_test": "Empaco: tablas de bines, consolidados, pendientes de pesado y pendientes de llegada. Transportistas configurables desde Catálogos. Generación de hasta 10.000 QR. Administradores: editar o eliminar bines, lotes y pesajes desde la última columna; correcciones con conexión, recálculo de pesos y protección de procesos posteriores. Verificar sincronización offline al recuperar señal.",
   "verification_attempt": 1
 }
