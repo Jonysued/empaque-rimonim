@@ -1,6 +1,6 @@
 {
-  "build_number": "24",
+  "build_number": "25",
   "external": true,
-  "what_to_test": "Empaco: en Pesado de Lote se agrega el historial completo de lotes pesados, incluidos los que ya fueron recibidos o volcados. Tabla con fecha, bruto, tara, neto, búsqueda por lote/transportista/productor/variedad y paginación de 50 filas sin límite de historial. Verificar ficha e impresión, edición para administradores y avisos de pesajes pendientes de sincronización offline. Se mantiene la tabla de pendientes de pesado.",
+  "what_to_test": "Empaco: nuevo perfil Solo lectura, configurable desde Usuarios y roles. Permite consultar e imprimir información operativa de su empresa, sin crear, editar ni eliminar registros. Incluye bloqueos de cambios online y offline, consulta de Stock Insumos, cámaras, prefrío, dashboard y trazabilidad. Conserva el historial completo de lotes pesados y todas las mejoras anteriores.",
   "verification_attempt": 1
 }
