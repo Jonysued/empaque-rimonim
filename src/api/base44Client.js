@@ -1,10 +1,11 @@
 import { createClient } from '@supabase/supabase-js';
-import { readSnapshot, saveSnapshot, saveLastOwner, readLastOwner, clearLastOwner, migrateLegacyWorkspace } from '@/lib/offlineStore';
+import { readSnapshot, saveSnapshot, saveLastOwner, readLastOwner, clearLastOwner, migrateLegacyWorkspace, clearWorkspaceSnapshots } from '@/lib/offlineStore';
 import { Capacitor } from '@capacitor/core';
 import { currentWorkspace, setWorkspace, clearWorkspace, workspaceOwner, selectedWorkspace, rememberWorkspace, workspaceHeaders } from '@/lib/workspace';
 import { getOperations, submitOperation } from '@/lib/operationQueue';
 import { projectRecordOperations } from '@/lib/recordProjection.mjs';
-import { assertOperationalWrite } from '@/lib/writeAccess';
+import { assertOperationalWrite, operationalProfile } from '@/lib/writeAccess';
+import { canReadEntity } from '@/lib/permissions';
 const webAppUrl = import.meta.env.VITE_PUBLIC_APP_URL || 'https://empaque-rimonim.vercel.app';
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -37,6 +38,7 @@ export async function localSessionIdentity() {
   }
 }
 async function rows(entity) {
+  if (!canReadEntity((await operationalProfile())?.role,entity)) return [];
   const { id: userId, offline } = await localSessionIdentity();
   const ownerId = userId && workspaceOwner(userId);
   if (!ownerId) throw Object.assign(new Error('Iniciá sesión'), {status:401});
@@ -48,7 +50,7 @@ async function rows(entity) {
   const all=[];
   try {
     for(let offset=0; ; offset+=1000) {
-      const batch=unwrap(await supabase.from('records').select('id,data,created_date').eq('entity',entity).order('created_date',{ascending:true}).order('id',{ascending:true}).range(offset,offset+999));
+      const batch=unwrap(await supabase.rpc('station_records',{p_entity:entity,p_offset:offset,p_limit:1000}));
       all.push(...batch);
       if(batch.length<1000) {
         await saveSnapshot(ownerId, entity, all);
@@ -91,15 +93,17 @@ const entityClient = (entity) => ({
     const record = (await this.list()).find(row => row.id === id);
     if (!record) throw new Error('Registro no encontrado');
     return record;
-  } const data = unwrap(await supabase.from('records').select('id,data,created_date').eq('entity',entity).eq('id',id).single()); return flatten(data); },
+  } if(!canReadEntity((await operationalProfile())?.role,entity)) throw new Error('Sección no autorizada');
+  const data = unwrap(await supabase.rpc('station_records',{p_entity:entity,p_id:id,p_limit:1}))[0];
+  if(!data)throw new Error('Registro no encontrado');return flatten(data); },
   async create(record) {
-    await assertOperationalWrite();
     const id = crypto.randomUUID();
     if (['Pallet','Shipment'].includes(entity)) {
       const result = await submitOperation('offline_record_operation', { p_entity: entity, p_id: id, p_action: 'create', p_payload: record, p_expected: null, p_recorded_at: new Date().toISOString() }, `record:${entity}:${id}:create`);
       if (result.pending) return flatten(projectRecordOperations(entity, [], await getOperations(), entity === 'Shipment' ? [] : undefined).find(row => row.id === id));
       return this.get(id);
     }
+    await assertOperationalWrite();
     const data = unwrap(await supabase.from('records').insert({entity,id,data:{...record,id}}).select('id,data,created_date').single());
     return flatten(data);
   },
@@ -110,7 +114,8 @@ const entityClient = (entity) => ({
     return data.map(flatten);
   },
   async update(id, patch) {
-    await assertOperationalWrite();
+    await assertOperationalWrite(entity==='Shipment' && patch.status==='enviado' ? 'offline_record_operation' : '',
+      {p_entity:entity,p_action:'dispatch'});
     if(entity==='User') return unwrap(await supabase.rpc('set_company_role',{p_user_id:id,p_role:patch.role}));
     if (['Pallet','Shipment'].includes(entity)) {
       const before = await this.get(id);
@@ -172,7 +177,10 @@ const profile = async () => {
     if(workspace) rememberWorkspace(user.id,workspace.id);
     await migrateLegacyWorkspace(user.id,workspace);
     const platformAdmin=unwrap(await supabase.rpc('is_platform_admin'));
-    const value={...p, name:p.full_name,role:member?.role || 'user',workspace,memberships,platformAdmin};
+    const role=member?.role || 'user';
+    const previous=workspace && await readSnapshot(user.id,`profile:${workspace.id}`);
+    if(workspace && (previous?.role!==role || previous?.permissionsVersion!==2)) await clearWorkspaceSnapshots(workspaceOwner(user.id));
+    const value={...p, name:p.full_name,role,workspace,memberships,platformAdmin,permissionsVersion:2};
     await saveSnapshot(user.id, 'profile', value).catch(() => {});
     if(workspace) await saveSnapshot(user.id, `profile:${workspace.id}`, value).catch(() => {});
     if (Capacitor.isNativePlatform()) await saveLastOwner(user.id).catch(() => {});

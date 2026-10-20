@@ -33,7 +33,7 @@ export default function ProtectedRoute({ fallback = <DefaultFallback />, unauthe
     return unauthenticatedElement;
   }
 
-  if (!user || user.role === 'user') {
+  if (!user || ['user','recepcion','frio','calidad'].includes(user.role)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="max-w-md rounded-2xl border bg-card p-8 text-center space-y-4">

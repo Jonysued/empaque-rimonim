@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
 import { PGlite } from '@electric-sql/pglite';
-import { canAccess, ROLES } from '../src/lib/permissions.js';
+import { canAccess, ROLES, canCorrect, canSubmitCommand } from '../src/lib/permissions.js';
 
 for (const path of ['/', '/recepcion', '/consolidado-lote', '/pesado-lote', '/recepcion-playa', '/vuelco', '/produccion', '/prefrio', '/camaras', '/despachos', '/trazabilidad', '/stock-insumos', '/catalogos']) assert.ok(canAccess('consulta', path), path);
 for (const path of ['/usuarios', '/empresas', '/unknown']) assert.equal(canAccess('consulta', path), false);
@@ -11,14 +11,18 @@ assert.ok(ROLES.some(role => role.value === 'consulta' && role.label === 'Solo l
 // network requests are needed to refuse a command before it reaches IndexedDB.
 let cachedRole = 'consulta', company = 'a';
 const guardSource = (await readFile('src/lib/writeAccess.js', 'utf8')).replace(/^import .*;\n/gm, '').replace(/^export /gm, '');
-const guard = new Function('localSessionIdentity', 'currentWorkspace', 'readSnapshot', `${guardSource};return assertOperationalWrite;`)(
+const guard = new Function('localSessionIdentity', 'currentWorkspace', 'readSnapshot', 'canCorrect', 'canSubmitCommand', `${guardSource};return assertOperationalWrite;`)(
   async () => ({id:'viewer'}), () => ({id:company}), async (id, key) => {
     assert.equal(id, 'viewer'); assert.equal(key, `profile:${company}`);
     return cachedRole ? {role:cachedRole} : null;
-  });
+  },canCorrect,canSubmitCommand);
 await assert.rejects(guard(), /solo lectura/);
 cachedRole = null; await assert.rejects(guard(), /solo lectura/);
 cachedRole = 'admin'; await guard(); company = 'b'; cachedRole = 'consulta'; await assert.rejects(guard(), /solo lectura/);
+cachedRole='produccion';await assert.rejects(guard('offline_record_operation',{p_entity:'Pallet',p_action:'patch'}),/solo permite/);
+await guard('offline_record_operation',{p_entity:'Pallet',p_action:'create'});
+cachedRole='pesado';await assert.rejects(guard('field_lot_operation',{p_action:'receive'}),/solo permite/);
+await guard('field_lot_operation',{p_action:'weigh'});cachedRole='consulta';
 const queueSource = (await readFile('src/lib/operationQueue.js','utf8')).replace(/^import .*;\n/gm,'').replace(/^export /gm,'');
 let persisted = 0;
 const enqueue = new Function('assertOperationalWrite','enqueueCommand',`${queueSource};return submitOperation;`)(guard, async () => {persisted++;});

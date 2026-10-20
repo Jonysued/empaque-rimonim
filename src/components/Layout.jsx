@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import empacoLogo from "@/empaco-logo.svg";
 import { Link, useLocation, Outlet } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { useAuth } from '@/lib/AuthContext';
 import SyncStatus from "@/components/SyncStatus";
 import { cn } from "@/lib/utils";
 import { canAccess, roleLabel } from "@/lib/permissions";
@@ -32,12 +32,8 @@ const NAV = [
 export default function Layout() {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const visibleNav = NAV.filter(item => canAccess(user?.role || "user", item.to) && (item.to !== '/empresas' || canManageWorkspaces(user)));
-
-  useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => {});
-  }, []);
 
   useEffect(() => {
     setSidebarOpen(false);

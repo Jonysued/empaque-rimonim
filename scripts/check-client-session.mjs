@@ -11,7 +11,7 @@ const cache=new Map();const saveSnapshot=async(id,key,value)=>cache.set(`${id}:$
 const readSnapshot=async(id,key)=>cache.get(`${id}:${key}`);
 let selected=null;
 const identity=source.slice(source.indexOf('export const isOfflineError'),source.indexOf('async function rows')).replace(/^export /gm,'');
-const profile=new Function('supabase','Capacitor','readLastOwner','readSnapshot','saveSnapshot','saveLastOwner','unwrap','selectedWorkspace','setWorkspace','rememberWorkspace','migrateLegacyWorkspace',`${identity}\n${body};return profile;`)(supabase,{isNativePlatform:()=>true},async()=>user.id,readSnapshot,saveSnapshot,async()=>{},({data,error})=>{if(error)throw error;return data;},()=>selected,()=>{},(_user,id)=>{selected=id},async()=>{});
+const profile=new Function('supabase','Capacitor','readLastOwner','readSnapshot','saveSnapshot','saveLastOwner','unwrap','selectedWorkspace','setWorkspace','rememberWorkspace','migrateLegacyWorkspace','clearWorkspaceSnapshots','workspaceOwner',`${identity}\n${body};return profile;`)(supabase,{isNativePlatform:()=>true},async()=>user.id,readSnapshot,saveSnapshot,async()=>{},({data,error})=>{if(error)throw error;return data;},()=>selected,()=>{},(_user,id)=>{selected=id},async()=>{},async()=>{},id=>id);
 assert.equal((await profile()).role,'frio');
 networkError=Object.assign(new Error('Failed to fetch'),{name:'AuthRetryableFetchError',status:0});
 assert.equal((await profile()).role,'frio'); // Navigator can say online while the radio is disconnected.

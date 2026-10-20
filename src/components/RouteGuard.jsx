@@ -1,21 +1,16 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { useAuth } from '@/lib/AuthContext';
 import { Card, CardContent } from "@/components/ui/card";
 import { ShieldAlert } from "lucide-react";
-import { canAccess, roleLabel } from "@/lib/permissions";
+import { canAccess, roleLabel, homePath } from "@/lib/permissions";
 
 export default function RouteGuard({ children }) {
   const location = useLocation();
-  const [role, setRole] = useState(undefined);
+  const { user, isLoadingAuth } = useAuth();
+  const role = user?.role || 'user';
 
-  useEffect(() => {
-    base44.auth.me()
-      .then((u) => setRole(u?.role || "user"))
-      .catch(() => setRole("user"));
-  }, []);
-
-  if (role === undefined) {
+  if (isLoadingAuth) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
@@ -32,7 +27,7 @@ export default function RouteGuard({ children }) {
           <p className="text-sm text-muted-foreground">
             Tu rol ({roleLabel(role)}) no tiene permiso para esta sección.
           </p>
-          <Link to="/" className="text-sm text-primary underline">
+          <Link to={homePath(role)} className="text-sm text-primary underline">
             Volver al inicio
           </Link>
         </CardContent>

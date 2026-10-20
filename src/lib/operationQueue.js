@@ -85,8 +85,10 @@ async function drain(ownerId) {
       // If the read loses signal, keep this UUID pending and safely replay it.
       try {
         for (const [entity, id] of related) {
-          const latest = await supabase.from('records').select('id,data,created_date').eq('entity',entity).eq('id',id).single();
+          const response = await supabase.rpc('station_records',{p_entity:entity,p_id:id,p_limit:1});
+          const latest = {error:response.error,data:response.data?.[0]};
           if (latest.error) throw latest.error;
+          if (!latest.data) throw new Error('Registro relacionado no disponible para este perfil');
           const snapshot = await readSnapshot(ownerId, entity) || [];
           await saveSnapshot(ownerId, entity, [...snapshot.filter(row => row.id !== id), latest.data]);
         }
@@ -112,7 +114,7 @@ export async function syncOperations() {
 }
 
 export async function submitOperation(rpc, params, resourceKey, operationId = crypto.randomUUID()) {
-  await assertOperationalWrite();
+  await assertOperationalWrite(rpc, params);
   const ownerId = await currentOwner();
   const id = operationId;
   const command = {

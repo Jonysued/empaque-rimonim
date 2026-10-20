@@ -1,10 +1,13 @@
 import { supabase, localSessionIdentity, isOfflineError } from '@/api/base44Client';
 import { workspaceOwner, currentWorkspace } from '@/lib/workspace';
 import { readSnapshot, saveSnapshot } from '@/lib/offlineStore';
+import { operationalProfile, assertOperationalWrite } from '@/lib/writeAccess';
+import { canReadStock } from '@/lib/permissions';
 
 export const SUPPLY_KINDS={ingreso:'Ingreso con remito',inicial:'Stock inicial',devolucion:'Devolución',rotura:'Rotura / merma',ajuste:'Ajuste de inventario',traslado:'Traslado',consumo_automatico:'Consumo automático',reversion_automatica:'Corrección automática',reversion:'Reversión de comprobante'};
 export const quantityLabel=value=>new Intl.NumberFormat('es-AR',{maximumFractionDigits:3}).format(Number(value)||0);
 export async function getSupplySnapshot(params={}) {
+  if(!canReadStock((await operationalProfile())?.role))throw new Error('Stock Insumos no autorizado');
   const identity=await localSessionIdentity(),owner=workspaceOwner(identity.id);
   try {
     if(identity.offline || !navigator.onLine)throw new TypeError('Sin conexión');
@@ -25,6 +28,7 @@ export async function getSupplySnapshot(params={}) {
   }
 }
 export async function supplyCommand(action,payload,operationId) {
+  await assertOperationalWrite('supply_command',{p_action:action,p_payload:payload});
   if(!navigator.onLine)throw new Error('Conectate para confirmar movimientos y reglas de stock.');
   const {data,error}=await supabase.rpc('supply_command',{p_operation_id:operationId,p_action:action,p_payload:payload});
   if(error)throw error;
@@ -32,6 +36,7 @@ export async function supplyCommand(action,payload,operationId) {
   return data;
 }
 export async function uploadSupplyFiles(files,operationId) {
+  await assertOperationalWrite('supply_command',{p_action:'movement',p_payload:{kind:'ingreso'}});
   if(files.length>3)throw new Error('Podés adjuntar hasta tres archivos.');
   const company=currentWorkspace()?.id;
   if(!company)throw new Error('Seleccioná una empresa');
@@ -66,6 +71,7 @@ export function exportSupplyCsv(rows,items,depots,documents) {
 }
 
 export async function getSupplyDocument(id) {
+  if(!canReadStock((await operationalProfile())?.role))throw new Error('Stock Insumos no autorizado');
   const identity=await localSessionIdentity(),owner=workspaceOwner(identity.id),key=`supply-document:${id}`;
   try {
     if(identity.offline || !navigator.onLine)throw new TypeError('Sin conexión');

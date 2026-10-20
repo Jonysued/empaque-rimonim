@@ -1,5 +1,6 @@
 import { subscribeOperationalRefresh } from '@/lib/operationalRefresh.mjs';
-import { WriteButton } from '@/components/WriteButton';
+import { WriteButton, CorrectionButton } from '@/components/WriteButton';
+import { canCorrect } from '@/lib/permissions';
 import { useAuth } from '@/lib/AuthContext';
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
@@ -370,7 +371,7 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Carga {shipment.load_number}</DialogTitle></DialogHeader>
-          <WriteButton size="sm" variant="outline" disabled={Boolean(shipment.pendingDeparture)} className="self-start" onClick={onEdit}><Pencil className="w-4 h-4 mr-1" /> Editar carga</WriteButton>
+          <CorrectionButton size="sm" variant="outline" disabled={Boolean(shipment.pendingDeparture)} className="self-start" onClick={onEdit}><Pencil className="w-4 h-4 mr-1" /> Editar carga</CorrectionButton>
           {shipment.pendingDeparture && <p role="status" className="text-sm text-amber-700">Salida guardada en este dispositivo, pendiente de sincronizar. La carga queda bloqueada hasta confirmar la salida.</p>}
           {shipment.pendingStatus && !shipment.pendingDeparture && <p role="status" className="text-sm text-amber-700">{shipment.pendingStatus === 'conflict' ? 'La carga requiere revisión.' : 'Cambios y totales locales pendientes de sincronizar.'}</p>}
           <PrintPackingList shipment={{ ...shipment, ...Object.fromEntries(Object.entries(extra).filter(entry => entry[1])) }} pallets={loadedPallets} />
@@ -391,17 +392,17 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
           <div className="border-t pt-3 space-y-2">
             <h4 className="font-medium flex items-center gap-2"><ClipboardList className="w-4 h-4" /> Datos de carga</h4>
             <fieldset disabled={readOnly} className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <div className="space-y-1"><Label className="text-xs">Contenedor</Label><Input value={extra.container_number} onChange={e => setExtra(f => ({ ...f, container_number: e.target.value }))} /></div>
-              <div className="space-y-1"><Label className="text-xs">Remito</Label><Input value={extra.remito} onChange={e => setExtra(f => ({ ...f, remito: e.target.value }))} /></div>
-              <div className="space-y-1"><Label className="text-xs">Termógrafo</Label><Input value={extra.thermograph} onChange={e => setExtra(f => ({ ...f, thermograph: e.target.value }))} /></div>
-              <div className="space-y-1"><Label className="text-xs">Precinto</Label><Input value={extra.seal} onChange={e => setExtra(f => ({ ...f, seal: e.target.value }))} /></div>
+              <div className="space-y-1"><Label className="text-xs">Contenedor</Label><Input readOnly={!canCorrect(user?.role) && Boolean(shipment.container_number)} value={extra.container_number} onChange={e => setExtra(f => ({ ...f, container_number: e.target.value }))} /></div>
+              <div className="space-y-1"><Label className="text-xs">Remito</Label><Input readOnly={!canCorrect(user?.role) && Boolean(shipment.remito)} value={extra.remito} onChange={e => setExtra(f => ({ ...f, remito: e.target.value }))} /></div>
+              <div className="space-y-1"><Label className="text-xs">Termógrafo</Label><Input readOnly={!canCorrect(user?.role) && Boolean(shipment.thermograph)} value={extra.thermograph} onChange={e => setExtra(f => ({ ...f, thermograph: e.target.value }))} /></div>
+              <div className="space-y-1"><Label className="text-xs">Precinto</Label><Input readOnly={!canCorrect(user?.role) && Boolean(shipment.seal)} value={extra.seal} onChange={e => setExtra(f => ({ ...f, seal: e.target.value }))} /></div>
             </fieldset>
-            <WriteButton size="sm" variant="outline" onClick={saveExtra}>Guardar datos</WriteButton>
+            <CorrectionButton size="sm" variant="outline" onClick={saveExtra}>Guardar datos</CorrectionButton>
           </div>
 
           {/* Carga de pallets */}
           <div className="border-t pt-3 space-y-2">
-            {!readOnly && shipment.status === "enviado" && <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-2 text-sm">
+            {canCorrect(user?.role) && shipment.status === "enviado" && <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-2 text-sm">
               <p>Esta carga está enviada. Reabrila para corregir los pallets y volvé a cerrarla al terminar.</p>
               {!confirmReopen ? (
                 <Button type="button" size="sm" variant="outline" onClick={() => setConfirmReopen(true)}>Reabrir para corregir pallets</Button>
@@ -423,7 +424,7 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
                   <div key={p.id} className="flex flex-wrap items-center justify-between gap-2 text-sm border rounded p-2">
                     <span className="font-mono">{p.romaneo_number}</span>
                     <span className="ml-auto">{fmtKg(p.net_weight)} · {p.package_count || 0} bultos</span>
-                    {canChangePallets && <Button type="button" size="sm" variant="outline" aria-label={`Retirar pallet ${p.romaneo_number}`} onClick={() => setPalletToRemove(p)}><Trash2 className="w-4 h-4 mr-1" /> Retirar</Button>}
+                    {canChangePallets && canCorrect(user?.role) && <Button type="button" size="sm" variant="outline" aria-label={`Retirar pallet ${p.romaneo_number}`} onClick={() => setPalletToRemove(p)}><Trash2 className="w-4 h-4 mr-1" /> Retirar</Button>}
                   </div>
                 ))}
               </div>

@@ -12,6 +12,10 @@ snapshots.set('Pallet', [structuredClone(pallet)]); snapshots.set('Shipment', [s
 let failRelatedRead = true, mutations = 0;
 const supabase = {
   rpc: async (_rpc, params) => {
+    if(_rpc==='station_records'){
+      if(failRelatedRead)throw new TypeError('Failed to fetch');
+      return {data:[structuredClone(params.p_entity==='Pallet'?pallet:shipment)]};
+    }
     if (!receipts.has(params.p_operation_id)) {
       mutations++;
       if (params.p_entity === 'Pallet') {

@@ -1,6 +1,6 @@
 import { subscribeOperationalRefresh } from '@/lib/operationalRefresh.mjs';
-import { WriteButton } from '@/components/WriteButton';
-import { Link, useSearchParams } from "react-router-dom";
+import { WriteButton, CorrectionButton } from '@/components/WriteButton';
+import { useSearchParams } from "react-router-dom";
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { generateCode, fmtKg } from "@/lib/qr";
@@ -91,7 +91,7 @@ export default function Produccion() {
         <div>
           <h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Factory className="w-6 h-6" /> Producción</h1>
           <p className="text-muted-foreground">Clasificación y pallets</p>
-          <p className="text-xs text-muted-foreground mt-1">Los insumos se descuentan automáticamente al confirmar el pallet. Las operaciones offline esperan la sincronización. <Link className="text-primary" to="/stock-insumos">Ver stock y pallets sin regla</Link>.</p>
+          <p className="text-xs text-muted-foreground mt-1">Los insumos se descuentan automáticamente al confirmar el pallet. Las operaciones offline esperan la sincronización. <span>Los responsables de stock pueden revisar los pallets sin regla en Stock Insumos.</span>.</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <WriteButton onClick={() => setFormPallet("new")}><Package className="w-4 h-4 mr-1" /> Nuevo pallet</WriteButton>
@@ -329,8 +329,8 @@ function PalletDetail({ pallet, onClose, onEdit, onDelete }) {
           </div>
           <div className="flex flex-wrap gap-2">
             <PrintRomaneo pallet={pallet} />
-            <WriteButton variant="outline" className="flex-1" onClick={onEdit}>Editar</WriteButton>
-            <WriteButton variant="destructive" onClick={onDelete}>Eliminar</WriteButton>
+            <CorrectionButton variant="outline" className="flex-1" onClick={onEdit}>Editar</CorrectionButton>
+            <CorrectionButton variant="destructive" onClick={onDelete}>Eliminar</CorrectionButton>
           </div>
         </div>
       </DialogContent>

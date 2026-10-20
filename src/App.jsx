@@ -5,6 +5,7 @@ import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { homePath } from '@/lib/permissions';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import Layout from '@/components/Layout';
@@ -32,7 +33,7 @@ import ProtectedRoute from '@/components/ProtectedRoute';
 // Add page imports here
 
 const AuthenticatedApp = () => {
-  const { isLoadingAuth, isLoadingPublicSettings, authError } = useAuth();
+  const { isLoadingAuth, isLoadingPublicSettings, authError, user } = useAuth();
 
   // Show loading spinner while checking app public settings or auth
   if (isLoadingPublicSettings || isLoadingAuth) {
@@ -58,7 +59,7 @@ const AuthenticatedApp = () => {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
         <Route element={<Layout />}>
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={homePath(user?.role)!=='/' ? <Navigate to={homePath(user.role)} replace /> : <RouteGuard><Dashboard /></RouteGuard>} />
         <Route path="/recepcion" element={<RouteGuard><Recepcion /></RouteGuard>} />
         <Route path="/consolidado-lote" element={<RouteGuard><ConsolidadoLote /></RouteGuard>} />
         <Route path="/pesado-lote" element={<RouteGuard><PesadoLote /></RouteGuard>} />
@@ -68,7 +69,7 @@ const AuthenticatedApp = () => {
         <Route path="/prefrio" element={<RouteGuard><Prefrio /></RouteGuard>} />
         <Route path="/camaras" element={<RouteGuard><Camaras /></RouteGuard>} />
         <Route path="/despachos" element={<RouteGuard><Despachos /></RouteGuard>} />
-        <Route path="/trazabilidad" element={<Trazabilidad />} />
+        <Route path="/trazabilidad" element={<RouteGuard><Trazabilidad /></RouteGuard>} />
         <Route path="/stock-insumos" element={<RouteGuard><StockInsumos /></RouteGuard>} />
         <Route path="/catalogos" element={<RouteGuard><Catalogos /></RouteGuard>} />
         <Route path="/usuarios" element={<RouteGuard><Usuarios /></RouteGuard>} />

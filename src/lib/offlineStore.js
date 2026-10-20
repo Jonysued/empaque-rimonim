@@ -35,6 +35,17 @@ export const saveSnapshot = (ownerId, key, value) =>
   store("snapshots", "readwrite", s => s.put(value, `${ownerId}:${key}`));
 export const readSnapshot = (ownerId, key) =>
   store("snapshots", "readonly", s => s.get(`${ownerId}:${key}`));
+// Role changes invalidate downloaded query data, never pending commands.
+export async function clearWorkspaceSnapshots(ownerId) {
+  const db = await openDb();
+  await new Promise((resolve,reject) => {
+    const tx=db.transaction('snapshots','readwrite'), s=tx.objectStore('snapshots');
+    const request=s.openCursor();
+    request.onsuccess=()=>{const cursor=request.result;if(!cursor)return;
+      if(String(cursor.key).startsWith(`${ownerId}:`))cursor.delete();cursor.continue();};
+    tx.oncomplete=()=>resolve(undefined);tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error);
+  });
+}
 export const saveLastOwner = id => store("snapshots", "readwrite", s => s.put(id, "last-authenticated-user"));
 export const readLastOwner = () => store("snapshots", "readonly", s => s.get("last-authenticated-user"));
 export const clearLastOwner = () => store("snapshots", "readwrite", s => s.delete("last-authenticated-user"));

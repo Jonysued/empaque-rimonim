@@ -50,6 +50,44 @@ offline. `check-read-only.mjs` verifica aislamiento, RPCs, asignación y bloqueo
 de operaciones locales. Las apps instaladas requieren actualizar su versión
 para mostrar las secciones y controles correspondientes al nuevo perfil.
 
+## Perfiles por estación
+
+Aplicar `20261020162802_station_operator_permissions.sql` antes del frontend.
+Usuarios y roles ofrece Cosecha, Consolidado de Lote, Pesado de Lote, Recepción
+Playa Empaque, Vuelco, Producción, Prefrío, Cámaras, Despachos y Stock Insumos.
+Cada operador entra directamente a su estación; no tiene Dashboard,
+Trazabilidad general, Catálogos, Usuarios ni otras estaciones. Los catálogos de
+selección y las referencias de fruta necesarias se leen desde la propia estación.
+Administrador y Supervisor conservan su alcance; Solo lectura sigue separado.
+Los perfiles antiguos Recepción, Frío y Calidad quedan sin acceso operativo y
+no se ofrecen en nuevas invitaciones: un administrador debe elegir una estación.
+No se reasigna ninguna cuenta automáticamente.
+
+Los operadores registran avances, no correcciones: consolidar/agregar BIN/cerrar,
+pesar por primera vez, recibir, volcar, crear pallets, ingresar/retirar de frío,
+iniciar/finalizar prefrío, completar cargas, cargar pallets y confirmar despacho.
+No pueden retirar BINs del consolidado, modificar pallets, cambiar posiciones o
+distribuciones, eliminar, reabrir ni revertir comprobantes. En despacho pueden
+completar datos vacíos al confirmar la salida, sin sustituir datos ya registrados.
+Stock Insumos permite ingresos, devoluciones, roturas y traslados con nuevos
+comprobantes; configuración, inventario inicial, ajustes y reversión quedan a
+cargo de responsables con permisos de gestión.
+
+El servidor rechaza lecturas completas y escrituras REST directas para operadores.
+`station_records` entrega solo entidades/campos permitidos (incluyendo respuestas
+de comandos), sin pesos ni historiales posteriores en Consolidado. Las funciones
+validadas usan `empaco_station_executor`, rol NOLOGIN/NOBYPASSRLS que hereda
+las políticas de authenticated y mantiene el aislamiento por empresa. Sus
+implementaciones privadas no son ejecutables por clientes. Los permisos se
+validan también al repetir comandos offline. Las listas descargadas se limitan
+al perfil y se invalidan al cambiar rol o versión de permisos; nunca se eliminan
+comandos pendientes. Una revocación requiere reconexión para actualizar el
+perfil guardado en un dispositivo sin señal.
+
+`check-station-permissions.mjs` comprueba la matriz de estaciones, escritura
+directa y APIs rechazadas, el flujo completo Cosecha→Despachos con perfiles
+distintos, remitos y aislamiento. Las apps instaladas necesitan una nueva versión.
+
 ## Operational checks before switching traffic
 
 - Test login, invitation, password reset, Google OAuth if enabled, and permissions for every role.

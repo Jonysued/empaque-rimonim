@@ -4,10 +4,11 @@ import { discardOperation, getOperations, retryOperation, syncOperations } from 
 import { Button } from "@/components/ui/button";
 import { base44 } from "@/api/base44Client";
 import { Capacitor } from "@capacitor/core";
+import { useAuth } from '@/lib/AuthContext';
+import { offlineEntities, canReadStock } from '@/lib/permissions';
 
 // Prepare operational lists while connected so opening another screen without
 // signal still has the last confirmed records available on this device.
-const OFFLINE_ENTITIES = ["ReceiptLot", "DumpingEvent", "Pallet", "Location", "CoolingCycle", "StorageBatch", "Shipment", "Catalog", "Bin", "ProductionRun", "MovementEvent"];
 
 const names = {
   offline_record_operation: "Pallet o despacho",
@@ -26,6 +27,7 @@ const names = {
 };
 
 export default function SyncStatus() {
+  const { user } = useAuth();
   const [online, setOnline] = useState(navigator.onLine);
   const [operations, setOperations] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -41,7 +43,7 @@ export default function SyncStatus() {
       preparing = true;
       if (active) setOfflineError(false);
       try {
-        await Promise.all([...OFFLINE_ENTITIES.map(entity => base44.entities[entity].list()),getSupplySnapshot()]);
+        await Promise.all([...offlineEntities(user?.role).map(entity => base44.entities[entity].list()),...(canReadStock(user?.role)?[getSupplySnapshot()]:[])]);
         if (active) setOfflineReady(true);
       } catch { if (active) setOfflineError(true); }
       finally { preparing = false; }
@@ -49,7 +51,7 @@ export default function SyncStatus() {
     prepare();
     window.addEventListener("online", prepare);
     return () => { active = false; window.removeEventListener("online", prepare); };
-  }, []);
+  }, [user?.role]);
 
   useEffect(() => {
     let mounted = true;

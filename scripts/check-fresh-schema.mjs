@@ -8,7 +8,7 @@ try {
  create table auth.users(id uuid primary key,email text,raw_user_meta_data jsonb);`);
  for(const name of (await readdir('supabase/migrations')).filter(name=>name.endsWith('.sql')).sort())await db.exec(await readFile('supabase/migrations/'+name,'utf8'));
  await db.exec(`insert into auth.users values('bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb','qa@example.test','{}');
- update public.profiles set role='frio';
+ update public.profiles set role='admin';
  grant usage on schema auth,public to authenticated;
  grant select,insert,update,delete on public.records to authenticated;grant select on public.profiles to authenticated;
  select set_config('request.jwt.claim.sub','bbbbbbbb-bbbb-4bbb-bbbb-bbbbbbbbbbbb',false);set role authenticated;
@@ -18,5 +18,5 @@ try {
  select public.cold_storage_command(gen_random_uuid(),'ingresar','{"location_id":"fresh-room","pallet_id":"fresh-pallet","section":5}');`);
  const batch=(await db.query(`select data from public.records where entity='StorageBatch'`)).rows;
  assert.equal(batch.length,1);assert.equal(batch[0].data.section,5);
- console.log('PASS: instalación limpia con todas las migraciones y rol Frío crea una carga con posiciones');
+ console.log('PASS: instalación limpia con todas las migraciones y administrador crea una carga con posiciones');
 } catch(e) {console.error('Fresh schema:',e.message);process.exitCode=1;}finally {await db.close();}

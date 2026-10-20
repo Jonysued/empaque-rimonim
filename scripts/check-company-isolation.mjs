@@ -11,7 +11,7 @@ try {
  await db.exec(`insert into auth.users values('${a}','company-a@example.test','{}'),('${b}','company-b@example.test','{}');
  update public.profiles set role='admin' where id='${a}';
  insert into public.companies(name,slug) values('Empresa B','empresa-b');
- insert into public.company_memberships(company_id,user_id,role) select id,'${b}','frio' from public.companies where slug='empresa-b';
+ insert into public.company_memberships(company_id,user_id,role) select id,'${b}','supervisor' from public.companies where slug='empresa-b';
  grant usage on schema auth,public to authenticated;
  grant select,insert,update,delete on public.records to authenticated;
  grant select on public.profiles to authenticated;`);
@@ -23,7 +23,7 @@ try {
  await insert('Location','room-a',{type:'camara',capacity:100,active:true});
  await insert('Pallet','pallet-a',{net_weight:100,status:'liberado',pallet_code:'PAL-shared'});
  await actor(b,cb);
- assert.equal((await db.query('select empaque_private.my_role() role')).rows[0].role,'frio');
+ assert.equal((await db.query('select empaque_private.my_role() role')).rows[0].role,'supervisor');
  assert.equal((await db.query("select count(*)::int n from public.records where id in ('pallet-a','room-a')")).rows[0].n,0);
  await insert('Location','room-b',{type:'camara',capacity:100,active:true});
  await insert('Pallet','pallet-b',{net_weight:100,status:'liberado',pallet_code:'PAL-shared'});
