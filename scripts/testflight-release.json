@@ -1,6 +1,6 @@
 {
-  "build_number": "23",
-  "external": false,
-  "what_to_test": "Empaco: nuevo módulo Stock Insumos con stock por depósito, ingresos con remitos, movimientos y reglas de consumo automático al generar pallets. Verificar descuentos y devoluciones al editar pallets, permisos y consulta offline. Dashboard con tiempos de proceso y productividad, ocupación completa de prefrío y cámaras. Mejoras en tablas, catálogos y generación de hasta 10.000 QR.",
+  "build_number": "24",
+  "external": true,
+  "what_to_test": "Empaco: en Pesado de Lote se agrega el historial completo de lotes pesados, incluidos los que ya fueron recibidos o volcados. Tabla con fecha, bruto, tara, neto, búsqueda por lote/transportista/productor/variedad y paginación de 50 filas sin límite de historial. Verificar ficha e impresión, edición para administradores y avisos de pesajes pendientes de sincronización offline. Se mantiene la tabla de pendientes de pesado.",
   "verification_attempt": 1
 }
