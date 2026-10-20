@@ -3,6 +3,7 @@ import { useAuth } from '@/lib/AuthContext';
 import React, { useState } from 'react';
 import { useFieldLots, fieldOperation } from '@/lib/fieldLots';
 import { isFieldLot } from '@/lib/fieldWorkflow.mjs';
+import { getWeighedLots } from '@/lib/weighedLots.mjs';
 import { fmtKg, fmtDate } from '@/lib/qr';
 import QRScanner from '@/components/QRScanner';
 import LotDetail, { PendingLotNotice } from '@/components/LotDetail';
@@ -21,6 +22,14 @@ export default function PesadoLote() {
   const [selectedId, setSelectedId] = useState(null);
   const [detailId, setDetailId] = useState(null);
   const [error, setError] = useState('');
+  const [weighedSearch, setWeighedSearch] = useState('');
+  const [weighedPage, setWeighedPage] = useState(1);
+  const weighed = getWeighedLots(lots);
+  const filteredWeighed = weighedSearch.trim() ? getWeighedLots(weighed, weighedSearch) : weighed;
+  const pageSize = 50;
+  const pageCount = Math.max(1, Math.ceil(filteredWeighed.length / pageSize));
+  const currentPage = Math.min(weighedPage, pageCount);
+  const visibleWeighed = filteredWeighed.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const available = lots.filter(lot => isFieldLot(lot) && lot.status === 'cerrado_campo' && lot.pendingStatus !== 'conflict');
   const selected = lots.find(lot => lot.id === selectedId);
   const detail = lots.find(lot => lot.id === detailId);
@@ -60,6 +69,52 @@ export default function PesadoLote() {
           </Table>
         </div>
       </>}</div>
+    <section className="min-w-0 space-y-3" aria-labelledby="weighed-lots-title">
+      <h2 id="weighed-lots-title" className="font-semibold">Lotes pesados ({weighed.length})</h2>
+      <p className="text-sm text-muted-foreground">Historial completo de pesajes, incluidos los lotes que ya avanzaron a recepción o vuelco.</p>
+      <div className="max-w-md space-y-1">
+        <Label htmlFor="weighed-lot-search">Buscar lotes pesados</Label>
+        <Input id="weighed-lot-search" type="search" placeholder="Lote, transportista, productor o variedad" value={weighedSearch} onChange={event => { setWeighedSearch(event.target.value); setWeighedPage(1); }} />
+      </div>
+      {loading ? <p>Cargando…</p> : !filteredWeighed.length ? <p className="text-sm text-muted-foreground">{weighed.length ? 'No hay lotes pesados que coincidan con la búsqueda.' : 'No hay lotes pesados registrados.'}</p> : <>
+        <p className="text-xs text-muted-foreground sm:hidden">Deslizá la tabla hacia los costados para ver todas las columnas.</p>
+        <div className="min-w-0 overflow-hidden rounded-lg border bg-card">
+          <Table aria-label="Todos los lotes pesados">
+            <TableHeader><TableRow>
+              <TableHead scope="col">Lote</TableHead><TableHead scope="col">Fecha de pesado</TableHead>
+              <TableHead scope="col">Estado actual</TableHead><TableHead scope="col">Transporte</TableHead>
+              <TableHead scope="col">Productor</TableHead><TableHead scope="col">Variedad</TableHead>
+              <TableHead scope="col" className="text-right">BINs</TableHead>
+              <TableHead scope="col" className="text-right">Bruto (kg)</TableHead>
+              <TableHead scope="col" className="text-right">Tara (kg)</TableHead>
+              <TableHead scope="col" className="text-right">Neto (kg)</TableHead>
+              <TableHead scope="col">Ficha</TableHead>
+              {user?.role === 'admin' && <TableHead scope="col" className="text-right">Administración</TableHead>}
+            </TableRow></TableHeader>
+            <TableBody>{visibleWeighed.map(lot => <TableRow key={lot.id}>
+              <TableCell className="font-mono font-semibold">{lot.lot_code}</TableCell>
+              <TableCell>{fmtDate(lot.weighed_at)}</TableCell>
+              <TableCell><div className="flex items-center gap-2"><StatusBadge status={lot.status} />{lot.held && <StatusBadge status="retenido" />}</div><PendingLotNotice lot={lot} /></TableCell>
+              <TableCell>{lot.transport || '—'}</TableCell><TableCell>{lot.producer || '—'}</TableCell>
+              <TableCell>{lot.variety || '—'}</TableCell><TableCell className="text-right">{lot.bins_count ?? '—'}</TableCell>
+              <TableCell className="text-right">{lot.gross_weight == null ? '—' : fmtKg(lot.gross_weight)}</TableCell>
+              <TableCell className="text-right">{lot.tare_weight == null ? '—' : fmtKg(lot.tare_weight)}</TableCell>
+              <TableCell className="text-right font-semibold">{lot.net_weight == null ? '—' : fmtKg(lot.net_weight)}</TableCell>
+              <TableCell><Button type="button" variant="outline" className="min-h-11" aria-label={`Ver ficha del lote ${lot.lot_code}`} onClick={() => setDetailId(lot.id)}>Ver ficha / imprimir</Button></TableCell>
+              {user?.role === 'admin' && <TableCell className="text-right"><AdminHarvestActions entity="ReceiptLot" record={lot} onSaved={refresh} /></TableCell>}
+            </TableRow>)}</TableBody>
+          </Table>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-muted-foreground" role="status">Mostrando {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredWeighed.length)} de {filteredWeighed.length} lotes pesados</p>
+          {pageCount > 1 && <nav aria-label="Páginas de lotes pesados" className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="outline" className="min-h-11" disabled={currentPage === 1} onClick={() => setWeighedPage(currentPage - 1)}>Anterior</Button>
+            <span className="text-sm">{currentPage} / {pageCount}</span>
+            <Button type="button" variant="outline" className="min-h-11" disabled={currentPage === pageCount} onClick={() => setWeighedPage(currentPage + 1)}>Siguiente</Button>
+          </nav>}
+        </div>
+      </>}
+    </section>
     {detail && <LotDetail printFullSheet lot={detail} bins={bins.filter(bin => bin.receipt_lot_id === detail.id)} onClose={() => setDetailId(null)} onUpdated={refresh} />}
   </div>;
 }

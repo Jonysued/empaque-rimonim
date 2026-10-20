@@ -42,6 +42,17 @@ El importador exige `COMPANY_SLUG`; nunca ejecutar una importación sin identifi
 - Test receipt → bins → dumping → production → pallet → tunnel → cold room → shipment and traceability with realistic data.
 - Compare counts and IDs from the Base44 export to Supabase. Back up Supabase and keep Base44 available until the new system is verified.
 
+### Historial de Pesado de Lote
+
+Pesado conserva la tabla de pendientes y agrega **Lotes pesados** con todos los
+registros que tienen `weighed_at`, aunque su estado ya sea recibido o volcado.
+Se ordenan por fecha de pesado descendente; la búsqueda recorre todo el historial
+por código, transportista, productor y variedad. La tabla muestra 50 filas por
+página sin limitar la cantidad total. Usa los mismos datos y proyecciones offline
+que el flujo operativo, identificando pendientes/conflictos sin presentarlos como
+confirmados. Permite consultar/imprimir la ficha y conserva las correcciones
+administrativas existentes. `check-weighed-lots.mjs` forma parte de `check:app`.
+
 ## QR workflow and operational dashboard
 
 New records use workflow version 3: Cosecha registers individual BINs; Consolidado de Lote associates them and captures transport; Pesado records gross/tare and prorates net weight; Recepción Playa Empaque confirms arrival; Vuelco scans each BIN and atomically deducts its weight. Legacy lots preserve their existing balances and compatible workflows.
