@@ -1,4 +1,5 @@
 import AdminHarvestActions from '@/components/AdminHarvestActions';
+import { WriteButton } from '@/components/WriteButton';
 import { useAuth } from '@/lib/AuthContext';
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
@@ -24,7 +25,7 @@ export default function ConsolidadoLote() {
   return <div className="min-w-0 space-y-6">
     <div className="flex items-center justify-between flex-wrap gap-3"><div><h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Layers className="w-6 h-6" /> Consolidado de Lote</h1>
       <p className="text-muted-foreground">Agrupar los bines registrados en Cosecha y cargar el transporte del lote</p></div>
-      <Button size="lg" onClick={()=>setShowForm(true)}><Plus className="w-5 h-5 mr-1" /> Nuevo consolidado</Button></div>
+      <WriteButton size="lg" onClick={()=>setShowForm(true)}><Plus className="w-5 h-5 mr-1" /> Nuevo consolidado</WriteButton></div>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     <p className="text-sm text-muted-foreground">{available.length} BINs de cosecha disponibles para consolidar.</p>
     {loading ? <p>Cargando…</p> : !lots.length ? <Card><CardContent className="py-12 text-center">No hay lotes registrados.</CardContent></Card> :

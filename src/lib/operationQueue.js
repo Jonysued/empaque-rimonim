@@ -2,6 +2,7 @@ import { supabase, localSessionIdentity } from "@/api/base44Client";
 import { listCommands, removeCommand, saveCommand, enqueueCommand, readLastOwner, readSnapshot, saveSnapshot } from "@/lib/offlineStore";
 import { Capacitor } from "@capacitor/core";
 import { workspaceOwner } from "@/lib/workspace";
+import { assertOperationalWrite } from '@/lib/writeAccess';
 
 const notify = () => window.dispatchEvent(new Event("rimonim-queue-change"));
 let draining;
@@ -111,6 +112,7 @@ export async function syncOperations() {
 }
 
 export async function submitOperation(rpc, params, resourceKey, operationId = crypto.randomUUID()) {
+  await assertOperationalWrite();
   const ownerId = await currentOwner();
   const id = operationId;
   const command = {

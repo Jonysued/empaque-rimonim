@@ -7,13 +7,17 @@ import { STORAGE_LAYOUTS, sectionCapacity, positionRows, positionLabel, coolingT
 import { durationLabel, operationDate } from '@/lib/dashboardMetrics.mjs';
 import QRScanner from '@/components/QRScanner';
 import LocationQR from '@/components/LocationQR';
-import { Button } from '@/components/ui/button';
+import { WriteButton as Button } from '@/components/WriteButton';
+import { Button as QueryButton } from '@/components/ui/button';
+import { useAuth } from '@/lib/AuthContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Warehouse, Snowflake, LockKeyhole, Plus, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function StoragePage({ type, AddForm }) {
+  const { user } = useAuth();
+  const readOnly = user?.role === 'consulta';
   const tunnel = type === 'tunel', Icon = tunnel ? Snowflake : Warehouse;
   const [locations, setLocations] = useState([]), [pallets, setPallets] = useState([]);
   const [cycles, setCycles] = useState([]), [batches, setBatches] = useState([]), [pending, setPending] = useState([]);
@@ -87,7 +91,7 @@ export default function StoragePage({ type, AddForm }) {
   return <div className="space-y-5">
     <div className="flex flex-wrap justify-between gap-3">
       <div><h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Icon className="w-6 h-6" />{tunnel ? 'Prefrío' : 'Cámaras'}</h1><p className="text-sm text-muted-foreground">Posiciones físicas y tiempos confirmados</p></div>
-      <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setShowAdd(true)}><Plus className="w-4 h-4 mr-1" />{tunnel ? 'Nuevo túnel' : 'Nueva cámara'}</Button><Button variant="outline" disabled={busy} onClick={refresh} aria-label="Actualizar ubicaciones"><RefreshCw className="w-4 h-4" /></Button></div>
+      <div className="flex flex-wrap gap-2"><Button variant="outline" onClick={() => setShowAdd(true)}><Plus className="w-4 h-4 mr-1" />{tunnel ? 'Nuevo túnel' : 'Nueva cámara'}</Button><QueryButton variant="outline" disabled={busy} onClick={refresh} aria-label="Actualizar ubicaciones"><RefreshCw className="w-4 h-4" /></QueryButton></div>
     </div>
     {error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-destructive">{error}</p>}
     {!online && <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-900">Sin conexión. Los movimientos quedan pendientes; el plano muestra las últimas posiciones confirmadas.</p>}
@@ -101,7 +105,7 @@ export default function StoragePage({ type, AddForm }) {
     {!locations.length && <p className="py-8 text-center text-muted-foreground">No hay ubicaciones configuradas.</p>}
     {location && <Card><CardContent className="p-4 sm:p-6 space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-bold text-lg">{location.name}</h2><p className="text-xs text-muted-foreground break-all">{location.location_code}</p></div><LocationQR location={location} /></div>
-      {(!layout || choosingLayout) ? <div className="rounded-lg border p-3 space-y-3">
+      {readOnly && !layout ? <p className="text-sm text-muted-foreground">Esta ubicación todavía no tiene una distribución configurada.</p> : (!layout || choosingLayout) ? <div className="rounded-lg border p-3 space-y-3">
         <h3 className="font-medium">Elegí la distribución</h3>
         {tunnel ? <p className="text-sm">Dos filas de nueve posiciones · 18 pallets</p> : <div className="space-y-2">{['camara_flexible'].map(key => <label key={key} className="flex items-center gap-3 rounded-lg border p-3 min-h-11"><input type="radio" name="storage-layout" value={key} checked={layoutChoice === key} onChange={() => setLayoutChoice(key)} /><span className="text-sm">{STORAGE_LAYOUTS[key].label}</span></label>)}</div>}
         <p className="text-xs text-muted-foreground">El plano queda protegido mientras haya posiciones asignadas.</p>
@@ -116,7 +120,7 @@ export default function StoragePage({ type, AddForm }) {
         </>}
         {openCycle && <div className="rounded-lg bg-cyan-50 p-3 text-sm text-cyan-900"><p className="font-medium flex items-center gap-2"><LockKeyhole className="w-4 h-4" />Prefrío en curso · {durationLabel(now - Date.parse(openCycle.start_time))}</p><p className="mt-1">No se pueden agregar, retirar ni cambiar posiciones hasta finalizar.</p></div>}
         {tunnel && !openCycle && finished && <p className="rounded-lg bg-green-50 p-3 text-sm text-green-900">Prefrío finalizado · pendiente de traslado. Las posiciones siguen ocupadas.</p>}
-        <div><h3 className="font-medium mb-2">{tunnel ? 'Plano del túnel' : `Carga ${section} · ${sectionCapacity(layout, section, occupants)} posiciones`}</h3><PositionGrid layout={layout} section={section} pallets={occupants} onSelect={p => setEditing(p)} disabled={busy || Boolean(openCycle)} />{(tunnel || section !== 5) && <p className={`mt-2 text-xs text-muted-foreground ${tunnel ? 'sm:hidden' : 'min-[380px]:hidden'}`}>Deslizá el plano para ver el resto de las posiciones.</p>}</div>
+        <div><h3 className="font-medium mb-2">{tunnel ? 'Plano del túnel' : `Carga ${section} · ${sectionCapacity(layout, section, occupants)} posiciones`}</h3><PositionGrid layout={layout} section={section} pallets={occupants} onSelect={p => setEditing(p)} disabled={readOnly || busy || Boolean(openCycle)} />{(tunnel || section !== 5) && <p className={`mt-2 text-xs text-muted-foreground ${tunnel ? 'sm:hidden' : 'min-[380px]:hidden'}`}>Deslizá el plano para ver el resto de las posiciones.</p>}</div>
         <div className="flex flex-wrap gap-3 text-xs text-muted-foreground"><span>□ Libre</span><span className="text-cyan-800">■ Ocupado</span><span className="text-green-800">■ Prefrío finalizado</span></div>
         {tunnel ? <div><Button disabled={busy || !online || locationPending.length > 0 || (!openCycle && (!occupants.length || Boolean(finished) || unassigned.length > 0))} onClick={startStop}>{openCycle ? 'Finalizar prefrío' : 'Iniciar prefrío'}</Button></div> : batch && <div className="rounded-lg bg-muted p-3 space-y-2 text-sm">
           <p>Ingreso del primer pallet: {operationDate(batch.first_entry_at)}</p><p>Carga completa: {batch.completed_at ? `${operationDate(batch.completed_at)} · ${batch.completed_count ?? batch.capacity} pallets al completar` : 'Todavía abierta'}</p>

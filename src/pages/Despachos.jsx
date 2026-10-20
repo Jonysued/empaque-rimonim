@@ -1,4 +1,6 @@
 import { subscribeOperationalRefresh } from '@/lib/operationalRefresh.mjs';
+import { WriteButton } from '@/components/WriteButton';
+import { useAuth } from '@/lib/AuthContext';
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { generateCode, fmtKg, fmtDate, fmtNum } from "@/lib/qr";
@@ -60,7 +62,7 @@ export default function Despachos() {
           <h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Truck className="w-6 h-6" /> Despachos</h1>
           <p className="text-muted-foreground">Cargas y contenedores</p>
         </div>
-        <Button size="lg" onClick={() => setShowForm(true)}><Plus className="w-5 h-5 mr-1" /> Nueva carga</Button>
+        <WriteButton size="lg" onClick={() => setShowForm(true)}><Plus className="w-5 h-5 mr-1" /> Nueva carga</WriteButton>
       </div>
 
       {loadError && <p role="alert" className="text-sm text-destructive">{loadError}</p>}
@@ -295,6 +297,8 @@ function ShipmentPalletEditor({ shipment, pallets, onSaved }) {
 }
 
 function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
+  const { user } = useAuth();
+  const readOnly = user?.role === 'consulta';
   const [error, setError] = useState("");
   const [palletToRemove, setPalletToRemove] = useState(null);
   const [removing, setRemoving] = useState(false);
@@ -360,13 +364,13 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
   }
 
   const loadedPallets = (shipment.loaded_pallet_ids || []).map(id => pallets.find(p => p.id === id)).filter(Boolean);
-  const canChangePallets = !shipment.pendingDeparture && ["borrador", "reservado", "cargado"].includes(shipment.status);
+  const canChangePallets = !readOnly && !shipment.pendingDeparture && ["borrador", "reservado", "cargado"].includes(shipment.status);
 
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader><DialogTitle>Carga {shipment.load_number}</DialogTitle></DialogHeader>
-          <Button size="sm" variant="outline" disabled={Boolean(shipment.pendingDeparture)} className="self-start" onClick={onEdit}><Pencil className="w-4 h-4 mr-1" /> Editar carga</Button>
+          <WriteButton size="sm" variant="outline" disabled={Boolean(shipment.pendingDeparture)} className="self-start" onClick={onEdit}><Pencil className="w-4 h-4 mr-1" /> Editar carga</WriteButton>
           {shipment.pendingDeparture && <p role="status" className="text-sm text-amber-700">Salida guardada en este dispositivo, pendiente de sincronizar. La carga queda bloqueada hasta confirmar la salida.</p>}
           {shipment.pendingStatus && !shipment.pendingDeparture && <p role="status" className="text-sm text-amber-700">{shipment.pendingStatus === 'conflict' ? 'La carga requiere revisión.' : 'Cambios y totales locales pendientes de sincronizar.'}</p>}
           <PrintPackingList shipment={{ ...shipment, ...Object.fromEntries(Object.entries(extra).filter(entry => entry[1])) }} pallets={loadedPallets} />
@@ -386,18 +390,18 @@ function ShipmentDetail({ shipment, pallets, onClose, onEdit, onChanged }) {
           {/* Datos de carga */}
           <div className="border-t pt-3 space-y-2">
             <h4 className="font-medium flex items-center gap-2"><ClipboardList className="w-4 h-4" /> Datos de carga</h4>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <fieldset disabled={readOnly} className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div className="space-y-1"><Label className="text-xs">Contenedor</Label><Input value={extra.container_number} onChange={e => setExtra(f => ({ ...f, container_number: e.target.value }))} /></div>
               <div className="space-y-1"><Label className="text-xs">Remito</Label><Input value={extra.remito} onChange={e => setExtra(f => ({ ...f, remito: e.target.value }))} /></div>
               <div className="space-y-1"><Label className="text-xs">Termógrafo</Label><Input value={extra.thermograph} onChange={e => setExtra(f => ({ ...f, thermograph: e.target.value }))} /></div>
               <div className="space-y-1"><Label className="text-xs">Precinto</Label><Input value={extra.seal} onChange={e => setExtra(f => ({ ...f, seal: e.target.value }))} /></div>
-            </div>
-            <Button size="sm" variant="outline" onClick={saveExtra}>Guardar datos</Button>
+            </fieldset>
+            <WriteButton size="sm" variant="outline" onClick={saveExtra}>Guardar datos</WriteButton>
           </div>
 
           {/* Carga de pallets */}
           <div className="border-t pt-3 space-y-2">
-            {shipment.status === "enviado" && <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-2 text-sm">
+            {!readOnly && shipment.status === "enviado" && <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 space-y-2 text-sm">
               <p>Esta carga está enviada. Reabrila para corregir los pallets y volvé a cerrarla al terminar.</p>
               {!confirmReopen ? (
                 <Button type="button" size="sm" variant="outline" onClick={() => setConfirmReopen(true)}>Reabrir para corregir pallets</Button>

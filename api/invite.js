@@ -34,7 +34,7 @@ export default async function handler(req,res) {
     if(companyError||!company) return res.status(403).json({error:'Empresa no autorizada'});
     const email=String(req.body?.email||'').trim().toLowerCase();
     const role=String(req.body?.role||'user');
-    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)||!['admin','supervisor','recepcion','produccion','frio','despacho','calidad','user'].includes(role)) return res.status(400).json({error:'Email o rol inválido'});
+    if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)||!['admin','supervisor','recepcion','produccion','frio','despacho','calidad','consulta','user'].includes(role)) return res.status(400).json({error:'Email o rol inválido'});
     const admin=createClient(url,secret,{auth:{autoRefreshToken:false,persistSession:false}});
     const {data:membership,error:roleError}=await admin.from('company_memberships').select('role').eq('company_id',company.id).eq('user_id',user.id).eq('active',true).maybeSingle();
     if(roleError) return res.status(503).json({error:'No se pudieron verificar los permisos de la empresa. Volvé a intentar.'});

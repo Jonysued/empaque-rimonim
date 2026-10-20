@@ -43,10 +43,10 @@ export default function PesadoLote() {
   return <div className="min-w-0 space-y-6">
     <div><h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Scale className="w-6 h-6" /> Pesado de Lote</h1><p className="text-muted-foreground">Ingresar bruto y tara; distribuir el neto entre los bines del lote cerrado</p></div>
     {(loadError || error) && <p role="alert" className="text-sm text-destructive">{loadError || error}</p>}
-    <Card><CardHeader><CardTitle className="text-base">{selected ? `Pesar ${selected.lot_code}` : 'Escanear el QR del lote cerrado'}</CardTitle></CardHeader>
+    {user?.role !== 'consulta' && <Card><CardHeader><CardTitle className="text-base">{selected ? `Pesar ${selected.lot_code}` : 'Escanear el QR del lote cerrado'}</CardTitle></CardHeader>
       <CardContent>{selected && <Button type="button" variant="outline" className="mb-4" onClick={() => setDetailId(selected.id)}>Ver ficha completa e imprimir A4</Button>}{selected ? <WeightForm key={selected.id} lot={selected} onCancel={() => setSelectedId(null)} onSaved={async pending => {
         setSelectedId(null); toast[pending ? 'warning' : 'success'](pending ? 'Pesado guardado en este dispositivo; pendiente de sincronizar' : 'Lote pesado. Ya puede recibirse en Playa Empaque.'); await refresh();
-      }} /> : <QRScanner label="Escanear QR del lote" onScan={scan} />}</CardContent></Card>
+      }} /> : <QRScanner label="Escanear QR del lote" onScan={scan} />}</CardContent></Card>}
     <div className="min-w-0 space-y-3"><h2 className="font-semibold">Pendientes de pesado ({available.length})</h2>
       {loading ? <p>Cargando…</p> : !available.length ? <p className="text-sm text-muted-foreground">No hay lotes cerrados pendientes de pesado.</p> : <>
         <p className="text-xs text-muted-foreground sm:hidden">Deslizá la tabla hacia los costados para ver todas las columnas.</p>
@@ -64,7 +64,7 @@ export default function PesadoLote() {
               <TableCell>{lot.transport || '—'}</TableCell><TableCell>{lot.producer || '—'}</TableCell>
               <TableCell>{lot.variety || '—'}</TableCell><TableCell className="text-right">{lot.bins_count || 0}</TableCell>
               <TableCell>{fmtDate(lot.field_created_at || lot.receipt_date)}</TableCell>
-              <TableCell><Button type="button" variant="outline" className="min-h-11" aria-label={`Pesar lote ${lot.lot_code}`} onClick={() => { setSelectedId(lot.id); setError(''); }}>Pesar lote</Button></TableCell>
+              <TableCell>{user?.role === 'consulta' ? <Button type="button" variant="outline" className="min-h-11" onClick={() => setDetailId(lot.id)}>Ver ficha / imprimir</Button> : <Button type="button" variant="outline" className="min-h-11" aria-label={`Pesar lote ${lot.lot_code}`} onClick={() => { setSelectedId(lot.id); setError(''); }}>Pesar lote</Button>}</TableCell>
             {user?.role === 'admin' && <TableCell className="text-right"><AdminHarvestActions entity="ReceiptLot" record={lot} onSaved={refresh} /></TableCell>}</TableRow>)}</TableBody>
           </Table>
         </div>

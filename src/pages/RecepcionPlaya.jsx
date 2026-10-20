@@ -44,11 +44,11 @@ export default function RecepcionPlaya() {
   return <div className="min-w-0 space-y-6">
     <div><h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Warehouse className="w-6 h-6" /> Recepción Playa Empaque</h1><p className="text-muted-foreground">Escanear el QR del lote recibido para habilitarlo en Vuelco</p></div>
     {(loadError || error) && <p role="alert" className="text-sm text-destructive">{loadError || error}</p>}
-    <Card><CardHeader><CardTitle className="text-base">Recibir lote en playa</CardTitle></CardHeader><CardContent className="space-y-4">
+    {user?.role !== 'consulta' && <Card><CardHeader><CardTitle className="text-base">Recibir lote en playa</CardTitle></CardHeader><CardContent className="space-y-4">
       {selected ? <><LotSummary lot={selected} /><p className="text-sm">{selected.bins_count} BINs · Neto {fmtKg(selected.net_weight)}</p><PendingLotNotice lot={selected} />
         <div className="flex flex-wrap gap-2"><Button variant="outline" disabled={saving} onClick={() => setSelectedId(null)}>Cancelar</Button><Button disabled={saving} onClick={receive}><CheckCircle2 className="w-4 h-4 mr-2" />{saving ? 'Registrando…' : 'Confirmar recepción en playa'}</Button></div></> :
         <QRScanner label="Escanear QR del lote recibido" onScan={scan} />}
-    </CardContent></Card>
+    </CardContent></Card>}
     <div className="min-w-0 space-y-3"><h2 className="font-semibold">Pendientes de llegada ({available.length})</h2><p className="text-sm text-muted-foreground">Escaneá el QR del lote cuando llegue al empaque.</p>
       {loading ? <p>Cargando…</p> : !available.length ? <p className="text-sm text-muted-foreground">No hay lotes pesados pendientes de recibir.</p> : <>
         <p className="text-xs text-muted-foreground sm:hidden">Deslizá la tabla hacia los costados para ver todas las columnas.</p>

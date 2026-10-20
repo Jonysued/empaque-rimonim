@@ -47,7 +47,7 @@ export default function Recepcion() {
     <div><h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Sprout className="w-6 h-6" /> Cosecha</h1>
       <p className="text-muted-foreground">Pegar el QR en el bin, escanearlo y registrar su información de cosecha</p></div>
     {(error || scanError) && <p role="alert" className="text-sm text-destructive">{error || scanError}</p>}
-    <Card><CardContent className="p-4 space-y-3">{cats ? <QRScanner label="Escanear QR del BIN para registrar cosecha" onScan={scan} /> : <p>Cargando catálogos…</p>}</CardContent></Card>
+    {user?.role !== 'consulta' && <Card><CardContent className="p-4 space-y-3">{cats ? <QRScanner label="Escanear QR del BIN para registrar cosecha" onScan={scan} /> : <p>Cargando catálogos…</p>}</CardContent></Card>}
     <div className="min-w-0 space-y-3"><h2 className="font-semibold">BINs registrados ({harvests.length})</h2>
       {loading ? <p>Cargando…</p> : !harvests.length ? <p className="text-sm text-muted-foreground">Escaneá el primer BIN para registrar su cosecha.</p> : <>
         <p className="text-xs text-muted-foreground sm:hidden">Deslizá la tabla hacia los costados para ver todas las columnas.</p>

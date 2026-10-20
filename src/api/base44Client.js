@@ -4,6 +4,7 @@ import { Capacitor } from '@capacitor/core';
 import { currentWorkspace, setWorkspace, clearWorkspace, workspaceOwner, selectedWorkspace, rememberWorkspace, workspaceHeaders } from '@/lib/workspace';
 import { getOperations, submitOperation } from '@/lib/operationQueue';
 import { projectRecordOperations } from '@/lib/recordProjection.mjs';
+import { assertOperationalWrite } from '@/lib/writeAccess';
 const webAppUrl = import.meta.env.VITE_PUBLIC_APP_URL || 'https://empaque-rimonim.vercel.app';
 const url = import.meta.env.VITE_SUPABASE_URL;
 const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -92,6 +93,7 @@ const entityClient = (entity) => ({
     return record;
   } const data = unwrap(await supabase.from('records').select('id,data,created_date').eq('entity',entity).eq('id',id).single()); return flatten(data); },
   async create(record) {
+    await assertOperationalWrite();
     const id = crypto.randomUUID();
     if (['Pallet','Shipment'].includes(entity)) {
       const result = await submitOperation('offline_record_operation', { p_entity: entity, p_id: id, p_action: 'create', p_payload: record, p_expected: null, p_recorded_at: new Date().toISOString() }, `record:${entity}:${id}:create`);
@@ -102,11 +104,13 @@ const entityClient = (entity) => ({
     return flatten(data);
   },
   async bulkCreate(records) {
+    await assertOperationalWrite();
     if (!records.length) return [];
     const data = unwrap(await supabase.from('records').insert(records.map(record=>{const id=crypto.randomUUID();return {entity,id,data:{...record,id}}})).select('id,data,created_date'));
     return data.map(flatten);
   },
   async update(id, patch) {
+    await assertOperationalWrite();
     if(entity==='User') return unwrap(await supabase.rpc('set_company_role',{p_user_id:id,p_role:patch.role}));
     if (['Pallet','Shipment'].includes(entity)) {
       const before = await this.get(id);
@@ -125,6 +129,7 @@ const entityClient = (entity) => ({
   },
   async bulkUpdate(records) { return Promise.all(records.map(({id,...patch}) => this.update(id,patch))); },
   async updateMany(query, patch) {
+    await assertOperationalWrite();
     const changes = patch.$set || (patch.$unset ? {} : patch);
     const unset = Object.keys(patch.$unset || {});
     // La función SQL compara el id como texto; el operador $in de Base44
@@ -141,7 +146,7 @@ const entityClient = (entity) => ({
     const data=unwrap(await supabase.rpc('patch_records',{p_entity:entity,p_query:query,p_patch:changes,p_unset:unset}));
     return data.map(flatten);
   },
-  async delete(id) { unwrap(await supabase.from('records').delete().eq('entity',entity).eq('id',id)); },
+  async delete(id) { await assertOperationalWrite(); unwrap(await supabase.from('records').delete().eq('entity',entity).eq('id',id)); },
 });
 const profile = async () => {
   if (Capacitor.isNativePlatform() && !navigator.onLine) {

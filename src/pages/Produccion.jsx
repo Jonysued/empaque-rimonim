@@ -1,4 +1,5 @@
 import { subscribeOperationalRefresh } from '@/lib/operationalRefresh.mjs';
+import { WriteButton } from '@/components/WriteButton';
 import { Link, useSearchParams } from "react-router-dom";
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
@@ -93,7 +94,7 @@ export default function Produccion() {
           <p className="text-xs text-muted-foreground mt-1">Los insumos se descuentan automáticamente al confirmar el pallet. Las operaciones offline esperan la sincronización. <Link className="text-primary" to="/stock-insumos">Ver stock y pallets sin regla</Link>.</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => setFormPallet("new")}><Package className="w-4 h-4 mr-1" /> Nuevo pallet</Button>
+          <WriteButton onClick={() => setFormPallet("new")}><Package className="w-4 h-4 mr-1" /> Nuevo pallet</WriteButton>
         </div>
       </div>
 
@@ -328,8 +329,8 @@ function PalletDetail({ pallet, onClose, onEdit, onDelete }) {
           </div>
           <div className="flex flex-wrap gap-2">
             <PrintRomaneo pallet={pallet} />
-            <Button variant="outline" className="flex-1" onClick={onEdit}>Editar</Button>
-            <Button variant="destructive" onClick={onDelete}>Eliminar</Button>
+            <WriteButton variant="outline" className="flex-1" onClick={onEdit}>Editar</WriteButton>
+            <WriteButton variant="destructive" onClick={onDelete}>Eliminar</WriteButton>
           </div>
         </div>
       </DialogContent>

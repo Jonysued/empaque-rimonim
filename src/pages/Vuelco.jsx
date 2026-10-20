@@ -1,4 +1,5 @@
 import { subscribeOperationalRefresh } from '@/lib/operationalRefresh.mjs';
+import { useAuth } from '@/lib/AuthContext';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { getOperations, submitOperation } from '@/lib/operationQueue';
@@ -14,6 +15,7 @@ import { Repeat } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Vuelco() {
+  const { user } = useAuth();
   const [state, setState] = useState({ lots: [], bins: [], dumps: [], operations: [], loading: true });
   const [selectedId, setSelectedId] = useState(null);
   const [legacyId, setLegacyId] = useState(null);
@@ -79,7 +81,7 @@ export default function Vuelco() {
     <div className="grid lg:grid-cols-2 gap-6">
       <Card><CardHeader><CardTitle className="text-base">Escanear BIN para volcar</CardTitle></CardHeader><CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">Cada escaneo registra el vuelco de un bin. No hace falta ingresar kilos ni cantidad.</p>
-        {busy ? <p role="status">Registrando vuelco…</p> : <QRScanner label="Escanear QR del BIN" onScan={scan} />}
+        {user?.role !== 'consulta' && (busy ? <p role="status">Registrando vuelco…</p> : <QRScanner label="Escanear QR del BIN" onScan={scan} />)}
         {error && <p role="alert" className="text-sm text-destructive bg-destructive/10 p-2 rounded">{error}</p>}
         {selected && <div className="rounded-lg border bg-blue-50 p-3 text-sm space-y-1"><div className="flex justify-between gap-2"><b className="font-mono">{selected.lot_code}</b><Button variant="ghost" size="sm" disabled={busy} onClick={() => setSelectedId(null)}>Cambiar lote</Button></div>
           <p>{selected.producer} · {selected.variety}</p><p>BINs: <b>{selected.bins_count} totales · {selected.bins_dumped || 0} volcados · {Number(selected.bins_count) - (Number(selected.bins_dumped) || 0)} pendientes</b></p>
@@ -91,7 +93,7 @@ export default function Vuelco() {
           {loading ? <p>Cargando…</p> : identified.map(lot => <button type="button" disabled={busy} key={lot.id} className="w-full text-left border rounded-lg p-2 text-sm hover:bg-muted" onClick={() => { setSelectedId(lot.id); setError(''); }}><div className="flex justify-between gap-2"><b className="font-mono">{lot.lot_code}</b><StatusBadge status={lot.status} /></div><p>{lot.producer} · {lot.variety} · {Number(lot.bins_count) - (Number(lot.bins_dumped) || 0)} BINs pendientes · {fmtKg(lot.remaining_weight)}</p></button>)}
           {!loading && !identified.length && <p className="text-sm text-muted-foreground">No hay lotes individualizados disponibles para volcar.</p>}
         </div>
-        {historic.length > 0 && <details className="border-t pt-3"><summary className="text-sm cursor-pointer">Lotes anteriores sin QR de BIN</summary><p className="text-xs text-muted-foreground my-2">Conservan el registro anterior por cantidad para completar sus saldos históricos.</p>{legacy ? <LegacyDumpForm lot={legacy} onCancel={() => setLegacyId(null)} onSaved={async pending => { setLegacyId(null); if (pending) toast.warning('Vuelco histórico pendiente de sincronizar'); await refresh(); }} /> : historic.map(lot => <Button key={lot.id} variant="outline" className="m-1" onClick={() => setLegacyId(lot.id)}>{lot.lot_code}</Button>)}</details>}
+        {historic.length > 0 && <details className="border-t pt-3"><summary className="text-sm cursor-pointer">Lotes anteriores sin QR de BIN</summary><p className="text-xs text-muted-foreground my-2">Conservan el registro anterior por cantidad para completar sus saldos históricos.</p>{legacy && user?.role !== 'consulta' ? <LegacyDumpForm lot={legacy} onCancel={() => setLegacyId(null)} onSaved={async pending => { setLegacyId(null); if (pending) toast.warning('Vuelco histórico pendiente de sincronizar'); await refresh(); }} /> : historic.map(lot => <Button key={lot.id} variant="outline" className="m-1" onClick={() => user?.role === 'consulta' ? setSelectedId(lot.id) : setLegacyId(lot.id)}>{lot.lot_code}</Button>)}</details>}
       </CardContent></Card>
       <Card><CardHeader><CardTitle className="text-base">Vuelcos recientes</CardTitle></CardHeader><CardContent className="space-y-2">
         {loading ? <p>Cargando…</p> : !dumps.length ? <p className="text-sm text-muted-foreground">Sin vuelcos registrados.</p> : dumps.slice(0,20).map(event => <div key={event.id} className="border rounded-lg p-2 text-sm"><div className="flex justify-between gap-2"><b className="font-mono text-xs">{event.bin_code || event.dump_code}</b><span className="text-xs text-muted-foreground">{fmtDate(event.dump_date)}</span></div><p>{event.bins_dumped || 1} {(event.bins_dumped || 1) === 1 ? 'BIN' : 'BINs'} · {fmtKg(event.net_weight)} · Lote {event.receipt_lot_code}</p>{event.pendingStatus && <p className="text-xs text-amber-800">Pendiente de sincronizar</p>}</div>)}

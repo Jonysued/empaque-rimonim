@@ -36,6 +36,20 @@ El selector cambia de empresa mediante recarga completa y conserva la elección 
 
 El importador exige `COMPANY_SLUG`; nunca ejecutar una importación sin identificar el cliente. Verificar con `npm run check:companies`, `npm run check:app` y `npm run check:cold-storage`. Los cambios de interfaz nativa requieren nuevos paquetes iOS/Android, separados del despliegue web. La página comercial permanece desactivada hasta nueva autorización.
 
+## Perfil Solo lectura
+
+El rol `consulta` permite consultar las secciones operativas, Stock Insumos,
+catálogos, dashboard y trazabilidad de su empresa, incluyendo fichas e impresión.
+No accede a Usuarios ni a Espacio de trabajo. Solo un administrador de la empresa
+puede asignarlo o invitar una cuenta con este perfil desde Usuarios y roles.
+Aplicar `20261020154351_read_only_company_role.sql` antes del frontend.
+Los permisos de escritura del servidor excluyen este rol; la interfaz oculta
+acciones de modificación y la cola offline rechaza comandos nuevos antes de
+guardarlos. Los datos de consulta previamente descargados siguen disponibles
+offline. `check-read-only.mjs` verifica aislamiento, RPCs, asignación y bloqueo
+de operaciones locales. Las apps instaladas requieren actualizar su versión
+para mostrar las secciones y controles correspondientes al nuevo perfil.
+
 ## Operational checks before switching traffic
 
 - Test login, invitation, password reset, Google OAuth if enabled, and permissions for every role.

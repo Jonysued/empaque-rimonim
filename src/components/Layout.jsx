@@ -128,6 +128,7 @@ export default function Layout() {
       <main className="min-w-0 lg:pl-60">
         <div className="app-content min-w-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
           <SyncStatus />
+          {user?.role === 'consulta' && <p role="status" className="mb-4 rounded-lg border bg-card px-3 py-2 text-sm text-muted-foreground">Solo lectura · Podés consultar e imprimir la información de esta empresa.</p>}
           {user && !user.workspace && (location.pathname !== '/empresas' || !canManageWorkspaces(user)) ? <p>No tenés una empresa asignada. Contactá al administrador.{canManageWorkspaces(user) && <> También podés entrar en <Link className="underline" to="/empresas">Espacio de trabajo</Link>.</>}</p> : <Outlet />}
         </div>
       </main>

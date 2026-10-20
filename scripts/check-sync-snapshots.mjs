@@ -31,7 +31,7 @@ const supabase = {
   }})})})}),
 };
 const args = [supabase, {isNativePlatform: () => true}, async () => 'u', async () => [...commands.values()], async c => commands.set(c.id,c), async c => commands.set(c.id,c), async id => commands.delete(id), x => x, async () => ({id:'u',offline:false}), async (_owner,entity) => snapshots.get(entity), async (_owner,entity,rows) => snapshots.set(entity,rows)];
-const makeQueue = () => new Function('supabase','Capacitor','readLastOwner','listCommands','saveCommand','enqueueCommand','removeCommand','workspaceOwner','localSessionIdentity','readSnapshot','saveSnapshot', source + '\nreturn {submitOperation,syncOperations};')(...args);
+const makeQueue = () => new Function('supabase','Capacitor','readLastOwner','listCommands','saveCommand','enqueueCommand','removeCommand','workspaceOwner','localSessionIdentity','readSnapshot','saveSnapshot','assertOperationalWrite', source + '\nreturn {submitOperation,syncOperations};')(...args,async()=>{});
 let queue = makeQueue();
 const edit = await queue.submitOperation('offline_record_operation', {p_entity:'Pallet',p_id:'p1',p_action:'patch',p_payload:{net_weight:850,package_count:214}}, 'p1');
 assert.equal(edit.pending, true, 'Keep UUID until related shipment is stored');

@@ -6,6 +6,7 @@ export const ROLES = [
   { value: "frio", label: "Frío", description: "Túneles y cámaras" },
   { value: "despacho", label: "Despacho", description: "Cargas y envíos" },
   { value: "calidad", label: "Calidad", description: "Retenciones y trazabilidad" },
+  { value: "consulta", label: "Solo lectura", description: "Consultar e imprimir; sin modificar datos" },
   { value: "user", label: "Sin acceso", description: "Pendiente de autorización" },
 ];
 
@@ -34,7 +35,10 @@ export const roleLabel = (role) => {
 };
 
 export const canAccess = (role, path) => {
+  if (role === 'consulta') return Object.hasOwn(PAGE_ACCESS, path) && path !== '/usuarios';
   const allowed = PAGE_ACCESS[path];
   if (!allowed) return true;
   return allowed.includes(role);
 };
+
+export const isReadOnly = role => role === 'consulta';
