@@ -1,6 +1,6 @@
 {
-  "build_number": "25",
+  "build_number": "27",
   "external": true,
-  "what_to_test": "Empaco: nuevo perfil Solo lectura, configurable desde Usuarios y roles. Permite consultar e imprimir información operativa de su empresa, sin crear, editar ni eliminar registros. Incluye bloqueos de cambios online y offline, consulta de Stock Insumos, cámaras, prefrío, dashboard y trazabilidad. Conserva el historial completo de lotes pesados y todas las mejoras anteriores.",
+  "what_to_test": "Probar el funcionamiento general de la última actualización de Empaco.",
   "verification_attempt": 1
 }
