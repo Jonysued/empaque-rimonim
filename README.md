@@ -1,5 +1,36 @@
 # Empaque Rimonim — Supabase + Vercel
 
+## Lotes de origen de los pallets
+
+La migración `20261020182827_pallet_origin_traceability.sql` incorpora porcentajes
+de descarte por fecha y un snapshot consistente del balance de la empresa.
+Administrador y Supervisor configuran el porcentaje desde Producción; las
+revisiones se agregan al historial sin borrar las anteriores. Se aplica el valor
+vigente para el día del vuelco en San Juan; sin configuración no se inventa un
+porcentaje ni se bloquea el palletizado.
+
+`fifoTraceability.mjs` calcula la asignación estimada FIFO por productor y
+variedad. Fresco y fruta para arilos consumen un mismo saldo aprovechable,
+descontando una sola vez la merma. Los eventos se ordenan por la hora real de
+vuelco, no por su sincronización. Vuelcos posteriores al pallet no justifican su
+origen. Un escaneo sincronizado tarde recalcula la proyección; los faltantes se
+muestran como pendientes. No se presentan como vínculos físicos exactos ni se
+atribuyen cajas o BINs individuales a un pallet.
+
+El origen calculado es una proyección consultable en Producción y Trazabilidad,
+en ambos sentidos y por despacho; no reescribe registros operativos ni congela
+asignaciones históricas. Ajustar el descarte o sincronizar eventos anteriores
+puede cambiar la estimación. La caché identifica usuario, empresa y fecha de
+consulta, y siempre se muestra provisional sin conexión. El RPC permite a
+Producción leer únicamente los datos de origen necesarios para su balance y
+mantiene la restricción de acceso a otras estaciones. Crear un pallet no depende
+del RPC, ni de que haya señal, kilos disponibles o descarte configurado.
+Las apps anteriores continúan funcionando y necesitan actualizarse para ver
+este balance automático.
+
+Verificar con `node scripts/check-traceability.mjs` y
+`node scripts/check-pallet-origins.mjs` (incluidos en `check:app`).
+
 React/Vite frontend on Vercel; Supabase Auth and Postgres for users and operational records. Base44 is no longer used at runtime.
 
 ## Setup

@@ -7,6 +7,8 @@ import { generateCode, fmtKg } from "@/lib/qr";
 import QRImage from "@/components/QRImage";
 import { loadAllCatalogs } from "@/lib/catalogs";
 import { productTypeForCategory, updateNewPalletField } from "@/lib/palletPackageCount.mjs";
+import { productionBalance, saveDiscardRate } from '@/lib/productionBalance';
+import { fifoStatusLabel } from '@/lib/fifoTraceability.mjs';
 import StatusBadge, { statusLabel } from "@/components/StatusBadge";
 import { toast } from 'sonner';
 import PrintRomaneo from "@/components/PrintRomaneo";
@@ -52,6 +54,9 @@ export default function Produccion() {
   const [formPallet, setFormPallet] = useState(null); // null | "new" | pallet a editar
   const [selectedPallet, setSelectedPallet] = useState(null);
   const [cats, setCats] = useState({});
+  const [balanceInfo, setBalanceInfo] = useState(null);
+  const [balanceError, setBalanceError] = useState('');
+  const [showDiscard, setShowDiscard] = useState(false);
   const [statusFilter, setStatusFilter] = useState("todos");
   const filteredPallets = statusFilter === "todos" ? pallets : pallets.filter(p => p.status === statusFilter);
 
@@ -67,6 +72,13 @@ export default function Produccion() {
       setPallets(p || []);
       setSelectedPallet(previous => previous ? (p || []).find(item => item.id === previous.id) || null : null);
       setCats(allCats);
+      // A late/missing balance must not hide pallets or block production.
+      try {
+        const balance=await productionBalance(p || []);
+        if(sequence!==request.current)return;
+        setPallets(balance.pallets);setBalanceInfo(balance);setBalanceError('');
+        setSelectedPallet(previous => previous ? balance.pallets.find(item=>item.id===previous.id) || null : null);
+      } catch(error) { if(sequence===request.current)setBalanceError(error.message || 'Balance pendiente de actualizar'); }
       setLoadError('');
     } catch (e) { if (sequence === request.current) setLoadError(e.message || 'No se pudieron cargar los pallets'); }
     finally { if (sequence === request.current) setLoading(false); }
@@ -94,11 +106,15 @@ export default function Produccion() {
           <p className="text-xs text-muted-foreground mt-1">Los insumos se descuentan automáticamente al confirmar el pallet. Las operaciones offline esperan la sincronización. <span>Los responsables de stock pueden revisar los pallets sin regla en Stock Insumos.</span>.</p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <CorrectionButton variant="outline" onClick={() => setShowDiscard(true)}>Descarte por jornada</CorrectionButton>
           <WriteButton onClick={() => setFormPallet("new")}><Package className="w-4 h-4 mr-1" /> Nuevo pallet</WriteButton>
         </div>
       </div>
 
       {loadError && <p role="alert" className="text-sm text-destructive">{loadError}</p>}
+      <p className="text-xs text-muted-foreground">El origen se estima automáticamente por orden de vuelco, productor y variedad, descontando el descarte configurado. Podés crear pallets aunque falten vuelcos por sincronizar. No requiere QR ni selección de lotes.</p>
+      {balanceError && <p role="status" className="text-sm text-amber-700">Balance pendiente: {balanceError}. El palletizado puede continuar.</p>}
+      {balanceInfo?.offline && <p role="status" className="text-sm text-amber-700">{balanceInfo.asOf ? `Balance guardado al ${new Date(balanceInfo.asOf).toLocaleString('es-AR')}.` : 'Todavía no hay un balance descargado.'} Se conciliará al recuperar conexión.</p>}
       {loading ? (
         <div className="flex justify-center py-20"><div className="w-8 h-8 border-4 border-slate-200 border-t-red-600 rounded-full animate-spin" /></div>
       ) : (
@@ -129,6 +145,7 @@ export default function Produccion() {
                         <TableHead className="text-right">Neto</TableHead>
                         <TableHead className="text-right">Bultos</TableHead>
                         <TableHead>Estado</TableHead>
+                        <TableHead>Origen estimado</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -142,6 +159,7 @@ export default function Produccion() {
                           <TableCell className="text-right">{fmtKg(p.net_weight)}</TableCell>
                           <TableCell className="text-right">{p.package_count || 0}</TableCell>
                           <TableCell><StatusBadge status={p.status} label={STATION_ABBREV[p.status] || p.status} /></TableCell>
+                          <TableCell className="text-xs"><p>{fifoStatusLabel(p.trace_balance?.status)}</p><p>{p.trace_balance ? `${fmtKg(p.trace_balance.assigned_kg)} asignados · ${fmtKg(p.trace_balance.shortage_kg)} pendientes` : 'Esperando balance'}</p></TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
@@ -153,6 +171,7 @@ export default function Produccion() {
         </div>
       )}
 
+      {showDiscard && <DiscardForm rates={balanceInfo?.rates || []} onClose={() => setShowDiscard(false)} onSaved={() => {setShowDiscard(false);refresh();}} />}
       {formPallet && <PalletForm cats={cats} pallet={formPallet === "new" ? null : formPallet} onClose={() => setFormPallet(null)} onSaved={() => { setFormPallet(null); refresh(); }} />}
       {selectedPallet && <PalletDetail
         pallet={selectedPallet}
@@ -237,6 +256,7 @@ function PalletForm({ cats, onClose, onSaved, pallet }) {
         <DialogHeader><DialogTitle>{pallet ? `Editar pallet ${pallet.romaneo_number}` : "Nuevo pallet / romaneo"}</DialogTitle></DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-3">
           {error && <p className="text-sm text-destructive bg-destructive/10 p-2 rounded">{error}</p>}
+          <p className="text-xs text-muted-foreground">Los lotes de origen se vinculan automáticamente al conciliar los vuelcos y el descarte. No necesitás escanear QR ni esperar a otro puesto.</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs">Categoría *</Label>
@@ -314,6 +334,12 @@ function PalletDetail({ pallet, onClose, onEdit, onDelete }) {
           <div className="flex justify-center">
             <QRImage code={pallet.pallet_code} size={180} />
           </div>
+          <div className="rounded border p-3 text-sm space-y-1">
+            <p className="font-medium">Origen automático · estimado</p>
+            <p>{fifoStatusLabel(pallet.trace_balance?.status)}</p>
+            {pallet.trace_balance?.allocations.map(a => <p key={a.dump_id}>{a.lot_code}: {fmtKg(a.net_kg)} aprovechables · descarte {a.discard_percent}%</p>)}
+            {pallet.trace_balance && <p>Pendientes de conciliar: {fmtKg(pallet.trace_balance.shortage_kg)}</p>}
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
             <Info label="Código" value={pallet.pallet_code} />
             <Info label="Producto" value={pallet.product_type === "fresco" ? "Fresco" : "Arilos"} />
@@ -336,6 +362,29 @@ function PalletDetail({ pallet, onClose, onEdit, onDelete }) {
       </DialogContent>
     </Dialog>
   );
+}
+
+function DiscardForm({rates,onClose,onSaved}) {
+  const [date,setDate]=useState(()=>new Intl.DateTimeFormat('en-CA',{timeZone:'America/Argentina/San_Juan',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()));
+  const [percent,setPercent]=useState('');const [busy,setBusy]=useState(false);const [error,setError]=useState('');
+  async function save(event) {
+    event.preventDefault();setError('');
+    if(!percent.trim())return setError('Indicá el porcentaje de descarte; no se asume un valor automáticamente.');
+    setBusy(true);
+    try{await saveDiscardRate(date,Number(percent));onSaved();}catch(e){setError(e.message || 'No se pudo guardar');}finally{setBusy(false);}
+  }
+  return <Dialog open onOpenChange={onClose}><DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+    <DialogHeader><DialogTitle>Descarte por jornada</DialogTitle></DialogHeader>
+    <p className="text-sm">El porcentaje se aplica a los kilos volcados desde la fecha elegida, hasta la próxima configuración. Fresco y fruta para arilos comparten el mismo saldo aprovechable.</p>
+    <p className="text-xs text-muted-foreground">Cambiar una fecha anterior recalcula sus asignaciones estimadas. Las configuraciones anteriores quedan en el historial. El palletizado puede continuar sin configurar el porcentaje.</p>
+    <form onSubmit={save} className="space-y-3">
+      <Label htmlFor="discard-date">Vigente desde · hora de San Juan</Label><Input id="discard-date" type="date" required value={date} onChange={e=>setDate(e.target.value)} />
+      <Label htmlFor="discard-percent">Descarte estimado (%)</Label><Input id="discard-percent" type="number" min="0" max="100" step="0.01" required value={percent} onChange={e=>setPercent(e.target.value)} />
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+      <div className="flex justify-end gap-2"><Button type="button" variant="outline" onClick={onClose}>Cancelar</Button><Button disabled={busy}>{busy?'Guardando…':'Guardar porcentaje'}</Button></div>
+    </form>
+    <div className="text-xs space-y-1"><p className="font-medium">Historial de configuración</p>{rates.length ? [...rates].sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).slice(0,15).map(rate=><p key={rate.id}>{rate.effective_date} · {rate.discard_percent}% · {new Date(rate.created_at).toLocaleString('es-AR')}</p>):<p>Sin porcentaje configurado.</p>}</div>
+  </DialogContent></Dialog>;
 }
 
 function Info({ label, value }) {

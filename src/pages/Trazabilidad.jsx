@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, ArrowDownRight, ArrowUpRight, Package, Layers, Repeat, Truck } from "lucide-react";
 import { findTrace, lotTrace, palletTrace } from "@/lib/traceability.mjs";
+import {productionBalance} from '@/lib/productionBalance';
+import {fifoStatusLabel} from '@/lib/fifoTraceability.mjs';
 
 export default function Trazabilidad() {
   const [query, setQuery] = useState("");
@@ -28,7 +30,8 @@ export default function Trazabilidad() {
           base44.entities.Shipment.list(),
           base44.entities.MovementEvent.list(),
         ]);
-    return { lots, bins, dumps, runs, pallets, shipments, movements };
+    const balance=await productionBalance(pallets);
+    return { lots, bins, dumps, runs, pallets:balance.pallets, shipments, movements, balance };
   }
 
   async function search(code) {
@@ -70,7 +73,7 @@ export default function Trazabilidad() {
 
       {loading && <div className="flex justify-center py-10"><div className="w-8 h-8 border-4 border-slate-200 border-t-red-600 rounded-full animate-spin" /></div>}
 
-      {result && <TraceResult result={result} allData={allData} />}
+      {result && <><p className="text-sm text-muted-foreground">Vinculación estimada por balance FIFO, productor, variedad y descarte. No identifica la fruta exacta de cada caja. Las asignaciones pueden cambiar al sincronizar vuelcos anteriores o ajustar el descarte.</p><TraceResult result={result} allData={allData} /></>}
     </div>
   );
 }
@@ -112,7 +115,8 @@ function TraceResult({ result, allData }) {
             <TraceSection icon={Package} title="Pallets producidos" items={pallets} render={p => ({
               code: p.romaneo_number, rows: [
                 ["Producto", p.product_type === "fresco" ? "Fresco" : "Arilos"], ["Neto", fmtKg(p.net_weight)],
-                ["Bultos", String(p.package_count || 0)], ["Estado", p.status]
+                ["Bultos", String(p.package_count || 0)], ["Estado", p.status],
+                ["Balance de origen",fifoStatusLabel(p.trace_balance?.status)]
               ]
             })} />
             <TraceSection icon={Truck} title="Despachos" items={shipments} render={s => ({
@@ -145,8 +149,10 @@ function TraceResult({ result, allData }) {
             ["Línea", run.line], ["Turno", run.shift], ["Fecha", fmtDate(run.date)]
           ]} />}
           <PalletJourney pallet={entity} movements={allData.movements} shipments={allData.shipments} />
-          {!run && <p className="text-xs text-muted-foreground">Este pallet no tiene una corrida de producción vinculada. No hay un origen de lote confirmado.</p>}
-          <TraceSection icon={Repeat} title="Vuelcos (lotes que alimentaron la corrida)" items={dumps} render={d => ({
+          <p className="text-sm">{fifoStatusLabel(entity.trace_balance?.status)}{entity.trace_balance ? ` · ${fmtKg(entity.trace_balance.shortage_kg)} pendientes de conciliar` : ''}</p>
+          {entity.trace_balance?.allocations.map(a=><p key={a.dump_id} className="text-xs">{a.lot_code}: {fmtKg(a.net_kg)} aprovechables estimados de {fmtKg(a.raw_kg)} volcados · descarte {a.discard_percent}%</p>)}
+          {!lots.length && <p className="text-xs text-amber-700">Sin origen asignable con los vuelcos y porcentajes sincronizados. El pallet puede continuar su recorrido.</p>}
+          <TraceSection icon={Repeat} title="Vuelcos registrados en los lotes de origen" items={dumps} render={d => ({
             code: d.dump_code, rows: [
               ["BINs", d.bins_dumped ?? "—"], ["Kilos", fmtKg(d.net_weight)], ["Lote", d.receipt_lot_code], ["Fecha", fmtDate(d.dump_date)]
             ]
@@ -178,7 +184,8 @@ function TraceResult({ result, allData }) {
           ]} />
           <TraceSection icon={Package} title="Pallets cargados" items={pallets} render={p => ({
             code: p.romaneo_number, rows: [
-              ["Producto", p.product_type], ["Neto", fmtKg(p.net_weight)], ["Bultos", String(p.package_count || 0)]
+              ["Producto", p.product_type], ["Neto", fmtKg(p.net_weight)], ["Bultos", String(p.package_count || 0)],
+              ["Lotes de origen", palletTrace(allData, p).lots.map(lot => lot.lot_code).join(', ') || 'Pendiente de confirmar']
             ]
           })} />
         </CardContent>

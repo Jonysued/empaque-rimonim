@@ -1,0 +1,21 @@
+name: Verify pallet traceability
+on:
+  push:
+    branches: [codex/pallet-origin-traceability]
+  pull_request:
+    paths: ['src/**', 'supabase/**', 'scripts/**', 'package*.json']
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run lint && npm run typecheck
+      - run: npm run check:app && npm run check:offline && npm run check:companies && npm run check:cold-storage
+      - run: npm run build
