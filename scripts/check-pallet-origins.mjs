@@ -34,7 +34,9 @@ try {
  await db.exec('reset role');await db.query("update public.profiles set role='despacho' where id=$1",[operator]);await actor(operator);
  await assert.rejects(snapshot(),/no autorizado/);
  await actor(admin);
+ await db.exec('reset role');
  const other=(await db.query("insert into public.companies(name,slug) values('Other','other') returning id")).rows[0].id;
+ await actor(admin);
  await db.query("select set_config('request.headers',$1,false)",[JSON.stringify({'x-empaco-company':other})]);
  await assert.rejects(snapshot(),/no autorizado/);
  console.log('PASS: create/retry without dump or settings, late sync reconciliation, restricted source projection, rate roles and tenant isolation');

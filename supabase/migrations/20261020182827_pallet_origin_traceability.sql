@@ -9,6 +9,7 @@ create table public.production_discard_rates (
  created_by uuid not null default auth.uid() references public.profiles(id)
 );
 create index production_discard_rates_company_date on public.production_discard_rates(company_id,effective_date,created_at,id);
+create index production_discard_rates_actor on public.production_discard_rates(created_by);
 alter table public.production_discard_rates enable row level security;
 revoke all on public.production_discard_rates from public,anon,authenticated;
 grant select,insert on public.production_discard_rates to authenticated;
