@@ -1,6 +1,6 @@
 {
-  "build_number": "27",
+  "build_number": "28",
   "external": true,
-  "what_to_test": "Probar el funcionamiento general de la última actualización de Empaco.",
+  "what_to_test": "Probar las pantallas adaptadas a celular: Dashboard, búsquedas, tablas con detalle y formularios. Se conservan el logo y el menú de estaciones.",
   "verification_attempt": 1
 }
