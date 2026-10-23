@@ -1,0 +1,34 @@
+name: Empaco general app audit
+on:
+  push:
+    branches: [codex/general-app-audit-20261023]
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Inspect dependency advisories
+        run: |
+          node --input-type=module <<'JS'
+          import { spawnSync } from 'node:child_process';
+          const result = spawnSync('npm', ['audit', '--json'], { encoding: 'utf8' });
+          const report = JSON.parse(result.stdout);
+          if (report.error || !report.metadata) throw new Error(JSON.stringify(report.error || 'Missing audit report'));
+          console.log('AUDIT_REPORT_JSON=' + JSON.stringify({
+            metadata: report.metadata,
+            vulnerabilities: Object.values(report.vulnerabilities || {}).map(v => ({
+              name: v.name, severity: v.severity, isDirect: v.isDirect, range: v.range,
+              via: v.via, effects: v.effects, fixAvailable: v.fixAvailable, nodes: v.nodes
+            }))
+          }));
+          JS
+      - run: npm run lint && npm run typecheck
+      - run: npm run check:app && npm run check:offline && npm run check:companies && npm run check:cold-storage
+      - run: npm run build
