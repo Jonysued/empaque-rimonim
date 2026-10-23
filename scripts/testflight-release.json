@@ -1,6 +1,6 @@
 {
-  "build_number": "28",
+  "build_number": "29",
   "external": true,
-  "what_to_test": "Probar las pantallas adaptadas a celular: Dashboard, búsquedas, tablas con detalle y formularios. Se conservan el logo y el menú de estaciones.",
+  "what_to_test": "Verificar la presentación de los estados en iPhone, especialmente los textos largos en Consolidado de Lote. Etiquetas con esquinas suaves y mayor espacio para leer el estado completo.",
   "verification_attempt": 1
 }
