@@ -148,9 +148,10 @@ html.capacitor-ios .app-content {
 /* Mobile content refinements retain the existing logo header and station drawer. */
 .mobile-record-table td, .mobile-record-table th { white-space: normal; overflow-wrap: anywhere; }
 .mobile-record-table td:first-child { font-weight: 600; }
-.mobile-record-table th:first-child { width: 42%; }
+.mobile-record-table th:first-child { width: 37%; }
+.mobile-record-table td, .mobile-record-table th { padding-left: 4px; padding-right: 4px; }
 .mobile-record-table td button { text-align: left; }
-.mobile-record-table td .rounded-full { max-width: 100%; white-space: normal; }
+.mobile-record-table td .rounded-full { max-width: 100%; white-space: normal; overflow-wrap: normal; font-size: 11px; padding-left: 6px; padding-right: 6px; }
 @media (max-width: 767px) {
   .dashboard-mobile-controls > button { min-height: 52px; height: auto; padding: .5rem .25rem; white-space: normal; font-size: 11px; gap: .25rem; }
   .dashboard-mobile-controls > button svg { flex-shrink: 0; }
