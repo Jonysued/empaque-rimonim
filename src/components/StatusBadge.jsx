@@ -70,7 +70,7 @@ export default function StatusBadge({ status, className, label: customLabel }) {
   const color = STATUS_COLORS[status] || "bg-gray-100 text-gray-700";
   const label = customLabel || statusLabel(status);
   return (
-    <span className={cn("inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", color, className)}>
+    <span className={cn("status-badge inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium", color, className)}>
       {label}
     </span>
   );

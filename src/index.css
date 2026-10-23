@@ -146,6 +146,23 @@ html.capacitor-ios .app-content {
 }
 
 /* Mobile content refinements retain the existing logo header and station drawer. */
+@media (max-width: 767px) {
+  html.capacitor-ios .status-badge {
+    display: inline-block;
+    max-width: 100%;
+    border-radius: 6px;
+    padding: 4px 7px;
+    font-size: 11px;
+    line-height: 16px;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: normal;
+    word-break: normal;
+    vertical-align: top;
+  }
+  html.capacitor-ios [data-lot-summary] th:nth-child(2) { width: 14%; }
+  html.capacitor-ios [data-lot-summary] td:nth-child(3) > div { flex-wrap: wrap; }
+}
 .mobile-record-table td, .mobile-record-table th { white-space: normal; overflow-wrap: anywhere; }
 .mobile-record-table td:first-child { font-weight: 600; }
 .mobile-record-table th:first-child { width: 37%; }

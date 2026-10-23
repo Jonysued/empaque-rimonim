@@ -32,7 +32,7 @@ export default function ConsolidadoLote() {
       <div className="min-w-0 space-y-3">
         <p className="text-xs text-muted-foreground md:hidden">Tocá la flecha para ver el detalle completo.</p>
         <div className="min-w-0 overflow-hidden rounded-lg border bg-card">
-          <Table mobileSearch mobileColumns={[0,5,1]} aria-label="Consolidados de lote">
+          <Table mobileSearch mobileColumns={[0,5,1]} data-lot-summary aria-label="Consolidados de lote">
             <TableHeader><TableRow>
               <TableHead scope="col">Lote</TableHead><TableHead scope="col">Estado</TableHead>
               <TableHead scope="col">Transporte</TableHead><TableHead scope="col">Productor</TableHead>
