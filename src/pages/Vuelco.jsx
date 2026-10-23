@@ -1,5 +1,6 @@
 import { subscribeOperationalRefresh } from '@/lib/operationalRefresh.mjs';
 import { useAuth } from '@/lib/AuthContext';
+import PageInfo from '@/components/PageInfo';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { getOperations, submitOperation } from '@/lib/operationQueue';
@@ -77,10 +78,10 @@ export default function Vuelco() {
     finally { lock.current = false; setBusy(false); }
   }
   return <div className="space-y-6">
-    <div><h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Repeat className="w-6 h-6" /> Vuelco</h1><p className="text-muted-foreground">Escanear cada BIN para descontar automáticamente su peso del lote y habilitarlo para producción</p></div>
+    <div><h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Repeat className="w-6 h-6" /> Vuelco</h1><p className="text-muted-foreground">Registrar el vuelco de cada BIN</p></div>
     <div className="grid lg:grid-cols-2 gap-6">
       <Card><CardHeader><CardTitle className="text-base">Escanear BIN para volcar</CardTitle></CardHeader><CardContent className="space-y-4">
-        <p className="text-sm text-muted-foreground">Cada escaneo registra el vuelco de un bin. No hace falta ingresar kilos ni cantidad.</p>
+        <PageInfo title="Información del vuelco"><p>Cada escaneo registra el vuelco de un BIN y descuenta su peso del lote. No hace falta ingresar kilos ni cantidad.</p></PageInfo>
         {user?.role !== 'consulta' && (busy ? <p role="status">Registrando vuelco…</p> : <QRScanner label="Escanear QR del BIN" onScan={scan} />)}
         {error && <p role="alert" className="text-sm text-destructive bg-destructive/10 p-2 rounded">{error}</p>}
         {selected && <div className="rounded-lg border bg-blue-50 p-3 text-sm space-y-1"><div className="flex justify-between gap-2"><b className="font-mono">{selected.lot_code}</b><Button variant="ghost" size="sm" disabled={busy} onClick={() => setSelectedId(null)}>Cambiar lote</Button></div>

@@ -41,7 +41,7 @@ export default function PesadoLote() {
     setSelectedId(lot.id);
   }
   return <div className="min-w-0 space-y-6">
-    <div><h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Scale className="w-6 h-6" /> Pesado de Lote</h1><p className="text-muted-foreground">Ingresar bruto y tara; distribuir el neto entre los bines del lote cerrado</p></div>
+    <div><h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Scale className="w-6 h-6" /> Pesado de Lote</h1><p className="text-muted-foreground">Pesar y distribuir el neto entre los bines</p></div>
     {(loadError || error) && <p role="alert" className="text-sm text-destructive">{loadError || error}</p>}
     {user?.role !== 'consulta' && <Card><CardHeader><CardTitle className="text-base">{selected ? `Pesar ${selected.lot_code}` : 'Escanear el QR del lote cerrado'}</CardTitle></CardHeader>
       <CardContent>{selected && <Button type="button" variant="outline" className="mb-4" onClick={() => setDetailId(selected.id)}>Ver ficha completa e imprimir A4</Button>}{selected ? <WeightForm key={selected.id} lot={selected} onCancel={() => setSelectedId(null)} onSaved={async pending => {
@@ -49,9 +49,9 @@ export default function PesadoLote() {
       }} /> : <QRScanner label="Escanear QR del lote" onScan={scan} />}</CardContent></Card>}
     <div className="min-w-0 space-y-3"><h2 className="font-semibold">Pendientes de pesado ({available.length})</h2>
       {loading ? <p>Cargando…</p> : !available.length ? <p className="text-sm text-muted-foreground">No hay lotes cerrados pendientes de pesado.</p> : <>
-        <p className="text-xs text-muted-foreground sm:hidden">Deslizá la tabla hacia los costados para ver todas las columnas.</p>
+        <p className="text-xs text-muted-foreground md:hidden">Tocá la flecha para ver la ficha y las acciones disponibles.</p>
         <div className="min-w-0 overflow-hidden rounded-lg border bg-card">
-          <Table aria-label="Lotes pendientes de pesado">
+          <Table mobileSearch mobileColumns={[0,5,2]} aria-label="Lotes pendientes de pesado">
             <TableHeader><TableRow>
               <TableHead scope="col">Lote</TableHead><TableHead scope="col">Estado</TableHead>
               <TableHead scope="col">Transporte</TableHead><TableHead scope="col">Productor</TableHead>
@@ -77,9 +77,9 @@ export default function PesadoLote() {
         <Input id="weighed-lot-search" type="search" placeholder="Lote, transportista, productor o variedad" value={weighedSearch} onChange={event => { setWeighedSearch(event.target.value); setWeighedPage(1); }} />
       </div>
       {loading ? <p>Cargando…</p> : !filteredWeighed.length ? <p className="text-sm text-muted-foreground">{weighed.length ? 'No hay lotes pesados que coincidan con la búsqueda.' : 'No hay lotes pesados registrados.'}</p> : <>
-        <p className="text-xs text-muted-foreground sm:hidden">Deslizá la tabla hacia los costados para ver todas las columnas.</p>
+        <p className="text-xs text-muted-foreground md:hidden">Tocá la flecha para ver la ficha y las acciones disponibles.</p>
         <div className="min-w-0 overflow-hidden rounded-lg border bg-card">
-          <Table aria-label="Todos los lotes pesados">
+          <Table mobileColumns={[0,9,2]} aria-label="Todos los lotes pesados">
             <TableHeader><TableRow>
               <TableHead scope="col">Lote</TableHead><TableHead scope="col">Fecha de pesado</TableHead>
               <TableHead scope="col">Estado actual</TableHead><TableHead scope="col">Transporte</TableHead>

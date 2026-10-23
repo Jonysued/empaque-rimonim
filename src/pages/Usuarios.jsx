@@ -18,6 +18,8 @@ export default function Usuarios() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("produccion");
   const [inviting, setInviting] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
+  const [search, setSearch] = useState("");
   const [inviteMsg, setInviteMsg] = useState("");
 
   const load = () => {
@@ -65,7 +67,8 @@ export default function Usuarios() {
         <p className="text-sm text-destructive">{error}</p>
       )}
 
-      <Card>
+      <Button className="md:hidden" onClick={()=>setShowInvite(!showInvite)}><UserPlus className="h-4 w-4"/>Invitar usuario</Button>
+      <Card className={showInvite ? "" : "hidden md:block"}>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <UserPlus className="w-4 h-4" /> Invitar usuario
@@ -118,7 +121,7 @@ export default function Usuarios() {
             Los roles controlan qué secciones y operaciones puede usar cada persona.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2">
+        <CardContent className="space-y-2"><Input aria-label="Buscar usuario" placeholder="Buscar usuario" value={search} onChange={event=>setSearch(event.target.value)}/>
           {users === null && (
             <div className="flex items-center justify-center py-10">
               <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-800 rounded-full animate-spin" />
@@ -127,7 +130,7 @@ export default function Usuarios() {
           {users !== null && users.length === 0 && (
             <p className="text-sm text-muted-foreground py-4">No hay usuarios registrados.</p>
           )}
-          {users !== null && users.map((u) => (
+          {users !== null && users.filter(u=>!search.trim()||[u.full_name,u.email,roleLabel(u.role)].some(value=>String(value||"").toLowerCase().includes(search.trim().toLowerCase()))).map((u) => (
             <div
               key={u.id}
               className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 justify-between border rounded-lg px-4 py-3"
@@ -141,7 +144,7 @@ export default function Usuarios() {
                   {roleLabel(u.role)}
                 </span>
                 <Select value={u.role || "user"} onValueChange={(v) => changeRole(u.id, v)}>
-                  <SelectTrigger className="w-44">
+                  <SelectTrigger className="w-full sm:w-44">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

@@ -1,4 +1,5 @@
 import PalletJourney from '@/components/PalletJourney';
+import PageInfo from "@/components/PageInfo";
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { fmtKg, fmtDate } from "@/lib/qr";
@@ -73,7 +74,7 @@ export default function Trazabilidad() {
 
       {loading && <div className="flex justify-center py-10"><div className="w-8 h-8 border-4 border-slate-200 border-t-red-600 rounded-full animate-spin" /></div>}
 
-      {result && <><p className="text-sm text-muted-foreground">Vinculación estimada por balance FIFO, productor, variedad y descarte. No identifica la fruta exacta de cada caja. Las asignaciones pueden cambiar al sincronizar vuelcos anteriores o ajustar el descarte.</p><TraceResult result={result} allData={allData} /></>}
+      {result && <><PageInfo title="Sobre el origen estimado"><p>Vinculación estimada por balance FIFO, productor, variedad y descarte. No identifica la fruta exacta de cada caja. Las asignaciones pueden cambiar al sincronizar vuelcos anteriores o ajustar el descarte.</p></PageInfo><TraceResult result={result} allData={allData} /></>}
     </div>
   );
 }

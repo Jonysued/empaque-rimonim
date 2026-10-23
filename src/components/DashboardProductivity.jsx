@@ -1,4 +1,6 @@
 import React from 'react';
+import { Table } from '@/components/ui/table';
+import PageInfo from '@/components/PageInfo';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { fmtKg } from '@/lib/qr';
@@ -11,7 +13,7 @@ export default function DashboardProductivity({ metrics, data }) {
     return {location,occupied:pallets.length,capacity:Number.isFinite(capacity)&&capacity>0?capacity:null,kg:pallets.reduce((sum,pallet)=>sum+(Number(pallet.net_weight)||0),0)};
   });
   return <div className="min-w-0 space-y-5">
-    <p className="text-sm text-muted-foreground">Volumen del período y stock actual. Los filtros de fecha se aplican a la actividad; el stock incluye todos los días. Cuadro filtra únicamente bines.</p>
+    <PageInfo title="Actividad y stock"><p>Volumen del período y stock actual. Los filtros de fecha se aplican a la actividad; el stock incluye todos los días. Cuadro filtra únicamente bines.</p></PageInfo>
     <div className="grid grid-cols-1 min-[380px]:grid-cols-2 xl:grid-cols-4 gap-3">
       <Indicator label="Kg cosechados" value={fmtKg(p.harvestedKg)} detail={`${p.harvestedBins} bines · ${p.unweighedHarvested} todavía sin peso`}/>
       <Indicator label="Kg volcados" value={fmtKg(metrics.binStats.dumpedKg)} detail={`${metrics.binStats.dumpedBins} bines volcados`}/>
@@ -30,4 +32,4 @@ export default function DashboardProductivity({ metrics, data }) {
   </div>;
 }
 function Indicator({label,value,detail}) {return <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">{label}</p><p className="text-xl font-bold break-words mt-1">{value}</p><p className="text-xs text-muted-foreground mt-1">{detail}</p></CardContent></Card>;}
-function Rows({headers,children,empty}) {return <div className="overflow-x-auto"><table className="w-full min-w-[40rem] text-sm text-left [&_td]:p-2 [&_td]:whitespace-nowrap"><thead><tr className="border-b bg-muted/40">{headers.map(h=><th scope="col" className="p-2 font-medium whitespace-nowrap" key={h}>{h}</th>)}</tr></thead><tbody>{empty?<tr><td colSpan={headers.length} className="text-muted-foreground">Sin registros para mostrar.</td></tr>:children}</tbody></table></div>;}
+function Rows({headers,children,empty}) {return <div className="overflow-x-auto"><Table className="text-left [&_td]:p-2"><thead><tr className="border-b bg-muted/40">{headers.map(h=><th scope="col" className="p-2 font-medium whitespace-nowrap" key={h}>{h}</th>)}</tr></thead><tbody>{empty?<tr><td colSpan={headers.length} className="text-muted-foreground">Sin registros para mostrar.</td></tr>:children}</tbody></Table></div>;}

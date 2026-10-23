@@ -24,15 +24,15 @@ export default function ConsolidadoLote() {
   const available = bins.filter(bin => Number(bin.harvest_workflow) === 3 && !bin.receipt_lot_id && bin.pendingStatus !== 'conflict');
   return <div className="min-w-0 space-y-6">
     <div className="flex items-center justify-between flex-wrap gap-3"><div><h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Layers className="w-6 h-6" /> Consolidado de Lote</h1>
-      <p className="text-muted-foreground">Agrupar los bines registrados en Cosecha y cargar el transporte del lote</p></div>
+      <p className="text-muted-foreground">Agrupar bines y cerrar lotes</p></div>
       <WriteButton size="lg" onClick={()=>setShowForm(true)}><Plus className="w-5 h-5 mr-1" /> Nuevo consolidado</WriteButton></div>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
     <p className="text-sm text-muted-foreground">{available.length} BINs de cosecha disponibles para consolidar.</p>
     {loading ? <p>Cargando…</p> : !lots.length ? <Card><CardContent className="py-12 text-center">No hay lotes registrados.</CardContent></Card> :
       <div className="min-w-0 space-y-3">
-        <p className="text-xs text-muted-foreground sm:hidden">Deslizá la tabla hacia los costados para ver todas las columnas.</p>
+        <p className="text-xs text-muted-foreground md:hidden">Tocá la flecha para ver el detalle completo.</p>
         <div className="min-w-0 overflow-hidden rounded-lg border bg-card">
-          <Table aria-label="Consolidados de lote">
+          <Table mobileSearch mobileColumns={[0,5,1]} aria-label="Consolidados de lote">
             <TableHeader><TableRow>
               <TableHead scope="col">Lote</TableHead><TableHead scope="col">Estado</TableHead>
               <TableHead scope="col">Transporte</TableHead><TableHead scope="col">Productor</TableHead>

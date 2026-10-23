@@ -2,6 +2,8 @@ import { subscribeOperationalRefresh } from '@/lib/operationalRefresh.mjs';
 import { WriteButton, CorrectionButton } from '@/components/WriteButton';
 import { canCorrect } from '@/lib/permissions';
 import { useAuth } from '@/lib/AuthContext';
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { Input as SearchInput } from "@/components/ui/input";
 import React, { useState, useEffect, useRef } from "react";
 import { base44 } from "@/api/base44Client";
 import { generateCode, fmtKg, fmtDate, fmtNum } from "@/lib/qr";
@@ -10,7 +12,7 @@ import { loadPalletsIntoShipment, unloadPalletFromShipment, reopenShipmentForCor
 import { Checkbox } from "@/components/ui/checkbox";
 import QRLabel from "@/components/QRLabel";
 import PrintPackingList from "@/components/PrintPackingList";
-import StatusBadge from "@/components/StatusBadge";
+import StatusBadge, { statusLabel } from "@/components/StatusBadge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +26,8 @@ export default function Despachos() {
   const [shipments, setShipments] = useState([]);
   const [pallets, setPallets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("todos");
   const [loadError, setLoadError] = useState('');
   const request = useRef(0);
   const [showForm, setShowForm] = useState(false);
@@ -75,7 +79,7 @@ export default function Despachos() {
           <p>No hay despachos registrados.</p>
         </CardContent></Card>
       ) : (
-        <div className="grid gap-3">
+        <div className="space-y-3"><div className="md:hidden rounded-xl border bg-card p-4 space-y-3"><SearchInput aria-label="Buscar carga" placeholder="Buscar carga o cliente" value={search} onChange={event => setSearch(event.target.value)}/><select className="min-h-11 w-full rounded-md border bg-background px-3" aria-label="Estado de la carga" value={statusFilter} onChange={event=>setStatusFilter(event.target.value)}><option value="todos">Todos los estados</option>{[...new Set(shipments.map(item=>item.status))].map(value=><option key={value} value={value}>{statusLabel(value)}</option>)}</select><Table aria-label="Cargas y despachos"><TableHeader><TableRow><TableHead>Carga / cliente</TableHead><TableHead>Pallets</TableHead><TableHead>Estado</TableHead></TableRow></TableHeader><TableBody>{shipments.filter(s=>(statusFilter==="todos"||s.status===statusFilter)&&(!search.trim()||[s.load_number,s.client,s.destination,s.container_number].some(value=>String(value||"").toLowerCase().includes(search.trim().toLowerCase())))).map(s=><TableRow key={s.id} onClick={()=>setSelected(s)} className="cursor-pointer"><TableCell><button className="min-h-11 text-left font-semibold" onClick={()=>setSelected(s)}>{s.load_number}</button><p className="text-xs text-muted-foreground">{s.client||"Sin cliente"}</p></TableCell><TableCell>{(s.loaded_pallet_ids||[]).length} / {s.target_capacity||21}<p className="text-xs text-muted-foreground">{s.pendingTotalsUnavailable?"Peso pendiente":fmtKg(s.total_weight)}</p></TableCell><TableCell><StatusBadge status={s.status}/>{s.pendingStatus&&<p className="text-xs text-amber-800">{s.pendingStatus==="conflict"?"Requiere revisión":"Pendiente de sincronizar"}</p>}</TableCell></TableRow>)}</TableBody></Table></div><div className="hidden md:grid gap-3">
           {shipments.map(s => (
             <Card key={s.id} className="cursor-pointer hover:shadow-md" onClick={() => setSelected(s)}>
               <CardContent className="p-4">
@@ -99,7 +103,7 @@ export default function Despachos() {
               </CardContent>
             </Card>
           ))}
-        </div>
+        </div></div>
       )}
 
       {showForm && <ShipmentForm cats={cats} pallets={pallets} onClose={() => setShowForm(false)} onSaved={() => { setShowForm(false); refresh(); }} />}

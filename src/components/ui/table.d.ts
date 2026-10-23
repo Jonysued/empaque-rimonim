@@ -1,5 +1,5 @@
 import * as React from 'react';
-export const Table: React.ForwardRefExoticComponent<React.TableHTMLAttributes<HTMLTableElement> & React.RefAttributes<HTMLTableElement>>;
+export const Table: React.ForwardRefExoticComponent<React.TableHTMLAttributes<HTMLTableElement> & { mobileColumns?: number[]; mobileSecondary?: Record<number, number>; mobileSearch?: boolean } & React.RefAttributes<HTMLTableElement>>;
 export const TableHeader: React.ForwardRefExoticComponent<React.HTMLAttributes<HTMLTableSectionElement> & React.RefAttributes<HTMLTableSectionElement>>;
 export const TableBody: typeof TableHeader;
 export const TableFooter: typeof TableHeader;

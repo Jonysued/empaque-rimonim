@@ -19,7 +19,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Factory, Package } from "lucide-react";
+import PageInfo from "@/components/PageInfo";
+import { Factory, Package, Search } from "lucide-react";
 
 const PALLET_STATUSES = [
   { value: "armado", label: "Terminado" },
@@ -58,7 +59,8 @@ export default function Produccion() {
   const [balanceError, setBalanceError] = useState('');
   const [showDiscard, setShowDiscard] = useState(false);
   const [statusFilter, setStatusFilter] = useState("todos");
-  const filteredPallets = statusFilter === "todos" ? pallets : pallets.filter(p => p.status === statusFilter);
+  const [search, setSearch] = useState("");
+  const filteredPallets = pallets.filter(p => (statusFilter === "todos" || p.status === statusFilter) && (!search.trim() || [p.romaneo_number,p.pallet_code,p.producer,p.variety].some(value => String(value || "").toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()))));
 
   async function refresh() {
     const sequence = ++request.current;
@@ -103,16 +105,16 @@ export default function Produccion() {
         <div>
           <h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Factory className="w-6 h-6" /> Producción</h1>
           <p className="text-muted-foreground">Clasificación y pallets</p>
-          <p className="text-xs text-muted-foreground mt-1">Los insumos se descuentan automáticamente al confirmar el pallet. Las operaciones offline esperan la sincronización. <span>Los responsables de stock pueden revisar los pallets sin regla en Stock Insumos.</span>.</p>
+          <div className="hidden md:block"><p className="text-xs text-muted-foreground mt-1">Los insumos se descuentan automáticamente al confirmar el pallet. Las operaciones offline esperan la sincronización. <span>Los responsables de stock pueden revisar los pallets sin regla en Stock Insumos.</span>.</p></div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <CorrectionButton variant="outline" onClick={() => setShowDiscard(true)}>Descarte por jornada</CorrectionButton>
           <WriteButton onClick={() => setFormPallet("new")}><Package className="w-4 h-4 mr-1" /> Nuevo pallet</WriteButton>
+          <CorrectionButton variant="outline" onClick={() => setShowDiscard(true)}>Descarte por jornada</CorrectionButton>
         </div>
       </div>
 
       {loadError && <p role="alert" className="text-sm text-destructive">{loadError}</p>}
-      <p className="text-xs text-muted-foreground">El origen se estima automáticamente por orden de vuelco, productor y variedad, descontando el descarte configurado. Podés crear pallets aunque falten vuelcos por sincronizar. No requiere QR ni selección de lotes.</p>
+      <PageInfo title="Información de producción"><p>El origen se estima automáticamente por orden de vuelco, productor y variedad, descontando el descarte configurado. Podés crear pallets aunque falten vuelcos por sincronizar. No requiere QR ni selección de lotes.</p><p>Los insumos se descuentan al confirmar el pallet. Las operaciones offline esperan su sincronización.</p></PageInfo>
       {balanceError && <p role="status" className="text-sm text-amber-700">Balance pendiente: {balanceError}. El palletizado puede continuar.</p>}
       {balanceInfo?.offline && <p role="status" className="text-sm text-amber-700">{balanceInfo.asOf ? `Balance guardado al ${new Date(balanceInfo.asOf).toLocaleString('es-AR')}.` : 'Todavía no hay un balance descargado.'} Se conciliará al recuperar conexión.</p>}
       {loading ? (
@@ -122,19 +124,19 @@ export default function Produccion() {
           {/* Pallets */}
           <Card>
             <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center gap-3 justify-between space-y-0">
-              <CardTitle className="text-base">Pallets / Romaneos</CardTitle>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <div><CardTitle className="text-base">Pallets / Romaneos</CardTitle><p className="mt-1 text-sm text-muted-foreground">{filteredPallets.length} pallets · {fmtKg(filteredPallets.reduce((total,p) => total + Number(p.net_weight || 0),0))}{filteredPallets.some(p => p.pendingStatus) ? " · Incluye pendientes de este dispositivo" : ""}</p></div>
+              <div className="w-full sm:w-auto space-y-2"><div className="relative"><Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground"/><Input aria-label="Buscar pallet" placeholder="Buscar romaneo o código" value={search} onChange={event => setSearch(event.target.value)} className="pl-9"/></div><Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full sm:w-48"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="todos">Todos los estados</SelectItem>
                   {PALLET_STATUSES.map(s => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
                 </SelectContent>
-              </Select>
+              </Select></div>
             </CardHeader>
             <CardContent>
               {pallets.length === 0 ? <p className="text-sm text-muted-foreground">Sin pallets creados.</p> : filteredPallets.length === 0 ? <p className="text-sm text-muted-foreground">No hay pallets con este estado.</p> : (
                 <div className="overflow-x-auto">
-                  <Table>
+                  <Table mobileColumns={[0,2,7]} mobileSecondary={{2:5}} aria-label="Pallets y romaneos">
                     <TableHeader>
                       <TableRow>
                         <TableHead>Romaneo</TableHead>

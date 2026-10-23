@@ -45,14 +45,14 @@ export default function Recepcion() {
   const harvests = bins.filter(bin => Number(bin.harvest_workflow) === 3);
   return <div className="min-w-0 space-y-6">
     <div><h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Sprout className="w-6 h-6" /> Cosecha</h1>
-      <p className="text-muted-foreground">Pegar el QR en el bin, escanearlo y registrar su información de cosecha</p></div>
+      <p className="text-muted-foreground">Bines registrados en cosecha</p></div>
     {(error || scanError) && <p role="alert" className="text-sm text-destructive">{error || scanError}</p>}
     {user?.role !== 'consulta' && <Card><CardContent className="p-4 space-y-3">{cats ? <QRScanner label="Escanear QR del BIN para registrar cosecha" onScan={scan} /> : <p>Cargando catálogos…</p>}</CardContent></Card>}
     <div className="min-w-0 space-y-3"><h2 className="font-semibold">BINs registrados ({harvests.length})</h2>
       {loading ? <p>Cargando…</p> : !harvests.length ? <p className="text-sm text-muted-foreground">Escaneá el primer BIN para registrar su cosecha.</p> : <>
-        <p className="text-xs text-muted-foreground sm:hidden">Deslizá la tabla hacia los costados para ver todas las columnas.</p>
+        <p className="text-xs text-muted-foreground md:hidden">Tocá la flecha para ver todos los datos del BIN.</p>
         <div className="min-w-0 overflow-hidden rounded-lg border bg-card">
-          <Table aria-label="BINs registrados en Cosecha">
+          <Table mobileSearch mobileColumns={[0,4,1]} aria-label="BINs registrados en Cosecha">
             <TableHeader><TableRow>
               <TableHead scope="col">BIN</TableHead><TableHead scope="col">Estado</TableHead>
               <TableHead scope="col">Productor</TableHead><TableHead scope="col">Variedad</TableHead>

@@ -76,7 +76,8 @@ export default function Catalogos() {
         <p className="text-muted-foreground">Configuración de valores operativos</p>
       </div>
       {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
-      <div className="flex flex-wrap gap-2">
+      <div className="md:hidden"><Label htmlFor="mobile-catalog">Catálogo</Label><select id="mobile-catalog" className="mt-2 min-h-11 w-full rounded-md border bg-background px-3" value={activeType} onChange={event => setActiveType(event.target.value)}>{CONFIG_TABS.map(tab => <option key={tab.value} value={tab.value}>{tab.label}</option>)}</select></div>
+      <div className="hidden md:flex flex-wrap gap-2">
         {CONFIG_TABS.map(t => (
           <button
             key={t.value}

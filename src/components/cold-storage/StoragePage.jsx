@@ -101,7 +101,7 @@ export default function StoragePage({ type, AddForm }) {
       const count = pallets.filter(p => p.location_id === l.id).length;
       const locked = cycles.some(c => c.tunnel_id === l.id && c.status === 'abierto');
       return <button key={l.id} type="button" onClick={() => selectLocation(l.id)} className={`min-w-0 rounded-xl border p-4 text-left space-y-1 ${selectedId === l.id ? 'border-cyan-600 bg-cyan-50' : 'bg-white'}`}>
-        <b className="block break-words">{l.name}</b><span className="block text-sm text-muted-foreground">{count}/{l.capacity || '—'} pallets{locked ? ' · Bloqueado' : ''}</span>
+        <b className="block break-words">{l.name}</b><span className="block text-sm text-muted-foreground">{count}/{l.capacity || '—'} pallets</span><span className={`inline-block rounded-full px-2 py-1 text-xs ${locked ? 'bg-cyan-100 text-cyan-800' : count ? 'bg-teal-100 text-teal-800' : 'bg-muted text-muted-foreground'}`}>{locked ? 'En proceso' : count ? (tunnel && pallets.some(p=>p.location_id===l.id && p.status==='prefrio_finalizado') ? 'Finalizado' : 'Con pallets') : 'Libre'}</span><div className="h-2 w-full rounded-full bg-muted overflow-hidden"><div className="h-full rounded-full bg-primary transition-all" style={{width: `${Number(l.capacity)>0?Math.min(100,count/Number(l.capacity)*100):0}%`}}/></div>
       </button>;
     })}</div>
     {!locations.length && <p className="py-8 text-center text-muted-foreground">No hay ubicaciones configuradas.</p>}

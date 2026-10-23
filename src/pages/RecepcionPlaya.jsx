@@ -42,7 +42,7 @@ export default function RecepcionPlaya() {
     finally { setSaving(false); }
   }
   return <div className="min-w-0 space-y-6">
-    <div><h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Warehouse className="w-6 h-6" /> Recepción Playa Empaque</h1><p className="text-muted-foreground">Escanear el QR del lote recibido para habilitarlo en Vuelco</p></div>
+    <div><h1 className="text-2xl font-heading font-bold flex items-center gap-2"><Warehouse className="w-6 h-6" /> Recepción Playa Empaque</h1><p className="text-muted-foreground">Lotes pendientes de llegada</p></div>
     {(loadError || error) && <p role="alert" className="text-sm text-destructive">{loadError || error}</p>}
     {user?.role !== 'consulta' && <Card><CardHeader><CardTitle className="text-base">Recibir lote en playa</CardTitle></CardHeader><CardContent className="space-y-4">
       {selected ? <><LotSummary lot={selected} /><p className="text-sm">{selected.bins_count} BINs · Neto {fmtKg(selected.net_weight)}</p><PendingLotNotice lot={selected} />
@@ -51,9 +51,9 @@ export default function RecepcionPlaya() {
     </CardContent></Card>}
     <div className="min-w-0 space-y-3"><h2 className="font-semibold">Pendientes de llegada ({available.length})</h2><p className="text-sm text-muted-foreground">Escaneá el QR del lote cuando llegue al empaque.</p>
       {loading ? <p>Cargando…</p> : !available.length ? <p className="text-sm text-muted-foreground">No hay lotes pesados pendientes de recibir.</p> : <>
-        <p className="text-xs text-muted-foreground sm:hidden">Deslizá la tabla hacia los costados para ver todas las columnas.</p>
+        <p className="text-xs text-muted-foreground md:hidden">Tocá la flecha para ver todos los datos del lote.</p>
         <div className="min-w-0 overflow-hidden rounded-lg border bg-card">
-          <Table aria-label="Lotes pendientes de llegada a Playa Empaque">
+          <Table mobileSearch mobileColumns={[0,7,5]} aria-label="Lotes pendientes de llegada a Playa Empaque">
             <TableHeader><TableRow>
               <TableHead scope="col">Lote</TableHead><TableHead scope="col">Estado</TableHead>
               <TableHead scope="col">Transporte</TableHead><TableHead scope="col">Productor</TableHead>

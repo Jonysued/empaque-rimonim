@@ -98,7 +98,7 @@ export default function SyncStatus() {
   }
 
   if (online && !operations.length) {
-    if (!Capacitor.isNativePlatform()) return null;
+    if (!Capacitor.isNativePlatform() || offlineReady) return null;
     return <p role="status" className="mb-5 text-xs text-muted-foreground">
       {offlineReady ? "Datos de consulta guardados para usar sin conexión." : offlineError ? "No se pudieron preparar todos los datos sin conexión. Abrí las secciones que necesites mientras tengas señal." : "Preparando datos para usar sin conexión…"}
     </p>;
